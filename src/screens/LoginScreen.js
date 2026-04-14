@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { 
+  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  Alert, ActivityIndicator, ImageBackground, Image 
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Expo's built-in icons
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 
@@ -7,6 +11,8 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -17,26 +23,15 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // 1. Send data to Laravel
-      const response = await api.post('/login', {
-        email: email,
-        password: password,
-      });
-
-      // 2. Extract the token and user data from Laravel's response
+      const response = await api.post('/login', { email, password });
       const { token, alumni } = response.data;
-
-      // 3. Securely save the token to the phone
-      await SecureStore.setItemAsync('userToken', token);
       
+      await SecureStore.setItemAsync('userToken', token);
       Alert.alert('Success!', `Welcome back, ${alumni.first_name}!`);
       
-      // 4. Navigate to the Home Screen (we will build this next)
-      // navigation.replace('Home'); 
-
+    navigation.replace('Home'); 
     } catch (error) {
-      console.error('Login Error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to connect to the server. Check your network.';
+      const errorMessage = error.response?.data?.message || 'Failed to connect to the server.';
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
@@ -44,50 +39,200 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>LumiNUs</Text>
-      <Text style={styles.subtitle}>Alumni Portal</Text>
+    // 1. The Yellow Building Background
+    <ImageBackground 
+      source={require('../../assets/images/unnamed.png')} 
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      
+      {/* 2. The Blue Card Container */}
+      <View style={styles.cardContainer}>
+        
+        {/* Logo */}
+        <Image 
+          source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
+          style={styles.logo} 
+          resizeMode="contain"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email Address"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+        {/* Email Field */}
+        <Text style={styles.label}>Email Address</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Your Email Address"
+          placeholderTextColor="#A0A0A0"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        {/* Password Field */}
+        <Text style={styles.label}>Password</Text>
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Enter Your Password"
+            placeholderTextColor="#A0A0A0"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#666" />
+          </TouchableOpacity>
+        </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Log In</Text>
-        )}
-      </TouchableOpacity>
+        {/* Remember Me & Forget Password Row */}
+        <View style={styles.optionsRow}>
+          <TouchableOpacity 
+            style={styles.rememberContainer} 
+            onPress={() => setRememberMe(!rememberMe)}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Ionicons name="checkmark" size={14} color="#31429B" />}
+            </View>
+            <Text style={styles.optionText}>Remember Me</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => console.log('Navigate to Register')}>
-        <Text style={styles.linkText}>Don't have an account? Register here.</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity>
+            <Text style={styles.optionText}>Forget Password</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sign In Button */}
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="#31429B" />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Sign Up Link */}
+        <View style={styles.footerRow}>
+          <Text style={styles.footerText}>Don't Have An Account? </Text>
+          <TouchableOpacity onPress={() => console.log('Navigate to Register')}>
+            <Text style={styles.signUpText}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#f9f9f9' },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#00205B', textAlign: 'center' }, // NU Blue
-  subtitle: { fontSize: 18, color: '#FFB81C', textAlign: 'center', marginBottom: 40 }, // NU Gold
-  input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#ddd' },
-  button: { backgroundColor: '#00205B', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  linkText: { color: '#00205B', textAlign: 'center', marginTop: 20, textDecorationLine: 'underline' }
+  backgroundImage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E5B80B',
+  },
+  cardContainer: {
+    backgroundColor: '#31429B', // Exact NU Blue from design
+    width: '88%',
+    borderRadius: 20,
+    padding: 30,
+    elevation: 10, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  logo: {
+    width: '100%',
+    height: 50,
+    marginBottom: 35,
+  },
+  label: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 14,
+    marginBottom: 20,
+    color: '#333',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: '#333',
+  },
+  eyeIcon: {
+    padding: 10,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1,
+    borderColor: '#F2C919',
+    borderRadius: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  checkboxChecked: {
+    backgroundColor: '#F2C919',
+  },
+  optionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+  },
+  button: {
+    backgroundColor: '#F2C919', // Exact NU Gold from design
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 25,
+  },
+  buttonText: {
+    color: '#31429B',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  footerText: {
+    color: '#E0E0E0',
+    fontSize: 13,
+  },
+  signUpText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
 });
 
 export default LoginScreen;
