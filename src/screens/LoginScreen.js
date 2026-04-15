@@ -100,7 +100,7 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity>
-            <Text style={styles.optionText}>Forget Password</Text>
+            <Text style={styles.optionText}>Forget Password?</Text>
           </TouchableOpacity>
         </View>
 
@@ -112,14 +112,6 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>Sign In</Text>
           )}
         </TouchableOpacity>
-
-        {/* Sign Up Link */}
-        <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Don't Have An Account? </Text>
-          <TouchableOpacity onPress={() => console.log('Navigate to Register')}>
-            <Text style={styles.signUpText}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
 
       </View>
     </ImageBackground>
