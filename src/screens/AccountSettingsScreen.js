@@ -81,53 +81,94 @@ const AccountSettingsScreen = ({ navigation }) => {
       [field]: value,
     }));
   };
-
   const handleSave = async () => {
     if (!userData?.email) {
       setErrorMessage('Missing the current account email.');
       return;
     }
 
-    const payload = {
-      first_name: formData.first_name.trim(),
-      middle_name: formData.middle_name.trim(),
-      last_name: formData.last_name.trim(),
-      phone_number: formData.phone_number.trim(),
-      email: formData.email.trim(),
-      date_of_birth: formData.date_of_birth.trim(),
-      sex: formData.sex.trim(),
-      alumni_photo: formData.alumni_photo.trim(),
+    const fields = ['first_name', 'middle_name', 'last_name', 'phone_number', 'email', 'date_of_birth', 'sex', 'alumni_photo'];
+
+    const getChangedPayload = () => {
+      const changes = {};
+      fields.forEach((f) => {
+        const newVal = (formData[f] ?? '').trim();
+        const oldValRaw = userData?.[f];
+        const oldVal = oldValRaw == null ? '' : String(oldValRaw).slice(0, 10);
+
+        // for date_of_birth we normalized to YYYY-MM-DD elsewhere; compare slices
+        if (f === 'date_of_birth') {
+          const oldDate = userData?.date_of_birth ? String(userData.date_of_birth).slice(0, 10) : '';
+          if (newVal !== oldDate) changes[f] = newVal;
+        } else {
+          if (newVal !== (oldValRaw ?? '')) changes[f] = newVal;
+        }
+      });
+      return changes;
     };
 
-    try {
-      setSaving(true);
-      setErrorMessage('');
+    const changes = getChangedPayload();
 
-      const response = await api.put('/alumni/profile', payload);
-      const data = response.data?.alumni ?? null;
-
-      if (data) {
-        setUserData(data);
-        setFormData({
-          first_name: data.first_name || '',
-          middle_name: data.middle_name || '',
-          last_name: data.last_name || '',
-          phone_number: data.phone_number || '',
-          email: data.email || '',
-          date_of_birth: data.date_of_birth ? String(data.date_of_birth).slice(0, 10) : '',
-          sex: data.sex || '',
-          alumni_photo: data.alumni_photo || '',
-        });
-        await SecureStore.setItemAsync('userEmail', data.email);
-      }
-
-      Alert.alert('Saved', 'Your account details were updated successfully.');
-    } catch (saveError) {
-      console.error('Failed to save account settings:', saveError);
-      setErrorMessage('Unable to save account details right now.');
-    } finally {
-      setSaving(false);
+    if (Object.keys(changes).length === 0) {
+      Alert.alert('No changes', 'You have not modified any fields.');
+      return;
     }
+
+    const fieldLabels = {
+      first_name: 'First Name',
+      middle_name: 'Middle Name',
+      last_name: 'Last Name',
+      phone_number: 'Mobile Number',
+      email: 'Email',
+      date_of_birth: 'Date of Birth',
+      sex: 'Gender',
+      alumni_photo: 'Profile Photo URL',
+    };
+
+    const changedNames = Object.keys(changes).map((k) => fieldLabels[k] || k).join(', ');
+
+    Alert.alert(
+      'Confirm Save',
+      `Save changes to: ${changedNames}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: async () => {
+            try {
+              setSaving(true);
+              setErrorMessage('');
+
+              const response = await api.put('/alumni/profile', changes);
+              const data = response.data?.alumni ?? null;
+
+              if (data) {
+                setUserData(data);
+                setFormData({
+                  first_name: data.first_name || '',
+                  middle_name: data.middle_name || '',
+                  last_name: data.last_name || '',
+                  phone_number: data.phone_number || '',
+                  email: data.email || '',
+                  date_of_birth: data.date_of_birth ? String(data.date_of_birth).slice(0, 10) : '',
+                  sex: data.sex || '',
+                  alumni_photo: data.alumni_photo || '',
+                });
+                await SecureStore.setItemAsync('userEmail', data.email);
+              }
+
+              Alert.alert('Saved', 'Your account details were updated successfully.');
+            } catch (saveError) {
+              console.error('Failed to save account settings:', saveError);
+              setErrorMessage('Unable to save account details right now.');
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const profileName = userData

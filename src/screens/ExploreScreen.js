@@ -6,6 +6,8 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -60,6 +62,8 @@ const SECTION_DATA = [
       {
         label: 'NU Website',
         icon: require('../../assets/images/nu-lipa-logo-portrait-white-version-21.png'),
+        action: 'openUrl',
+        url: 'https://national-u.edu.ph',
       },
     ],
   },
@@ -82,6 +86,20 @@ const ExploreScreen = ({ navigation }) => {
         return;
       }
       navigation.navigate('Messages');
+    }
+
+    if (item.action === 'openUrl' && item.url) {
+      Linking.canOpenURL(item.url)
+        .then((supported) => {
+          if (supported) {
+            return Linking.openURL(item.url);
+          }
+          throw new Error('Cannot open URL');
+        })
+        .catch((err) => {
+          console.error('Failed to open URL', err);
+          Alert.alert('Unable to open link', 'Could not open the website.');
+        });
     }
   };
 
