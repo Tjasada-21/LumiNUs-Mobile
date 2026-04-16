@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, SafeAreaView, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable
+  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
@@ -68,19 +69,56 @@ const HomeScreen = () => {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* 1. TOP HEADER */}
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
-          style={styles.headerLogoImage} 
-          resizeMode="contain" 
-        />
-        <View style={styles.badgeContainer}>
-          <Text style={styles.badgeText}>NU LIPA</Text>
+  const notifData = Array.isArray(notifications) ? notifications : [];
+
+  const renderEmptyNotifications = () => (
+    <View style={styles.emptyNotifWrap}>
+      <Text style={styles.emptyNotifText}>No notifications yet.</Text>
+    </View>
+  );
+
+  const renderNotificationItem = ({ item }) => {
+    const name = String(item?.name ?? 'Unknown User');
+    const time = String(item?.time ?? '');
+    const avatarUri = item?.avatar
+      ? String(item.avatar)
+      : 'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827';
+
+    return (
+      <View style={styles.notifCard}>
+        <Image source={{ uri: avatarUri }} style={styles.notifAvatar} />
+        <View style={styles.notifBody}>
+          <Text style={styles.notifName}>{name}</Text>
+          <Text style={styles.notifAction}>sent you a connection request.</Text>
+          {!!time && <Text style={styles.notifTime}>{time}</Text>}
+
+          <View style={styles.notifButtonsRow}>
+            <TouchableOpacity style={styles.btnAccepted}>
+              <Text style={styles.btnAcceptedText}>Accepted</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnDelete}>
+              <Text style={styles.btnDeleteText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.safeAreaTop} edges={['top']}>
+      <View style={styles.container}>
+        {/* 1. TOP HEADER */}
+        <View style={styles.header}>
+          <Image 
+            source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
+            style={styles.headerLogoImage} 
+            resizeMode="contain" 
+          />
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>NU LIPA</Text>
+          </View>
+        </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         
@@ -207,149 +245,131 @@ const HomeScreen = () => {
          
       </ScrollView>
 
-      {/* NEW: LEFT SLIDE MENU */}
-      <Modal
-        transparent
-        visible={isMenuVisible}
-        animationType="none"
-        onRequestClose={closeMenu}
-      >
-        <View style={styles.sideMenuRoot}>
-          <Pressable style={styles.sideMenuOverlay} onPress={closeMenu} />
-          <Animated.View
-            style={[
-              styles.sideMenuContainer,
-              { transform: [{ translateX: menuTranslateX }] }
-            ]}
-          >
-            <View style={styles.sideMenuHeader}>
-              <Text style={styles.sideMenuTitle}>Menu</Text>
-              <TouchableOpacity onPress={closeMenu}>
-                <Ionicons name="close" size={34} color="#F2C919" />
-              </TouchableOpacity>
-            </View>
+        {/* NEW: LEFT SLIDE MENU */}
+        <Modal
+          transparent
+          visible={isMenuVisible}
+          animationType="none"
+          onRequestClose={closeMenu}
+        >
+          <View style={styles.sideMenuRoot}>
+            <Pressable style={styles.sideMenuOverlay} onPress={closeMenu} />
+            <Animated.View
+              style={[
+                styles.sideMenuContainer,
+                { transform: [{ translateX: menuTranslateX }] }
+              ]}
+            >
+              <View style={styles.sideMenuHeader}>
+                <Text style={styles.sideMenuTitle}>Menu</Text>
+                <TouchableOpacity onPress={closeMenu}>
+                  <Ionicons name="close" size={34} color="#F2C919" />
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.sideMenuAccent} />
+              <View style={styles.sideMenuAccent} />
 
-            <View style={styles.sideMenuBody}>
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuIconCircle}>
-                  <Ionicons name="person-outline" size={22} color="#31429B" />
-                </View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuItemTitle}>Account Settings</Text>
-                  <Text style={styles.menuItemSub}>Manage Your Information</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuIconCircle}>
-                  <Ionicons name="people-outline" size={22} color="#31429B" />
-                </View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuItemTitle}>My Connections</Text>
-                  <Text style={styles.menuItemSub}>View Your Connections</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuIconCircle}>
-                  <Ionicons name="reader-outline" size={22} color="#31429B" />
-                </View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuItemTitle}>My Registrations</Text>
-                  <Text style={styles.menuItemSub}>View Your Event Registrations</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuIconCircle}>
-                  <Ionicons name="book-outline" size={22} color="#31429B" />
-                </View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuItemTitle}>Get your Master’s or Second Degree</Text>
-                  <Text style={styles.menuItemSub}>Continue studying your chosen field</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuIconCircle}>
-                  <Ionicons name="search-outline" size={22} color="#31429B" />
-                </View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuItemTitle}>Explore the App</Text>
-                  <Text style={styles.menuItemSub}>Take a Tour of the App!</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.sideMenuFooter}>
-              <TouchableOpacity style={styles.signOutButton}>
-                <Text style={styles.signOutButtonText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
-
-      {/* --- NOTIFICATIONS MODAL --- */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isNotifVisible}
-        onRequestClose={() => setIsNotifVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            
-            {/* Top Blue Header */}
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setIsNotifVisible(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={28} color="#F2C919" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>Notifications</Text>
-              <View style={{ width: 28 }} /> {/* Empty view to keep title centered */}
-            </View>
-            
-            {/* Yellow Accent Line */}
-            <View style={styles.modalAccentLine} />
-
-            {/* Notification List */}
-            <FlatList
-              data={notifications}
-              keyExtractor={(item, index) => String(item?.id ?? index)}
-              contentContainerStyle={styles.notifList}
-              ListEmptyComponent={<Text style={{ color: '#666' }}>No notifications yet.</Text>}
-              renderItem={({ item }) => (
-                <View style={styles.notifCard}>
-                  <Image source={{ uri: item.avatar }} style={styles.notifAvatar} />
-                  <View style={styles.notifBody}>
-                    <Text style={styles.notifText}>
-                      <Text style={styles.notifName}>{item.name} </Text>
-                      <Text style={styles.notifAction}>sent you a connection request. </Text>
-                      <Text style={styles.notifTime}>{item.time}</Text>
-                    </Text>
-
-                    <View style={styles.notifButtonsRow}>
-                      <TouchableOpacity style={styles.btnAccepted}>
-                        <Text style={styles.btnAcceptedText}>Accepted</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.btnDelete}>
-                        <Text style={styles.btnDeleteText}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
+              <View style={styles.sideMenuBody}>
+                <TouchableOpacity style={styles.menuItem}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name="person-outline" size={22} color="#31429B" />
                   </View>
-                </View>
-              )}
-            />
+                  <View style={styles.menuTextWrap}>
+                    <Text style={styles.menuItemTitle}>Account Settings</Text>
+                    <Text style={styles.menuItemSub}>Manage Your Information</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name="people-outline" size={22} color="#31429B" />
+                  </View>
+                  <View style={styles.menuTextWrap}>
+                    <Text style={styles.menuItemTitle}>My Connections</Text>
+                    <Text style={styles.menuItemSub}>View Your Connections</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name="reader-outline" size={22} color="#31429B" />
+                  </View>
+                  <View style={styles.menuTextWrap}>
+                    <Text style={styles.menuItemTitle}>My Registrations</Text>
+                    <Text style={styles.menuItemSub}>View Your Event Registrations</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name="book-outline" size={22} color="#31429B" />
+                  </View>
+                  <View style={styles.menuTextWrap}>
+                    <Text style={styles.menuItemTitle}>Get your Master’s or Second Degree</Text>
+                    <Text style={styles.menuItemSub}>Continue studying your chosen field</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name="search-outline" size={22} color="#31429B" />
+                  </View>
+                  <View style={styles.menuTextWrap}>
+                    <Text style={styles.menuItemTitle}>Explore the App</Text>
+                    <Text style={styles.menuItemSub}>Take a Tour of the App!</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.sideMenuFooter}>
+                <TouchableOpacity style={styles.signOutButton}>
+                  <Text style={styles.signOutButtonText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+
+        {/* --- NOTIFICATIONS MODAL --- */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={isNotifVisible}
+          onRequestClose={() => setIsNotifVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              
+              {/* Top Blue Header */}
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setIsNotifVisible(false)} style={styles.closeBtn}>
+                  <Ionicons name="close" size={28} color="#F2C919" />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>Notifications</Text>
+                <View style={styles.modalHeaderSpacer} />
+              </View>
+              
+              {/* Yellow Accent Line */}
+              <View style={styles.modalAccentLine} />
+
+              {/* Notification List */}
+              <FlatList
+                data={notifData}
+                keyExtractor={(item, index) => String(item?.id ?? index)}
+                contentContainerStyle={styles.notifList}
+                ListEmptyComponent={renderEmptyNotifications}
+                renderItem={renderNotificationItem}
+              />
+            </View>
+          </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
   container: { flex: 1, backgroundColor: '#F5F6F8' },
   header: { 
     backgroundColor: '#31429B', padding: 15, flexDirection: 'row', 
@@ -469,6 +489,9 @@ headerLogoImage: {
     fontSize: 20,
     fontWeight: 'bold',
   },
+  modalHeaderSpacer: {
+    width: 28,
+  },
   closeBtn: { padding: 5 },
   modalAccentLine: {
     height: 5,
@@ -476,6 +499,16 @@ headerLogoImage: {
   },
   notifList: {
     padding: 20,
+    flexGrow: 1,
+  },
+  emptyNotifWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+  },
+  emptyNotifText: {
+    color: '#666',
+    fontSize: 14,
   },
   notifCard: {
     flexDirection: 'row',
@@ -493,21 +526,22 @@ headerLogoImage: {
   notifBody: {
     flex: 1,
   },
-  notifText: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
   notifName: {
     color: '#31429B',
     fontWeight: 'bold',
+    fontSize: 14,
+    lineHeight: 20,
   },
   notifAction: {
     color: '#666',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 2,
   },
   notifTime: {
     color: '#A0A0A0',
     fontSize: 12,
+    marginBottom: 8,
   },
   notifButtonsRow: {
     flexDirection: 'row',
