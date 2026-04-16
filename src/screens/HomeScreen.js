@@ -189,7 +189,7 @@ const HomeScreen = () => {
                 ]}
               >
                 <ImageBackground
-                  source={require('../../assets/images/alumni-id.png')}
+                  source={require('../../assets/images/BlankID_Front 1.png')}
                   style={styles.idBackground}
                   imageStyle={styles.idBackgroundImage}
                   resizeMode="cover"
@@ -479,15 +479,16 @@ headerLogoImage: {
   },
   idPhoto: {
     position: 'absolute',
-    top: '11%',
-    right: '4.5%',
-    width: '28.5%',
-    height: '58%',
+    top: '12%',
+    right: '2.5%',
+    width: '28.7%',
+    height: '59%',
     borderRadius: 2,
     backgroundColor: '#E5E7EB',
   },
   idCardContent: {
     position: 'absolute',
+    top: '35%',
     left: '5%',
     bottom: '18%',
     width: '60%',
