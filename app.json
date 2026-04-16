@@ -4,21 +4,22 @@
     "slug": "LumiNUsMobile_App",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/LumiNUs_Load.jpg",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#31429B",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/images/LumiNUs_Load.jpg",
+      "resizeMode": "cover",
+      "backgroundColor": "#31429B"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/LumiNUs_Load.jpg",
+        "backgroundColor": "#31429B"
       },
       "edgeToEdgeEnabled": true
     },

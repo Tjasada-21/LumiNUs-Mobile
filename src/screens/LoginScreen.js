@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  View, Text, TouchableOpacity, StyleSheet, 
   Alert, ActivityIndicator, ImageBackground, Image 
 } from 'react-native';
+import SmartTextInput from '../components/SmartTextInput';
 import { Ionicons } from '@expo/vector-icons'; // Expo's built-in icons
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
@@ -59,7 +60,7 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Email Field */}
         <Text style={styles.label}>Email Address</Text>
-        <TextInput
+        <SmartTextInput
           style={styles.input}
           placeholder="Enter Your Email Address"
           placeholderTextColor="#A0A0A0"
@@ -72,7 +73,7 @@ const LoginScreen = ({ navigation }) => {
         {/* Password Field */}
         <Text style={styles.label}>Password</Text>
         <View style={styles.passwordContainer}>
-          <TextInput
+          <SmartTextInput
             style={styles.passwordInput}
             placeholder="Enter Your Password"
             placeholderTextColor="#A0A0A0"

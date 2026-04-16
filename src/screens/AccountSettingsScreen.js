@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import SmartTextInput from '../components/SmartTextInput';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -82,25 +83,25 @@ const AccountSettingsScreen = ({ navigation }) => {
   };
 
   const handleSave = async () => {
+    if (!userData?.email) {
+      setErrorMessage('Missing the current account email.');
+      return;
+    }
+
+    const payload = {
+      first_name: formData.first_name.trim(),
+      middle_name: formData.middle_name.trim(),
+      last_name: formData.last_name.trim(),
+      phone_number: formData.phone_number.trim(),
+      email: formData.email.trim(),
+      date_of_birth: formData.date_of_birth.trim(),
+      sex: formData.sex.trim(),
+      alumni_photo: formData.alumni_photo.trim(),
+    };
+
     try {
       setSaving(true);
       setErrorMessage('');
-
-      if (!userData?.email) {
-        setErrorMessage('Missing the current account email.');
-        return;
-      }
-
-      const payload = {
-        first_name: formData.first_name.trim(),
-        middle_name: formData.middle_name.trim(),
-        last_name: formData.last_name.trim(),
-        phone_number: formData.phone_number.trim(),
-        email: formData.email.trim(),
-        date_of_birth: formData.date_of_birth.trim(),
-        sex: formData.sex.trim(),
-        alumni_photo: formData.alumni_photo.trim(),
-      };
 
       const response = await api.put('/alumni/profile', payload);
       const data = response.data?.alumni ?? null;
@@ -176,7 +177,7 @@ const AccountSettingsScreen = ({ navigation }) => {
 
             <View style={styles.inputBlock}>
               <Text style={styles.inputLabel}>Last Name</Text>
-              <TextInput
+              <SmartTextInput
                 value={formData.last_name}
                 onChangeText={(value) => updateField('last_name', value)}
                 placeholder="Last name"
@@ -188,7 +189,7 @@ const AccountSettingsScreen = ({ navigation }) => {
 
             <View style={styles.inputBlock}>
               <Text style={styles.inputLabel}>First Name</Text>
-              <TextInput
+              <SmartTextInput
                 value={formData.first_name}
                 onChangeText={(value) => updateField('first_name', value)}
                 placeholder="First name"
@@ -200,7 +201,7 @@ const AccountSettingsScreen = ({ navigation }) => {
 
             <View style={styles.inputBlock}>
               <Text style={styles.inputLabel}>Middle Name</Text>
-              <TextInput
+              <SmartTextInput
                 value={formData.middle_name}
                 onChangeText={(value) => updateField('middle_name', value)}
                 placeholder="Middle name"
@@ -215,7 +216,7 @@ const AccountSettingsScreen = ({ navigation }) => {
             <View style={styles.inputBlock}>
               <Text style={styles.inputLabel}>Mobile Number</Text>
               <View style={styles.inlineRow}>
-                <TextInput
+                <SmartTextInput
                   value={formData.phone_number}
                   onChangeText={(value) => updateField('phone_number', value)}
                   placeholder="Mobile number"
@@ -231,7 +232,7 @@ const AccountSettingsScreen = ({ navigation }) => {
             <View style={styles.inputBlock}>
               <Text style={styles.inputLabel}>Personal Email Address</Text>
               <View style={styles.inlineRow}>
-                <TextInput
+                <SmartTextInput
                   value={formData.email}
                   onChangeText={(value) => updateField('email', value)}
                   placeholder="Personal email address"
@@ -255,9 +256,9 @@ const AccountSettingsScreen = ({ navigation }) => {
             <View style={styles.twoColRow}>
               <View style={[styles.inputBlock, styles.halfInput]}>
                 <Text style={styles.inputLabel}>Date of Birth</Text>
-                <View style={styles.dateRow}>
+                <View style={styles.dateInputRow}>
                   <Ionicons name="calendar-outline" size={16} color="#666" />
-                  <TextInput
+                  <SmartTextInput
                     value={formData.date_of_birth}
                     onChangeText={(value) => updateField('date_of_birth', value)}
                     placeholder="YYYY-MM-DD"
@@ -270,33 +271,39 @@ const AccountSettingsScreen = ({ navigation }) => {
 
               <View style={[styles.inputBlock, styles.halfInput]}>
                 <Text style={styles.inputLabel}>Gender</Text>
-                <View style={styles.dateRow}>
-                  <TextInput
-                    value={formData.sex}
-                    onChangeText={(value) => updateField('sex', value)}
-                    placeholder="Gender"
-                    placeholderTextColor="#9A9A9A"
-                    style={styles.inputValue}
-                    editable={!formDisabled}
-                  />
-                  <Ionicons name="chevron-down-circle-outline" size={18} color="#666" />
+                <View style={styles.genderInputRow}>
+                  <TouchableOpacity
+                    style={styles.genderSelect}
+                    activeOpacity={0.8}
+                    disabled={formDisabled}
+                    onPress={() => {
+                      const options = [
+                        { text: 'Male', onPress: () => updateField('sex', 'male') },
+                        { text: 'Female', onPress: () => updateField('sex', 'female') },
+                        { text: 'Non-binary', onPress: () => updateField('sex', 'non-binary') },
+                        { text: 'Prefer not to say', onPress: () => updateField('sex', '') },
+                        { text: 'Cancel', style: 'cancel' },
+                      ];
+
+                      if (Platform.OS === 'ios') {
+                        // Action sheet-like on iOS
+                        Alert.alert('Select Gender', undefined, options, { cancelable: true });
+                      } else {
+                        // Android: use same alert with buttons
+                        Alert.alert('Select Gender', undefined, options, { cancelable: true });
+                      }
+                    }}
+                  >
+                    <Text style={[styles.inputValue, styles.dateValue]}>
+                      {formData.sex ? String(formData.sex) : 'Gender'}
+                    </Text>
+                    <Ionicons name="chevron-down-circle-outline" size={18} color="#666" />
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
 
-            <View style={styles.inputBlock}>
-              <Text style={styles.inputLabel}>Profile Photo URL</Text>
-              <TextInput
-                value={formData.alumni_photo}
-                onChangeText={(value) => updateField('alumni_photo', value)}
-                placeholder="https://..."
-                placeholderTextColor="#9A9A9A"
-                style={styles.inputValue}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!formDisabled}
-              />
-            </View>
+            {/* Profile Photo URL field removed */}
           </View>
 
           {loading ? (
@@ -318,6 +325,8 @@ const AccountSettingsScreen = ({ navigation }) => {
               <Text style={styles.saveButtonText}>Save Profile Information</Text>
             )}
           </TouchableOpacity>
+
+
 
           <TouchableOpacity style={styles.resetButton} activeOpacity={0.9}>
             <Text style={styles.resetButtonText}>Reset Account Password</Text>
@@ -454,6 +463,12 @@ const styles = StyleSheet.create({
   inputEmailValue: {
     flex: 1,
   },
+  genderSelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
   verifyLinkButton: {
     marginLeft: 8,
     flexShrink: 0,
@@ -488,11 +503,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    marginTop: 1,
+  },
+  dateInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 4,
+    paddingVertical: 0,
+  },
+  genderInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 4,
+    paddingVertical: 0,
   },
   dateValue: {
     flex: 1,
-    marginLeft: 8,
+    marginLeft: 10,
     fontSize: 12,
     fontWeight: '600',
     lineHeight: 14,
