@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import ExploreScreen from '../screens/ExploreScreen';
+import ChatScreen from '../screens/ChatScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -54,7 +55,7 @@ const MainTabNavigator = () => {
       <Tab.Screen name="HomeTab" component={HomeScreen} />
       
       {/* Tabs 2-5: The Placeholders */}
-      <Tab.Screen name="Messages" children={() => <DummyScreen name="Messages" />} />
+      <Tab.Screen name="Messages" component={ChatScreen} />
       <Tab.Screen
         name="Explore"
         component={ExploreScreen}
