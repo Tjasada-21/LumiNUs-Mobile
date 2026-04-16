@@ -12,6 +12,8 @@ const HomeScreen = () => {
     const [userData, setUserData] = useState(null);
     const [isNotifVisible, setIsNotifVisible] = useState(false);
     const [notifications, setNotifications] = useState([]);
+  const [isIdFlipped, setIsIdFlipped] = useState(false);
+  const flipAnimation = useRef(new Animated.Value(0)).current;
 
     // NEW: side menu state/animation
     const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -68,6 +70,28 @@ const HomeScreen = () => {
       console.error('Cannot open URL:', url);
     }
   };
+
+  const toggleIdCard = () => {
+    const nextValue = isIdFlipped ? 0 : 1;
+
+    Animated.timing(flipAnimation, {
+      toValue: nextValue,
+      duration: 450,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsIdFlipped(!isIdFlipped);
+    });
+  };
+
+  const frontRotateY = flipAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const backRotateY = flipAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['180deg', '360deg'],
+  });
 
   const notifData = Array.isArray(notifications) ? notifications : [];
 
@@ -154,39 +178,59 @@ const HomeScreen = () => {
 
         {/* 3. DIGITAL ALUMNI ID CARD */}
         <View style={styles.idSection}>
-          <View style={styles.tabRow}>
-            <View style={styles.activeTab}><Text style={styles.activeTabText}>Front Side</Text></View>
-            <View style={styles.inactiveTab}><Text style={styles.inactiveTabText}>Back Side</Text></View>
-          </View>
 
-          <View style={styles.idCard}>
-            <ImageBackground
-              source={require('../../assets/images/alumni-id.png')}
-              style={styles.idBackground}
-              imageStyle={styles.idBackgroundImage}
-              resizeMode="cover"
-            >
-              {/* Photo area (right side) */}
-              <Image
-                source={{
-                  uri:
-                    userData?.alumni_photo ||
-                    'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827'
-                }}
-                style={styles.idPhoto}
-                resizeMode="cover"
-              />
+          <Pressable onPress={toggleIdCard}>
+            <View style={styles.idCardPerspective}>
+              <Animated.View
+                style={[
+                  styles.idCardFace,
+                  styles.idCardFrontFace,
+                  { transform: [{ rotateY: frontRotateY }] },
+                ]}
+              >
+                <ImageBackground
+                  source={require('../../assets/images/alumni-id.png')}
+                  style={styles.idBackground}
+                  imageStyle={styles.idBackgroundImage}
+                  resizeMode="cover"
+                >
+                  {/* Photo area (right side) */}
+                  <Image
+                    source={{
+                      uri:
+                        userData?.alumni_photo ||
+                        'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827'
+                    }}
+                    style={styles.idPhoto}
+                    resizeMode="cover"
+                  />
 
-              {/* Text overlay (left-bottom) */}
-              <View style={styles.idCardContent}>
-                <Text style={styles.idName}>
-                  {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
-                </Text>
-                <Text style={styles.idCourse}>BSIT-MWA</Text>
-                <Text style={styles.idClass}>Class of 2023</Text>
-              </View>
-            </ImageBackground>
-          </View>
+                  {/* Text overlay (left-bottom) */}
+                  <View style={styles.idCardContent}>
+                    <Text style={styles.idName}>
+                      {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
+                    </Text>
+                    <Text style={styles.idCourse}>BSIT-MWA</Text>
+                    <Text style={styles.idClass}>Class of 2023</Text>
+                  </View>
+                </ImageBackground>
+              </Animated.View>
+
+              <Animated.View
+                style={[
+                  styles.idCardFace,
+                  styles.idCardBackFace,
+                  { transform: [{ rotateY: backRotateY }] },
+                ]}
+              >
+                <Image
+                  source={require('../../assets/images/BlankID_Back 1.png')}
+                  style={styles.idBackImage}
+                  resizeMode="cover"
+                />
+              </Animated.View>
+            </View>
+          </Pressable>
         </View>
 
         {/* 4. WHAT'S NEW (Horizontal Scroll) */}
@@ -409,6 +453,23 @@ headerLogoImage: {
     backgroundColor: '#0A1142',
     aspectRatio: 378 / 236,
   },
+  idCardPerspective: {
+    position: 'relative',
+    aspectRatio: 378 / 236,
+    perspective: 1000,
+  },
+  idCardFace: {
+    ...StyleSheet.absoluteFillObject,
+    backfaceVisibility: 'hidden',
+    borderRadius: 15,
+    overflow: 'hidden',
+  },
+  idCardFrontFace: {
+    zIndex: 2,
+  },
+  idCardBackFace: {
+    zIndex: 1,
+  },
   idBackground: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -446,6 +507,10 @@ headerLogoImage: {
     color: '#FFFFFF',
     fontSize: 11,
     marginTop: 1,
+  },
+  idBackImage: {
+    width: '100%',
+    height: '100%',
   },
 
   sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
