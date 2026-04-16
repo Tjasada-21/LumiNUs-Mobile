@@ -288,7 +288,7 @@ const AccountSettingsScreen = ({ navigation }) => {
           <View style={styles.formCard}>
             <Text style={styles.sectionHeading}>User Information</Text>
 
-            <View style={styles.inputBlock}>
+            <View style={styles.inputBlockCompact}>
               <Text style={styles.inputLabel}>Last Name</Text>
               <SmartTextInput
                 value={formData.last_name}
@@ -300,7 +300,7 @@ const AccountSettingsScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.inputBlock}>
+            <View style={styles.inputBlockCompact}>
               <Text style={styles.inputLabel}>First Name</Text>
               <SmartTextInput
                 value={formData.first_name}
@@ -312,7 +312,7 @@ const AccountSettingsScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.inputBlock}>
+            <View style={styles.inputBlockCompact}>
               <Text style={styles.inputLabel}>Middle Name</Text>
               <SmartTextInput
                 value={formData.middle_name}
@@ -326,7 +326,7 @@ const AccountSettingsScreen = ({ navigation }) => {
 
             <Text style={[styles.sectionHeading, styles.sectionHeadingSpacing]}>Personal Details</Text>
 
-            <View style={styles.inputBlock}>
+            <View style={styles.inputBlockCompact}>
               <Text style={styles.inputLabel}>Mobile Number</Text>
               <View style={styles.inlineRow}>
                 <SmartTextInput
@@ -342,7 +342,7 @@ const AccountSettingsScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.inputBlock}>
+            <View style={styles.inputBlockCompact}>
               <Text style={styles.inputLabel}>Personal Email Address</Text>
               <View style={styles.inlineRow}>
                 <SmartTextInput
@@ -510,7 +510,7 @@ const styles = StyleSheet.create({
   },
   profileWrap: {
     alignSelf: 'center',
-    marginTop: 10,
+    marginTop: '1%',
     marginBottom: 16,
     position: 'relative',
   },
@@ -556,10 +556,19 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     marginBottom: 10,
   },
+  inputBlockCompact: {
+    backgroundColor: '#EFEFEF',
+    borderWidth: 1,
+    borderColor: '#B9B9B9',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 1,
+    marginBottom: 8,
+  },
   inputLabel: {
     color: '#5C5C5C',
     fontSize: 10,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   inputValue: {
     color: '#333333',

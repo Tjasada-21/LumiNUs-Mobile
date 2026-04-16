@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable
+  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,6 @@ import api from '../services/api';
 const HomeScreen = ({ navigation }) => {
 
     const [userData, setUserData] = useState(null);
-    const [isNotifVisible, setIsNotifVisible] = useState(false);
     const [notifications, setNotifications] = useState([]);
   const [isIdFlipped, setIsIdFlipped] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
@@ -18,6 +17,29 @@ const HomeScreen = ({ navigation }) => {
     // NEW: side menu state/animation
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const menuTranslateX = useRef(new Animated.Value(-320)).current;
+
+    // Notifications panel animation (slide from right)
+    const [isNotifVisible, setIsNotifVisible] = useState(false);
+    const notifTranslateX = useRef(new Animated.Value(Dimensions.get('window').width)).current;
+
+    const openNotifications = () => {
+      setIsNotifVisible(true);
+      requestAnimationFrame(() => {
+        Animated.timing(notifTranslateX, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }).start();
+      });
+    };
+
+    const closeNotifications = () => {
+      Animated.timing(notifTranslateX, {
+        toValue: Dimensions.get('window').width,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => setIsNotifVisible(false));
+    };
 
     const openMenu = () => {
         setIsMenuVisible(true)
@@ -206,7 +228,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.bellIcon} onPress={() => setIsNotifVisible(true)}>
+          <TouchableOpacity style={styles.bellIcon} onPress={openNotifications}>
             <Ionicons name="notifications" size={24} color="#00205B" />
           </TouchableOpacity>
         </View>
@@ -414,25 +436,29 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </Modal>
 
-        {/* --- NOTIFICATIONS MODAL --- */}
+        {/* --- NOTIFICATIONS SIDE PANEL (slides in from right) --- */}
         <Modal
-          animationType="slide"
+          animationType="none"
           transparent={true}
           visible={isNotifVisible}
-          onRequestClose={() => setIsNotifVisible(false)}
+          onRequestClose={closeNotifications}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              
+          <View style={[styles.modalOverlay, { alignItems: 'flex-end', justifyContent: 'flex-start' }]}>
+            <Animated.View
+              style={[
+                styles.modalSideContainer,
+                { transform: [{ translateX: notifTranslateX }] }
+              ]}
+            >
               {/* Top Blue Header */}
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setIsNotifVisible(false)} style={styles.closeBtn}>
+                <TouchableOpacity onPress={closeNotifications} style={styles.closeBtn}>
                   <Ionicons name="close" size={28} color="#F2C919" />
                 </TouchableOpacity>
                 <Text style={styles.modalTitle}>Notifications</Text>
                 <View style={styles.modalHeaderSpacer} />
               </View>
-              
+
               {/* Yellow Accent Line */}
               <View style={styles.modalAccentLine} />
 
@@ -444,7 +470,7 @@ const HomeScreen = ({ navigation }) => {
                 ListEmptyComponent={renderEmptyNotifications}
                 renderItem={renderNotificationItem}
               />
-            </View>
+            </Animated.View>
           </View>
         </Modal>
       </View>
@@ -631,7 +657,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)', // Darkens the background behind the modal
-    justifyContent: 'flex-end', // Pushes the modal to the bottom
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
   },
   modalContainer: {
     backgroundColor: '#FFF',
@@ -640,6 +667,17 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 25,
     overflow: 'hidden',
     marginTop: 50,
+  },
+  modalSideContainer: {
+    backgroundColor: '#FFF',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '85%',
+    borderTopLeftRadius: 25,
+    borderBottomLeftRadius: 25,
+    overflow: 'hidden',
   },
   modalHeader: {
     backgroundColor: '#31429B',
