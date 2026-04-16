@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import SmartTextInput from '../components/SmartTextInput';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -36,6 +37,7 @@ const AccountSettingsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [pickingImage, setPickingImage] = useState(false);
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -80,6 +82,32 @@ const AccountSettingsScreen = ({ navigation }) => {
       ...current,
       [field]: value,
     }));
+  };
+
+  const uploadImage = async (uri) => {
+    try {
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const ext = match ? match[1].toLowerCase() : 'jpg';
+      const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+      const formData = new FormData();
+      formData.append('photo', {
+        uri,
+        name: filename,
+        type: mimeType,
+      });
+
+      const resp = await api.post('/alumni/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const uploadedUrl = resp.data?.url;
+      if (!uploadedUrl) throw new Error('No url returned from upload');
+      return uploadedUrl;
+    } catch (err) {
+      throw err;
+    }
   };
   const handleSave = async () => {
     if (!userData?.email) {
@@ -208,8 +236,52 @@ const AccountSettingsScreen = ({ navigation }) => {
 
           <View style={styles.profileWrap}>
             <Image source={{ uri: profileImageUri }} style={styles.profileImage} />
-            <TouchableOpacity style={styles.editAvatarButton} activeOpacity={0.8}>
-              <Ionicons name="pencil" size={16} color="#31429B" />
+            <TouchableOpacity
+              style={styles.editAvatarButton}
+              activeOpacity={0.8}
+              onPress={async () => {
+                try {
+                  setPickingImage(true);
+                  const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                  if (permissionResult.status !== 'granted') {
+                    Alert.alert('Permission required', 'Permission to access photos is required to choose a profile image.');
+                    return;
+                  }
+
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    allowsEditing: false, // disable crop-only UI so user can pick freely
+                    quality: 0.8,
+                  });
+
+                  const selectedUri = result.uri ?? result.assets?.[0]?.uri;
+
+                  if (selectedUri) {
+                    try {
+                      // upload immediately and use hosted URL as preview
+                      const hostedUrl = await uploadImage(selectedUri);
+                      updateField('alumni_photo', hostedUrl);
+                      Alert.alert('Uploaded', 'Profile photo uploaded.');
+                    } catch (uploadErr) {
+                      console.error('Upload failed:', uploadErr);
+                      // fallback to local uri preview and inform user
+                      updateField('alumni_photo', selectedUri);
+                      Alert.alert('Upload failed', 'Image upload failed — using local preview. You can try saving again.');
+                    }
+                  }
+                } catch (err) {
+                  console.error('Image pick failed:', err);
+                  Alert.alert('Error', 'Unable to pick image.');
+                } finally {
+                  setPickingImage(false);
+                }
+              }}
+            >
+              {pickingImage ? (
+                <ActivityIndicator color="#31429B" />
+              ) : (
+                <Ionicons name="pencil" size={16} color="#31429B" />
+              )}
             </TouchableOpacity>
           </View>
 

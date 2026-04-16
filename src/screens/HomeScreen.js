@@ -83,6 +83,28 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('AccountSettings');
   };
 
+  const signOut = async () => {
+    // close the menu first
+    closeMenu();
+    try {
+      await SecureStore.deleteItemAsync('userToken');
+      await SecureStore.deleteItemAsync('userEmail');
+    } catch (err) {
+      console.error('Failed to clear secure store during sign out', err);
+    }
+
+    // Try to replace the root stack to the Login screen. If this navigator
+    // is nested (Tab -> Stack), walk up parents to reach the stack.
+    const parent = navigation.getParent?.();
+    const root = parent?.getParent?.() ?? parent;
+
+    if (root?.replace) {
+      root.replace('Login');
+    } else {
+      navigation.replace('Login');
+    }
+  };
+
   const toggleIdCard = () => {
     const nextValue = isIdFlipped ? 0 : 1;
 
@@ -155,14 +177,15 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.badgeText}>NU LIPA</Text>
           </View>
         </View>
+        <View style={styles.headerAccent} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.mainScrollContent}
       >
-        
-        {/* 2. USER PROFILE GREETING */}
-        <View style={styles.profileSection}>
+        {/* 2. USER PROFILE GREETING + ID CARD (card wrapper with shadow) */}
+        <View style={styles.profileCardWrapper}>
+          <View style={styles.profileSection}>
           {/* CHANGED: make dynamic avatar section pressable */}
           <TouchableOpacity style={styles.profileInfo} activeOpacity={0.8} onPress={openMenu}>
             <Image 
@@ -244,7 +267,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
           </Pressable>
         </View>
+        </View>
 
+    
         {/* 4. WHAT'S NEW (Horizontal Scroll) */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>What's New</Text>
@@ -381,7 +406,7 @@ const HomeScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.sideMenuFooter}>
-                <TouchableOpacity style={styles.signOutButton}>
+                <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
                   <Text style={styles.signOutButtonText}>Sign Out</Text>
                 </TouchableOpacity>
               </View>
@@ -429,29 +454,54 @@ const HomeScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
-  container: { flex: 1, backgroundColor: '#F5F6F8' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   mainScrollContent: {
-    paddingBottom: 4,
-    backgroundColor: '#F5F6F8',
+    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
   },
-  header: { 
-    backgroundColor: '#31429B', padding: 15, flexDirection: 'row', 
-    justifyContent: 'space-between', alignItems: 'center' 
+  header: {
+    backgroundColor: '#31429B',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-headerLogoImage: { 
-    width: 140,  // Tweak this number to make it wider or narrower
-    height: 35,  // Locks the height so it doesn't push the header down
-  },  badgeContainer: { backgroundColor: '#FFF', paddingHorizontal: 15, paddingVertical: 5, borderRadius: 20 },
-  badgeText: { color: '#31429B', fontWeight: 'bold' },
+  headerAccent: {
+    height: 10,
+    backgroundColor: '#F2C919',
+    width: '100%',
+  },
+  headerLogoImage: {
+    width: 146,
+    height: 36,
+  },
+  badgeContainer: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  badgeText: { color: '#31429B', fontWeight: '800', fontSize: 12 },
   
-  profileSection: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center' },
+  profileSection: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center' },
   profileInfo: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 50, height: 50, borderRadius: 25, marginRight: 15 },
-  greeting: { fontSize: 20, fontWeight: 'bold', color: '#31429B' },
-  studentId: { fontSize: 12, color: '#666' },
+  avatar: { width: 56, height: 56, borderRadius: 28, marginRight: 14, borderWidth: 2, borderColor: '#F2C919' },
+  greeting: { fontSize: 20, fontWeight: '800', color: '#0A1142' },
+  studentId: { fontSize: 12, color: '#666', marginTop: 2 },
   bellIcon: { backgroundColor: '#F2C919', padding: 8, borderRadius: 20 },
 
-  idSection: { paddingHorizontal: 20, marginBottom: 20 },
+  idSection: { paddingHorizontal: 0, marginBottom: 18 },
+
+  profileCardWrapper: {
+    marginTop: -8,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    marginBottom: 18,
+  },
+
+  profileSection: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 14, alignItems: 'center' },
   tabRow: { flexDirection: 'row', marginBottom: -10, zIndex: 1, marginLeft: 15 },
   activeTab: { backgroundColor: '#F2C919', paddingVertical: 8, paddingHorizontal: 20, borderTopLeftRadius: 10, borderTopRightRadius: 10 },
   activeTabText: { color: '#31429B', fontWeight: 'bold' },
@@ -459,21 +509,27 @@ headerLogoImage: {
   inactiveTabText: { color: '#666' },
   
   idCard: {
-    borderRadius: 15,
+    borderRadius: 8,
     overflow: 'hidden',
-    elevation: 5,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
     backgroundColor: '#0A1142',
-    aspectRatio: 378 / 236,
+    height: 220,
+    
   },
   idCardPerspective: {
     position: 'relative',
-    aspectRatio: 378 / 236,
+    height: 220,
     perspective: 1000,
+    
   },
   idCardFace: {
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
-    borderRadius: 15,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   idCardFrontFace: {
@@ -485,41 +541,45 @@ headerLogoImage: {
   idBackground: {
     flex: 1,
     justifyContent: 'flex-end',
+    
+    
   },
   idBackgroundImage: {
-    borderRadius: 15,
+    borderRadius: 8,
+    
   },
   idPhoto: {
     position: 'absolute',
-    top: '11.7%',
-    right: '1.9%',
+    top: '13%',
+    right: '1.3%',
     width: '30%',
-    height: '60%',
-    borderRadius: 2,
-    backgroundColor: '#E5E7EB',
+    height: '58%',
   },
   idCardContent: {
     position: 'absolute',
-    top: '35%',
-    left: '5%',
-    bottom: '18%',
-    width: '60%',
+    top: '26%',
+    left: '6%',
+    bottom: '10%',
+    width: '62%',
   },
   idName: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 16,
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
+    top: '7%',
   },
   idCourse: {
     color: '#FFFFFF',
-    fontSize: 11,
-    marginTop: 3,
+    fontSize: 12,
+    marginTop: 6,
+    top: '4%',
   },
   idClass: {
     color: '#FFFFFF',
-    fontSize: 11,
-    marginTop: 1,
+    fontSize: 12,
+    marginTop: 2,
+    top: '4%',
   },
   idBackImage: {
     width: '100%',
@@ -530,30 +590,34 @@ headerLogoImage: {
   quickLinksSection: { marginBottom: 8 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 15 },
   horizontalScroll: { flexDirection: 'row' },
-  promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 10, marginRight: 15 },
+  promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 16, padding: 12, overflow: 'hidden' },
   
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quickLinksScrollContent: {
     paddingRight: 8,
   },
-  quickLinkBox: { 
+  quickLinkBox: {
     width: 152,
-    minHeight: 10,
-    backgroundColor: '#FFF',
-    paddingVertical: 20,
+    minHeight: 84,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 12,
-    elevation: 2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   quickLinkText: {
     marginLeft: 12,
     color: '#31429B',
-    fontWeight: 'bold',
-    fontSize: 15,
-    lineHeight: 21,
+    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 18,
   },
   quickLinkIcon: {
     width: 36,

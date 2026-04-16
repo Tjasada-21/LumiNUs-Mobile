@@ -33,8 +33,10 @@ const LoginScreen = ({ navigation }) => {
       
     navigation.replace('Home'); 
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to connect to the server.';
-      Alert.alert('Login Failed', errorMessage);
+      console.error('Login error:', error);
+      const serverData = error.response?.data;
+      const errorMessage = serverData?.message || serverData || error.message || 'Failed to connect to the server.';
+      Alert.alert('Login Failed', typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setLoading(false);
     }
