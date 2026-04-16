@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
+import ExploreScreen from '../screens/ExploreScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -25,7 +26,7 @@ const MainTabNavigator = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Messages') {
             iconName = focused ? 'chatbubble' : 'chatbubble-outline';
-          } else if (route.name === 'Network') {
+          } else if (route.name === 'Explore') {
             iconName = focused ? 'earth' : 'earth-outline';
           } else if (route.name === 'Forms') {
             iconName = focused ? 'document-text' : 'document-text-outline';
@@ -54,7 +55,20 @@ const MainTabNavigator = () => {
       
       {/* Tabs 2-5: The Placeholders */}
       <Tab.Screen name="Messages" children={() => <DummyScreen name="Messages" />} />
-      <Tab.Screen name="Network" children={() => <DummyScreen name="Network" />} />
+      <Tab.Screen
+        name="Explore"
+        component={ExploreScreen}
+        options={{
+          tabBarStyle: {
+            height: 65,
+            backgroundColor: '#F2C919',
+            borderTopWidth: 0,
+            elevation: 10,
+          },
+          tabBarActiveTintColor: '#31429B',
+          tabBarInactiveTintColor: '#31429B',
+        }}
+      />
       <Tab.Screen name="Forms" children={() => <DummyScreen name="Forms" />} />
       <Tab.Screen name="Profile" children={() => <DummyScreen name="Profile" />} />
     </Tab.Navigator>

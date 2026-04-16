@@ -120,7 +120,10 @@ const HomeScreen = () => {
           </View>
         </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.mainScrollContent}
+      >
         
         {/* 2. USER PROFILE GREETING */}
         <View style={styles.profileSection}>
@@ -217,7 +220,7 @@ const HomeScreen = () => {
         </View>
 
         {/* 5. QUICK LINKS */}
-        <View style={styles.sectionContainer}>
+        <View style={[styles.sectionContainer, styles.quickLinksSection]}>
           <Text style={styles.sectionTitle}>Quick Links</Text>
 
           <ScrollView
@@ -226,17 +229,17 @@ const HomeScreen = () => {
             contentContainerStyle={styles.quickLinksScrollContent}
           >
             <TouchableOpacity style={styles.quickLinkBox}>
-              <Image source={require('../../assets/images/view-yearbook-icon.png')} style={{ width: 32, height: 32 }} />
+              <Image source={require('../../assets/images/view-yearbook-icon.png')} style={styles.quickLinkIcon} />
               <Text style={styles.quickLinkText}>View My{'\n'}Yearbook</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickLinkBox}>
-              <Image source={require('../../assets/images/view-events-icon.png')} style={{ width: 32, height: 32 }} />
+              <Image source={require('../../assets/images/view-events-icon.png')} style={styles.quickLinkIcon} />
               <Text style={styles.quickLinkText}>View{'\n'}Events</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickLinkBox} onPress={openNUWebsite}>
-              <Image source={require('../../assets/images/nulogo.png')} style={{ width: 32, height: 32 }} />
+              <Image source={require('../../assets/images/nulogo.png')} style={styles.quickLinkIcon} />
               <Text style={styles.quickLinkText}>National-U{'\n'}Website</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -371,6 +374,10 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
   container: { flex: 1, backgroundColor: '#F5F6F8' },
+  mainScrollContent: {
+    paddingBottom: 4,
+    backgroundColor: '#F5F6F8',
+  },
   header: { 
     backgroundColor: '#31429B', padding: 15, flexDirection: 'row', 
     justifyContent: 'space-between', alignItems: 'center' 
@@ -442,22 +449,38 @@ headerLogoImage: {
   },
 
   sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
+  quickLinksSection: { marginBottom: 8 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 15 },
   horizontalScroll: { flexDirection: 'row' },
   promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 10, marginRight: 15 },
   
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  quickLinksScrollContent: {
+    paddingRight: 8,
+  },
   quickLinkBox: { 
-    width: 170,
+    width: 152,
+    minHeight: 10,
     backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 10, 
+    paddingVertical: 20,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
-    elevation: 2 
+    marginRight: 12,
+    elevation: 2,
   },
-  quickLinkText: { marginLeft: 10, color: '#31429B', fontWeight: 'bold', fontSize: 13 },
+  quickLinkText: {
+    marginLeft: 12,
+    color: '#31429B',
+    fontWeight: 'bold',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  quickLinkIcon: {
+    width: 36,
+    height: 36,
+  },
   quickLinkIconNU: {
     width: 26,
     height: 26,
