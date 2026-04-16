@@ -27,6 +27,7 @@ const LoginScreen = ({ navigation }) => {
       const { token, alumni } = response.data;
       
       await SecureStore.setItemAsync('userToken', token);
+      await SecureStore.setItemAsync('userEmail', alumni?.email || email);
       Alert.alert('Success!', `Welcome back, ${alumni.first_name}!`);
       
     navigation.replace('Home'); 

@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
 
     const [userData, setUserData] = useState(null);
     const [isNotifVisible, setIsNotifVisible] = useState(false);
@@ -69,6 +69,18 @@ const HomeScreen = () => {
     } else {
       console.error('Cannot open URL:', url);
     }
+  };
+
+  const openAccountSettings = () => {
+    closeMenu();
+    const parentNavigator = navigation.getParent?.();
+
+    if (parentNavigator?.navigate) {
+      parentNavigator.navigate('AccountSettings');
+      return;
+    }
+
+    navigation.navigate('AccountSettings');
   };
 
   const toggleIdCard = () => {
@@ -196,11 +208,11 @@ const HomeScreen = () => {
                 >
                   {/* Photo area (right side) */}
                   <Image
-                    source={{
-                      uri:
-                        userData?.alumni_photo ||
-                        'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827'
-                    }}
+                    source={{ 
+                uri: userData?.alumni_photo 
+                  ? userData.alumni_photo 
+                  : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`
+              }} 
                     style={styles.idPhoto}
                     resizeMode="cover"
                   />
@@ -317,7 +329,7 @@ const HomeScreen = () => {
               <View style={styles.sideMenuAccent} />
 
               <View style={styles.sideMenuBody}>
-                <TouchableOpacity style={styles.menuItem}>
+                <TouchableOpacity style={styles.menuItem} onPress={openAccountSettings}>
                   <View style={styles.menuIconCircle}>
                     <Ionicons name="person-outline" size={22} color="#31429B" />
                   </View>
@@ -479,10 +491,10 @@ headerLogoImage: {
   },
   idPhoto: {
     position: 'absolute',
-    top: '12%',
-    right: '2.5%',
-    width: '28.7%',
-    height: '59%',
+    top: '11.7%',
+    right: '1.9%',
+    width: '30%',
+    height: '60%',
     borderRadius: 2,
     backgroundColor: '#E5E7EB',
   },
