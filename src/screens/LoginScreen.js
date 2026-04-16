@@ -35,8 +35,26 @@ const LoginScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Login error:', error);
       const serverData = error.response?.data;
-      const errorMessage = serverData?.message || serverData || error.message || 'Failed to connect to the server.';
-      Alert.alert('Login Failed', typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
+
+      // Laravel validation or manual ValidationException will return 422 with
+      // either `message` or `errors` object. Prefer specific messages when present.
+      let friendly = 'Failed to connect to the server.';
+
+      if (serverData) {
+        if (serverData.errors) {
+          // errors is an object with arrays, pick the first message available
+          const firstKey = Object.keys(serverData.errors)[0];
+          friendly = serverData.errors[firstKey]?.[0] || JSON.stringify(serverData.errors);
+        } else if (serverData.message) {
+          friendly = serverData.message;
+        } else {
+          friendly = JSON.stringify(serverData);
+        }
+      } else if (error.message) {
+        friendly = error.message;
+      }
+
+      Alert.alert('Login Failed', friendly);
     } finally {
       setLoading(false);
     }
