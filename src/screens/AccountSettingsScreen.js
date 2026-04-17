@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
 import SmartTextInput from '../components/SmartTextInput';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +23,16 @@ const formatDate = (value) => {
 };
 
 const AccountSettingsScreen = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isCompactWidth = width < 390;
+  const isTablet = width >= 768;
+  const layout = {
+    headerLogoWidth: isTablet ? 176 : isCompactWidth ? 124 : 146,
+    headerLogoHeight: isTablet ? 48 : isCompactWidth ? 32 : 36,
+    profileSize: isTablet ? 144 : isCompactWidth ? 110 : 126,
+    cardPadding: isCompactWidth ? 14 : 16,
+  };
+
   const [userData, setUserData] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
@@ -218,7 +228,7 @@ const AccountSettingsScreen = ({ navigation }) => {
         <View style={styles.header}>
           <Image
             source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-            style={styles.headerLogo}
+            style={[styles.headerLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
             resizeMode="contain"
           />
           <View style={styles.badgeContainer}>
@@ -235,7 +245,7 @@ const AccountSettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={styles.profileWrap}>
-            <Image source={{ uri: profileImageUri }} style={styles.profileImage} />
+            <Image source={{ uri: profileImageUri }} style={[styles.profileImage, { width: layout.profileSize, height: layout.profileSize, borderRadius: layout.profileSize / 2 }]} />
             <TouchableOpacity
               style={styles.editAvatarButton}
               activeOpacity={0.8}
@@ -285,7 +295,7 @@ const AccountSettingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.formCard}>
+          <View style={[styles.formCard, { paddingHorizontal: layout.cardPadding, paddingVertical: layout.cardPadding }]}>
             <Text style={styles.sectionHeading}>User Information</Text>
 
             <View style={styles.inputBlockCompact}>
@@ -366,8 +376,8 @@ const AccountSettingsScreen = ({ navigation }) => {
               Your Personal Email Address will be used for One Time Passwords.
             </Text>
 
-            <View style={styles.twoColRow}>
-              <View style={[styles.inputBlock, styles.halfInput]}>
+            <View style={[styles.twoColRow, isCompactWidth && styles.twoColRowStacked]}>
+              <View style={[styles.inputBlock, styles.halfInput, isCompactWidth && styles.fullWidthInput]}>
                 <Text style={styles.inputLabel}>Date of Birth</Text>
                 <View style={styles.dateInputRow}>
                   <Ionicons name="calendar-outline" size={16} color="#666" />
@@ -382,7 +392,7 @@ const AccountSettingsScreen = ({ navigation }) => {
                 </View>
               </View>
 
-              <View style={[styles.inputBlock, styles.halfInput]}>
+              <View style={[styles.inputBlock, styles.halfInput, isCompactWidth && styles.fullWidthInput]}>
                 <Text style={styles.inputLabel}>Gender</Text>
                 <View style={styles.genderInputRow}>
                   <TouchableOpacity
@@ -535,8 +545,6 @@ const styles = StyleSheet.create({
   formCard: {
     backgroundColor: '#E4E4E4',
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
   },
   sectionHeading: {
     color: '#3F3F3F',
@@ -617,9 +625,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  twoColRowStacked: {
+    flexDirection: 'column',
+  },
   halfInput: {
     width: '48.5%',
     marginBottom: 0,
+  },
+  fullWidthInput: {
+    width: '100%',
+    marginBottom: 10,
   },
   dateRow: {
     flexDirection: 'row',

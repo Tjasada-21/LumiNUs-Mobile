@@ -6,6 +6,7 @@ import {
 	Image,
 	TouchableOpacity,
 	ScrollView,
+	useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,17 @@ const TABS = [
 ];
 
 const ChatScreen = () => {
+	const { width } = useWindowDimensions();
+	const isCompactWidth = width < 375;
+	const isTablet = width >= 768;
+	const layout = {
+		headerLogoWidth: isTablet ? 176 : isCompactWidth ? 124 : 146,
+		headerLogoHeight: isTablet ? 44 : isCompactWidth ? 32 : 36,
+		avatarSize: isTablet ? 46 : isCompactWidth ? 34 : 38,
+		actionSize: isTablet ? 46 : isCompactWidth ? 38 : 40,
+		contentPadding: isCompactWidth ? 14 : 16,
+	};
+
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
 
@@ -63,7 +75,7 @@ const ChatScreen = () => {
 				<View style={styles.header}>
 					<Image
 						source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-						style={styles.headerLogo}
+						style={[styles.headerLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
 						resizeMode="contain"
 					/>
 
@@ -78,7 +90,7 @@ const ChatScreen = () => {
 				<View style={styles.contentWrap}>
 					<View style={styles.userRow}>
 						<View style={styles.userInfoRow}>
-							<Image source={{ uri: avatarUri }} style={styles.avatar} />
+							<Image source={{ uri: avatarUri }} style={[styles.avatar, { width: layout.avatarSize, height: layout.avatarSize, borderRadius: layout.avatarSize / 2 }]} />
 							<View style={styles.userTextWrap}>
 								<Text style={styles.helloText}>Hello,</Text>
 								<Text style={styles.nameText} numberOfLines={1}>
@@ -88,10 +100,10 @@ const ChatScreen = () => {
 						</View>
 
 						<View style={styles.actionsRow}>
-							<TouchableOpacity style={styles.circleAction} activeOpacity={0.8}>
+							<TouchableOpacity style={[styles.circleAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} activeOpacity={0.8}>
 								<Ionicons name="search-outline" size={25} color="#31429B" />
 							</TouchableOpacity>
-							<TouchableOpacity style={[styles.circleAction, styles.composeAction]} activeOpacity={0.8}>
+							<TouchableOpacity style={[styles.circleAction, styles.composeAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} activeOpacity={0.8}>
 								<Ionicons name="create-outline" size={20} color="#FFFFFF" />
 							</TouchableOpacity>
 						</View>

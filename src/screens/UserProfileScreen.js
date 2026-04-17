@@ -1,11 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, ScrollView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, ScrollView, StatusBar, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 
 const UserProfileScreen = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const isCompactWidth = width < 375;
+  const isTablet = width >= 768;
+  const layout = {
+    brandLogoWidth: isTablet ? 176 : isCompactWidth ? 122 : 146,
+    brandLogoHeight: isTablet ? 50 : isCompactWidth ? 32 : 42,
+    pillMinWidth: isTablet ? 132 : isCompactWidth ? 108 : 122,
+    avatarSize: isTablet ? 118 : isCompactWidth ? 88 : 102,
+    heroPadding: isCompactWidth ? 14 : 16,
+    cardHorizontalPadding: isCompactWidth ? 12 : 14,
+    nameSize: isCompactWidth ? 19 : 22,
+  };
+
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -82,8 +95,8 @@ const UserProfileScreen = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.brandHeader}>
           <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} style={styles.brandLogo} resizeMode="contain" />
-            <View style={styles.nulipaPill}>
+            <Image source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} style={[styles.brandLogo, { width: layout.brandLogoWidth, height: layout.brandLogoHeight }]} resizeMode="contain" />
+            <View style={[styles.nulipaPill, { minWidth: layout.pillMinWidth }]}>
               <Image source={require('../../assets/images/nulogo.png')} style={styles.nulipaIcon} resizeMode="contain" />
               <Text style={styles.nulipaText}>NU LIPA</Text>
             </View>
@@ -105,13 +118,13 @@ const UserProfileScreen = ({ navigation }) => {
             </View>
           ) : (
             <>
-              <View style={styles.heroCard}>
+                <View style={[styles.heroCard, { padding: layout.heroPadding }]}>
                 <View style={styles.heroRow}>
-                  <Image source={{ uri: profileImageUri }} style={styles.avatar} />
+                  <Image source={{ uri: profileImageUri }} style={[styles.avatar, { width: layout.avatarSize, height: layout.avatarSize, borderRadius: layout.avatarSize / 2 }]} />
 
                   <View style={styles.heroCopy}>
                     <View style={styles.heroTitleRow}>
-                      <Text style={styles.name}>{profileName}</Text>
+                      <Text style={[styles.name, { fontSize: layout.nameSize, lineHeight: layout.nameSize + 2 }]}>{profileName}</Text>
                       <TouchableOpacity onPress={openAccountSettings} style={styles.iconButton} activeOpacity={0.8}>
                         <Ionicons name="settings" size={18} color="#FFFFFF" />
                       </TouchableOpacity>
@@ -316,9 +329,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    width: 102,
-    height: 102,
-    borderRadius: 51,
     backgroundColor: '#E5E7EB',
     marginRight: 14,
   },

@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { clamp, responsiveWidth } from '../utils/responsive';
 
 const SECTION_DATA = [
   {
@@ -70,6 +72,14 @@ const SECTION_DATA = [
 ];
 
 const ExploreScreen = ({ navigation }) => {
+  const { width } = useWindowDimensions();
+  const itemWidth = clamp((width - 52) / 3, 92, 132);
+  const iconWrapSize = clamp(width * 0.22, 74, 92);
+  const iconSize = clamp(width * 0.15, 48, 60);
+  const logoWidth = responsiveWidth(width, 0.52, 174, 240);
+  const logoHeight = clamp(width * 0.16, 48, 72);
+  const scrollPaddingHorizontal = width < 375 ? 12 : 14;
+
   const handleItemPress = (item) => {
     if (item.action === 'goToAlumniId') {
       if (typeof navigation.jumpTo === 'function') {
@@ -110,12 +120,12 @@ const ExploreScreen = ({ navigation }) => {
         <View style={styles.gradientOverlayBottom} />
 
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingHorizontal: scrollPaddingHorizontal }]}
           showsVerticalScrollIndicator={false}
         >
           <Image
             source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-            style={styles.logo}
+            style={[styles.logo, { width: logoWidth, height: logoHeight }]}
             resizeMode="contain"
           />
 
@@ -127,12 +137,12 @@ const ExploreScreen = ({ navigation }) => {
                 {section.items.map((item) => (
                   <TouchableOpacity
                     key={`${section.title}-${item.label}`}
-                    style={styles.itemBtn}
+                    style={[styles.itemBtn, { width: itemWidth }]}
                     activeOpacity={0.85}
                     onPress={() => handleItemPress(item)}
                   >
-                    <View style={styles.iconWrap}>
-                      <Image source={item.icon} style={styles.icon} resizeMode="contain" />
+                    <View style={[styles.iconWrap, { width: iconWrapSize, height: iconWrapSize }]}>
+                      <Image source={item.icon} style={[styles.icon, { width: iconSize, height: iconSize }]} resizeMode="contain" />
                     </View>
                     <Text style={styles.itemLabel}>{item.label}</Text>
                   </TouchableOpacity>
@@ -153,7 +163,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '##31429B',
+    backgroundColor: '#31429B',
   },
   gradientOverlayTop: {
     position: 'absolute',
@@ -174,7 +184,6 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   scrollContent: {
-    paddingHorizontal: 14,
     paddingTop: 18,
     paddingBottom: 24,
   },
@@ -204,12 +213,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   itemBtn: {
-    width: '31%',
     alignItems: 'center',
   },
   iconWrap: {
-    width: 83,
-    height: 83,
     borderRadius: 21,
     backgroundColor: '#3248A2',
     alignItems: 'center',

@@ -1,13 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions
+  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import { responsiveHeight, responsiveWidth } from '../utils/responsive';
 
 const HomeScreen = ({ navigation }) => {
+  const { width, height } = useWindowDimensions();
+  const isCompactWidth = width < 375;
+  const isTablet = width >= 768;
+  const layout = {
+    headerLogoWidth: responsiveWidth(width, 0.28, 122, isTablet ? 176 : 146),
+    headerLogoHeight: responsiveHeight(height, 0.045, 30, 42),
+    horizontalPadding: isTablet ? 28 : isCompactWidth ? 16 : 20,
+    idCardHeight: responsiveWidth(width, 0.62, 204, isTablet ? 320 : 250),
+    idPhotoWidth: responsiveWidth(width, 0.28, 62, isTablet ? 138 : 112),
+    idPhotoHeight: responsiveWidth(width, 0.42, 96, isTablet ? 160 : 128),
+    idPhotoRight: isCompactWidth ? '.6%' : '1.9%',
+    idPhotoTop: isCompactWidth ? '13.3%' : '13.5%',
+    idContentTop: isCompactWidth ? '24%' : '26%',
+    idContentWidth: isCompactWidth ? '65%' : '70.62%',
+    promoCardWidth: responsiveWidth(width, 0.75, 240, isTablet ? 360 : 300),
+    promoCardHeight: responsiveHeight(height, 0.17, 118, 150),
+    quickLinkWidth: responsiveWidth(width, 0.42, 150, isTablet ? 230 : 192),
+    quickLinkIconSize: responsiveWidth(width, 0.09, 28, 42),
+    quickLinkIconNUSize: responsiveWidth(width, 0.07, 24, 34),
+    quickLinksOverlap: isCompactWidth ? -10 : -18,
+    menuWidth: responsiveWidth(width, 0.9, 280, 340),
+    notifWidth: responsiveWidth(width, 0.88, 300, 420),
+  };
 
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState([]);
@@ -192,7 +216,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.header}>
           <Image 
             source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
-            style={styles.headerLogoImage} 
+            style={[styles.headerLogoImage, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]} 
             resizeMode="contain" 
           />
           <View style={styles.badgeContainer}>
@@ -237,7 +261,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.idSection}>
 
           <Pressable onPress={toggleIdCard}>
-            <View style={styles.idCardPerspective}>
+            <View style={[styles.idCardPerspective, { height: layout.idCardHeight }]}>
               <Animated.View
                 style={[
                   styles.idCardFace,
@@ -258,12 +282,20 @@ const HomeScreen = ({ navigation }) => {
                   ? userData.alumni_photo 
                   : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`
               }} 
-                    style={styles.idPhoto}
+                    style={[
+                      styles.idPhoto,
+                      {
+                        width: layout.idPhotoWidth,
+                        height: layout.idPhotoHeight,
+                        right: layout.idPhotoRight,
+                        top: layout.idPhotoTop,
+                      },
+                    ]}
                     resizeMode="cover"
                   />
 
                   {/* Text overlay (left-bottom) */}
-                  <View style={styles.idCardContent}>
+                  <View style={[styles.idCardContent, { top: layout.idContentTop, width: layout.idContentWidth }]}>
                     <Text style={styles.idName}>
                       {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
                     </Text>
@@ -293,12 +325,12 @@ const HomeScreen = ({ navigation }) => {
 
     
         {/* 4. WHAT'S NEW (Horizontal Scroll) */}
-        <View style={styles.sectionContainer}>
+        <View style={[styles.sectionContainer, { paddingHorizontal: layout.horizontalPadding }]}>
           <Text style={styles.sectionTitle}>What's New</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             
             {/* Pickle Bark Promo Card Built with Text */}
-            <View style={styles.promoCard}>
+            <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
               <View style={styles.promoLeft} />
 
               <View style={styles.promoRight}>
@@ -311,7 +343,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {/* A second placeholder card so you can test scrolling */}
-            <View style={[styles.promoCard, { backgroundColor: '#E2E8F0' }]}>
+            <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight, backgroundColor: '#E2E8F0' }]}>
                <View style={styles.promoRight}>
                   <Text style={styles.promoEyebrow}>COMING SOON</Text>
                   <Text style={styles.promoTitleMain}>ALUMNI</Text>
@@ -323,7 +355,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* 5. QUICK LINKS */}
-        <View style={[styles.sectionContainer, styles.quickLinksSection]}>
+        <View style={[styles.sectionContainer, styles.quickLinksSection, { paddingHorizontal: layout.horizontalPadding, marginBottom: layout.quickLinksOverlap }]}>
           <Text style={styles.sectionTitle}>Quick Links</Text>
 
           <ScrollView
@@ -331,18 +363,18 @@ const HomeScreen = ({ navigation }) => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.quickLinksScrollContent}
           >
-            <TouchableOpacity style={styles.quickLinkBox}>
-              <Image source={require('../../assets/images/view-yearbook-icon.png')} style={styles.quickLinkIcon} />
+            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+              <Image source={require('../../assets/images/view-yearbook-icon.png')} style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]} />
               <Text style={styles.quickLinkText}>View My{'\n'}Yearbook</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickLinkBox}>
-              <Image source={require('../../assets/images/view-events-icon.png')} style={styles.quickLinkIcon} />
+            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+              <Image source={require('../../assets/images/view-events-icon.png')} style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]} />
               <Text style={styles.quickLinkText}>View{'\n'}Events</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickLinkBox} onPress={openNUWebsite}>
-              <Image source={require('../../assets/images/nulogo.png')} style={styles.quickLinkIcon} />
+            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]} onPress={openNUWebsite}>
+              <Image source={require('../../assets/images/nulogo.png')} style={[styles.quickLinkIconNU, { width: layout.quickLinkIconNUSize, height: layout.quickLinkIconNUSize }]} />
               <Text style={styles.quickLinkText}>National-U{'\n'}Website</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -362,6 +394,7 @@ const HomeScreen = ({ navigation }) => {
             <Animated.View
               style={[
                 styles.sideMenuContainer,
+                { width: layout.menuWidth },
                 { transform: [{ translateX: menuTranslateX }] }
               ]}
             >
@@ -446,6 +479,7 @@ const HomeScreen = ({ navigation }) => {
             <Animated.View
               style={[
                 styles.modalSideContainer,
+                { width: layout.notifWidth },
                 { transform: [{ translateX: notifTranslateX }] }
               ]}
             >
@@ -534,7 +568,7 @@ const styles = StyleSheet.create({
   inactiveTabText: { color: '#666' },
   
   idCard: {
-    borderRadius: 8,
+    borderRadius: 5,
     overflow: 'hidden',
     elevation: 6,
     shadowColor: '#000',
@@ -578,7 +612,7 @@ const styles = StyleSheet.create({
     top: '13%',
     right: '1.3%',
     width: '30%',
-    height: '58%',
+    height: '28%',
   },
   idCardContent: {
     position: 'absolute',
@@ -620,7 +654,7 @@ const styles = StyleSheet.create({
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quickLinksScrollContent: {
     paddingRight: 8,
-    paddingBottom: 14,
+    paddingBottom: 8,
   },
   quickLinkBox: {
     width: 192,
