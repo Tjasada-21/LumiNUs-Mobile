@@ -258,7 +258,7 @@ const AccountSettingsScreen = ({ navigation }) => {
                   }
 
                   const result = await ImagePicker.launchImageLibraryAsync({
-                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    mediaTypes: ImagePicker.MediaType.Images,
                     allowsEditing: false, // disable crop-only UI so user can pick freely
                     quality: 0.8,
                   });

@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 // Replace with your computer's actual IPv4 address
 // Since you are using Docker/Sail, DO NOT add a port number.
-const LOCAL_IP = '192.168.1.31'; 
+const LOCAL_IP = '192.168.254.102'; 
 
 const api = axios.create({
   baseURL: `http://${LOCAL_IP}/api`,

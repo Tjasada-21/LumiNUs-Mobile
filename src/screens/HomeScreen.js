@@ -29,7 +29,7 @@ const HomeScreen = ({ navigation }) => {
     quickLinkWidth: responsiveWidth(width, 0.42, 150, isTablet ? 230 : 192),
     quickLinkIconSize: responsiveWidth(width, 0.09, 28, 42),
     quickLinkIconNUSize: responsiveWidth(width, 0.07, 24, 34),
-    quickLinksOverlap: isCompactWidth ? -10 : -18,
+    quickLinksOverlap: isCompactWidth ? 4 : 12,
     menuWidth: responsiveWidth(width, 0.9, 280, 340),
     notifWidth: responsiveWidth(width, 0.88, 300, 420),
   };
@@ -653,10 +653,10 @@ const styles = StyleSheet.create({
   },
 
   sectionContainer: { paddingHorizontal: 20, marginBottom: 0 },
-  quickLinksSection: { marginBottom: -18, paddingBottom: 8, position: 'relative', zIndex: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 15 },
+  quickLinksSection: { marginTop: 8, marginBottom: 12, paddingBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 8 },
   horizontalScroll: { flexDirection: 'row' },
-  promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 16, padding: 12, overflow: 'hidden' },
+  promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 12, padding: 12, overflow: 'hidden' },
   
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quickLinksScrollContent: {
