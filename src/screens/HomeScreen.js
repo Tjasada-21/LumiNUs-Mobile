@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
 
 const HomeScreen = ({ navigation }) => {
@@ -212,18 +213,7 @@ const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeAreaTop} edges={['top']}>
       <View style={styles.container}>
-        {/* 1. TOP HEADER */}
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
-            style={[styles.headerLogoImage, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]} 
-            resizeMode="contain" 
-          />
-          <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>NU LIPA</Text>
-          </View>
-        </View>
-        <View style={styles.headerAccent} />
+        <BrandHeader />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -518,7 +508,10 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: '#FFFFFF',
   },
-  header: {
+  brandHeader: {
+    backgroundColor: '#31429B',
+  },
+  brandRow: {
     backgroundColor: '#31429B',
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -526,17 +519,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerAccent: {
+  brandAccent: {
     height: 10,
     backgroundColor: '#F2C919',
     width: '100%',
   },
-  headerLogoImage: {
-    width: 146,
-    height: 36,
+  brandLogo: {
+    width: 136,
+    height: 42,
   },
-  badgeContainer: { backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  badgeText: { color: '#31429B', fontWeight: '800', fontSize: 12 },
+  nulipaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 122,
+    justifyContent: 'center',
+  },
+  nulipaIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 6,
+  },
+  nulipaText: { color: '#31429B', fontWeight: '800', fontSize: 14, letterSpacing: 0.3 },
   
   profileSection: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center' },
   profileInfo: { flexDirection: 'row', alignItems: 'center' },

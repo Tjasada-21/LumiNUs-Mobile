@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import BrandHeader from '../components/BrandHeader';
 
 const TABS = [
 	{ key: 'all', label: 'All Chats' },
@@ -72,20 +73,7 @@ const ChatScreen = () => {
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
 			<View style={styles.container}>
-				<View style={styles.header}>
-					<Image
-						source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-						style={[styles.headerLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
-						resizeMode="contain"
-					/>
-
-					<View style={styles.badgeContainer}>
-						<Image source={require('../../assets/images/nulogo.png')} style={styles.badgeIcon} />
-						<Text style={styles.badgeText}>NU LIPA</Text>
-					</View>
-				</View>
-
-				<View style={styles.headerAccent} />
+				<BrandHeader />
 
 				<View style={styles.contentWrap}>
 					<View style={styles.userRow}>
@@ -145,38 +133,43 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#ECECEC',
 	},
-	header: {
+	brandHeader: {
 		backgroundColor: '#31429B',
-		paddingHorizontal: 18,
-		paddingVertical: 14,
+	},
+	brandRow: {
+		paddingHorizontal: 16,
+		paddingTop: 16,
+		paddingBottom: 18,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
 	},
-	headerLogo: {
-		width: 146,
-		height: 36,
+	brandLogo: {
+		width: 136,
+		height: 42,
 	},
-	badgeContainer: {
+	nulipaPill: {
 		backgroundColor: '#FFFFFF',
-		borderRadius: 20,
+		borderRadius: 999,
 		paddingVertical: 7,
-		paddingHorizontal: 12,
+		paddingHorizontal: 14,
 		flexDirection: 'row',
 		alignItems: 'center',
+		justifyContent: 'center',
 	},
-	badgeIcon: {
-		width: 17,
-		height: 17,
+	nulipaIcon: {
+		width: 22,
+		height: 22,
 		marginRight: 6,
 	},
-	badgeText: {
+	nulipaText: {
 		color: '#2D3F9E',
 		fontWeight: '800',
 		fontSize: 14,
+		letterSpacing: 0.3,
 	},
-	headerAccent: {
-		height: 12,
+	brandAccent: {
+		height: 10,
 		backgroundColor: '#F2C919',
 	},
 	contentWrap: {

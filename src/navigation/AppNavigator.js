@@ -9,6 +9,7 @@ import AlumniTracerScreen from '../screens/AlumniTracerScreen';
 import EventRegistrationScreen from '../screens/EventRegistrationScreen';
 import EventsScreen from '../screens/EventsScreen';
 import PerksScreen from '../screens/PerksScreen';
+import ForgetPasswordScreen from '../screens/ForgetPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,8 +21,6 @@ const AppNavigator = () => {
         animation: 'fade_from_bottom',
         animationTypeForReplace: 'push',
         contentStyle: { backgroundColor: '#FFFFFF' },
-        navigationBarColor: '#FFFFFF',
-        navigationBarTranslucent: false,
       }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
@@ -32,6 +31,7 @@ const AppNavigator = () => {
       <Stack.Screen name="EventRegistration" component={EventRegistrationScreen} />
       <Stack.Screen name="EventsScreen" component={EventsScreen} />
       <Stack.Screen name="Perks" component={PerksScreen} />
+      <Stack.Screen name="ForgetPassword" component={ForgetPasswordScreen} />
       {/* We will add Register and Home screens here later! */}
 
 

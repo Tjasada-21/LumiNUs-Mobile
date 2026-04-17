@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import BrandHeader from '../components/BrandHeader';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -198,7 +199,17 @@ const AccountSettingsScreen = ({ navigation }) => {
               Alert.alert('Saved', 'Your account details were updated successfully.');
             } catch (saveError) {
               console.error('Failed to save account settings:', saveError);
-              setErrorMessage('Unable to save account details right now.');
+              const serverData = saveError.response?.data;
+              let friendly = 'Unable to save account details right now.';
+
+              if (serverData?.errors) {
+                const firstKey = Object.keys(serverData.errors)[0];
+                friendly = serverData.errors[firstKey]?.[0] || friendly;
+              } else if (serverData?.message) {
+                friendly = serverData.message;
+              }
+
+              setErrorMessage(friendly);
             } finally {
               setSaving(false);
             }
@@ -225,19 +236,7 @@ const AccountSettingsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Image
-            source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-            style={[styles.headerLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
-            resizeMode="contain"
-          />
-          <View style={styles.badgeContainer}>
-            <Image source={require('../../assets/images/nulogo.png')} style={styles.badgeIcon} />
-            <Text style={styles.badgeText}>NU LIPA</Text>
-          </View>
-        </View>
-
-        <View style={styles.headerAccent} />
+        <BrandHeader />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <TouchableOpacity style={styles.homeButton} activeOpacity={0.8} onPress={() => navigation.navigate('Home')}>
