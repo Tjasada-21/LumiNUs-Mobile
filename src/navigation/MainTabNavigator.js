@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -71,7 +72,7 @@ const MainTabNavigator = () => {
         }}
       />
       <Tab.Screen name="Forms" children={() => <DummyScreen name="Forms" />} />
-      <Tab.Screen name="Profile" children={() => <DummyScreen name="Profile" />} />
+      <Tab.Screen name="Profile" component={UserProfileScreen} />
     </Tab.Navigator>
   );
 };

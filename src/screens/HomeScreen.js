@@ -348,7 +348,8 @@ const HomeScreen = ({ navigation }) => {
           </ScrollView>
         </View>
 
-         
+        <View style={styles.bottomSpacer} />
+
       </ScrollView>
 
         {/* NEW: LEFT SLIDE MENU */}
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
   safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   mainScrollContent: {
-    paddingBottom: 16,
+    paddingBottom: 1,
     backgroundColor: '#FFFFFF',
   },
   header: {
@@ -613,7 +614,7 @@ const styles = StyleSheet.create({
   },
 
   sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
-  quickLinksSection: { marginBottom: 8 },
+  quickLinksSection: { marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 15 },
   horizontalScroll: { flexDirection: 'row' },
   promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 16, padding: 12, overflow: 'hidden' },
@@ -623,8 +624,8 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   quickLinkBox: {
-    width: 152,
-    minHeight: 84,
+    width: 192,
+    minHeight: 64,
     backgroundColor: '#FFFFFF',
     paddingVertical: 16,
     paddingHorizontal: 14,
@@ -652,6 +653,9 @@ const styles = StyleSheet.create({
   quickLinkIconNU: {
     width: 26,
     height: 26,
+  },
+  bottomSpacer: {
+    height: 32,
   },
 
   modalOverlay: {
