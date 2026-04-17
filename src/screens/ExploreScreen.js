@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#2E3F98',
+    backgroundColor: '##31429B',
   },
   gradientOverlayTop: {
     position: 'absolute',
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '38%',
-    backgroundColor: '#1E2B73',
+    backgroundColor: '#31429B',
     opacity: 0.45,
   },
   scrollContent: {

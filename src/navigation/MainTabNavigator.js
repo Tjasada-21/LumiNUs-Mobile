@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import FeedScreen from '../screens/UserFeedScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -30,7 +31,7 @@ const MainTabNavigator = () => {
             iconName = focused ? 'chatbubble' : 'chatbubble-outline';
           } else if (route.name === 'Explore') {
             iconName = focused ? 'earth' : 'earth-outline';
-          } else if (route.name === 'Forms') {
+          } else if (route.name === 'Feed') {
             iconName = focused ? 'document-text' : 'document-text-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
@@ -71,7 +72,7 @@ const MainTabNavigator = () => {
           tabBarInactiveTintColor: '#31429B',
         }}
       />
-      <Tab.Screen name="Forms" children={() => <DummyScreen name="Forms" />} />
+      <Tab.Screen name="Feed" component={FeedScreen} />
       <Tab.Screen name="Profile" component={UserProfileScreen} />
     </Tab.Navigator>
   );

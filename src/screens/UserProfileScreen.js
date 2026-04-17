@@ -78,7 +78,7 @@ const UserProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#384A9C" />
+      <StatusBar barStyle="light-content" backgroundColor="#31429B" translucent={false} />
       <View style={styles.container}>
         <View style={styles.brandHeader}>
           <View style={styles.brandRow}>
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F3F7',
   },
   brandHeader: {
-    backgroundColor: '#384A9C',
+    backgroundColor: '#31429B',
   },
   brandRow: {
     paddingHorizontal: 16,

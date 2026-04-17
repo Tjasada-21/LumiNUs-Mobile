@@ -348,8 +348,6 @@ const HomeScreen = ({ navigation }) => {
           </ScrollView>
         </View>
 
-        <View style={styles.bottomSpacer} />
-
       </ScrollView>
 
         {/* NEW: LEFT SLIDE MENU */}
@@ -483,7 +481,7 @@ const styles = StyleSheet.create({
   safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
   mainScrollContent: {
-    paddingBottom: 1,
+    paddingBottom: 0,
     backgroundColor: '#FFFFFF',
   },
   header: {
@@ -613,8 +611,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
-  sectionContainer: { paddingHorizontal: 20, marginBottom: 25 },
-  quickLinksSection: { marginBottom: 20 },
+  sectionContainer: { paddingHorizontal: 20, marginBottom: 0 },
+  quickLinksSection: { marginBottom: -18, paddingBottom: 8, position: 'relative', zIndex: 2 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 15 },
   horizontalScroll: { flexDirection: 'row' },
   promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 16, padding: 12, overflow: 'hidden' },
@@ -622,6 +620,7 @@ const styles = StyleSheet.create({
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quickLinksScrollContent: {
     paddingRight: 8,
+    paddingBottom: 14,
   },
   quickLinkBox: {
     width: 192,
@@ -654,10 +653,6 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
   },
-  bottomSpacer: {
-    height: 32,
-  },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)', // Darkens the background behind the modal
