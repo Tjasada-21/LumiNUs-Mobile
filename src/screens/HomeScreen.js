@@ -315,9 +315,14 @@ const HomeScreen = ({ navigation }) => {
 
     
         {/* 4. WHAT'S NEW (Horizontal Scroll) */}
-        <View style={[styles.sectionContainer, { paddingHorizontal: layout.horizontalPadding }]}>
+        <View style={[styles.sectionContainer, styles.sectionInset]}>
           <Text style={styles.sectionTitle}>What's New</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
             
             {/* Pickle Bark Promo Card Built with Text */}
             <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
@@ -345,7 +350,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* 5. QUICK LINKS */}
-        <View style={[styles.sectionContainer, styles.quickLinksSection, { paddingHorizontal: layout.horizontalPadding, marginBottom: layout.quickLinksOverlap }]}>
+        <View style={[styles.sectionContainer, styles.sectionInset, styles.quickLinksSection, { marginBottom: layout.quickLinksOverlap }]}>
           <Text style={styles.sectionTitle}>Quick Links</Text>
 
           <ScrollView
@@ -652,15 +657,18 @@ const styles = StyleSheet.create({
     height: '100%',
   },
 
-  sectionContainer: { paddingHorizontal: 20, marginBottom: 0 },
+  sectionContainer: { marginBottom: 0 },
+  sectionInset: { marginHorizontal: 16 },
   quickLinksSection: { marginTop: 8, marginBottom: 12, paddingBottom: 8 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#31429B', marginBottom: 8 },
   horizontalScroll: { flexDirection: 'row' },
+  horizontalScrollContent: {
+    paddingBottom: 8,
+  },
   promoCard: { width: 280, height: 130, backgroundColor: '#FDEAA6', borderRadius: 12, marginRight: 12, padding: 12, overflow: 'hidden' },
   
   quickLinksRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quickLinksScrollContent: {
-    paddingRight: 8,
     paddingBottom: 8,
   },
   quickLinkBox: {
