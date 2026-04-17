@@ -236,11 +236,11 @@ const UserProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F2F3F7',
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: '#F2F3F7',
+    backgroundColor: '#FFFFFF',
   },
   brandHeader: {
     backgroundColor: '#31429B',
@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 18,
+    backgroundColor: '#FFFFFF',
   },
   stateWrap: {
     minHeight: 420,

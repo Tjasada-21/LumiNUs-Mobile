@@ -20,6 +20,7 @@ const SECTION_DATA = [
       {
         label: 'Digital\nYearbook',
         icon: require('../../assets/images/digital-yearbook-icon-in-blue.png'),
+        action: 'goToViewYearbook',
       },
       {
         label: 'NU Alumni ID',
@@ -29,6 +30,7 @@ const SECTION_DATA = [
       {
         label: 'Alumni\nTracer',
         icon: require('../../assets/images/trace-icon-in-blue.png'),
+        action: 'goToAlumniTracer',
       },
     ],
   },
@@ -38,10 +40,12 @@ const SECTION_DATA = [
       {
         label: 'Registration',
         icon: require('../../assets/images/registration-icon-in-blue-1.png'),
+        action: 'goToEventRegistration',
       },
       {
         label: 'University Events',
         icon: require('../../assets/images/view-uni-events-icon-in-blue-1.png'),
+        action: 'goToEventsScreen',
       },
       {
         label: 'Messages',
@@ -56,10 +60,12 @@ const SECTION_DATA = [
       {
         label: 'My Feed',
         icon: require('../../assets/images/feed-icon-in-blue-1.png'),
+        action: 'goToFeed',
       },
       {
         label: 'Perks and\nDiscounts',
         icon: require('../../assets/images/view-perks-icon-in-blue-1.png'),
+        action: 'goToPerks',
       },
       {
         label: 'NU Website',
@@ -81,6 +87,50 @@ const ExploreScreen = ({ navigation }) => {
   const scrollPaddingHorizontal = width < 375 ? 12 : 14;
 
   const handleItemPress = (item) => {
+    if (item.action === 'goToViewYearbook') {
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('ViewYearbook');
+      }
+      return;
+    }
+
+    if (item.action === 'goToAlumniTracer') {
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('AlumniTracer');
+      }
+      return;
+    }
+
+    if (item.action === 'goToEventRegistration') {
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('EventRegistration');
+      }
+      return;
+    }
+
+    if (item.action === 'goToEventsScreen') {
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('EventsScreen');
+      }
+      return;
+    }
+
+    if (item.action === 'goToFeed') {
+      if (typeof navigation.jumpTo === 'function') {
+        navigation.jumpTo('Feed');
+        return;
+      }
+      navigation.navigate('Feed');
+      return;
+    }
+
+    if (item.action === 'goToPerks') {
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('Perks');
+      }
+      return;
+    }
+
     if (item.action === 'goToAlumniId') {
       if (typeof navigation.jumpTo === 'function') {
         navigation.jumpTo('HomeTab');

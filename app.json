@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/LumiNUs_Load.jpg",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#31429B",
+    "backgroundColor": "#FFFFFF",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/LumiNUs_Load.jpg",
@@ -19,9 +19,9 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/LumiNUs_Load.jpg",
-        "backgroundColor": "#31429B"
+        "backgroundColor": "#FFFFFF"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
