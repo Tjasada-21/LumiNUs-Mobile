@@ -22,6 +22,7 @@ const MainTabNavigator = () => {
     <Tab.Navigator
       sceneContainerStyle={{ backgroundColor: '#FFFFFF' }}
       screenOptions={({ route }) => ({
+        animation: 'shift',
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
