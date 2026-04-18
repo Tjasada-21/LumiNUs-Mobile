@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
 import SmartTextInput from '../components/SmartTextInput';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/AccountSettingsScreen.styles';
+import { getAuthEmail, getAuthToken, isRememberedSession, setAuthCredentials } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -57,7 +58,7 @@ const AccountSettingsScreen = ({ navigation }) => {
         setLoading(true);
         setErrorMessage('');
 
-        const userEmail = await SecureStore.getItemAsync('userEmail');
+        const userEmail = await getAuthEmail();
 
         if (!userEmail) {
           setErrorMessage('No account email is stored for this session.');
@@ -150,7 +151,7 @@ const AccountSettingsScreen = ({ navigation }) => {
     const changes = getChangedPayload();
 
     if (Object.keys(changes).length === 0) {
-      Alert.alert('No changes', 'You have not modified any fields.');
+      showBrandedAlert('No changes', 'You have not modified any fields.');
       return;
     }
 
@@ -167,7 +168,7 @@ const AccountSettingsScreen = ({ navigation }) => {
 
     const changedNames = Object.keys(changes).map((k) => fieldLabels[k] || k).join(', ');
 
-    Alert.alert(
+    showBrandedAlert(
       'Confirm Save',
       `Save changes to: ${changedNames}?`,
       [
@@ -194,10 +195,15 @@ const AccountSettingsScreen = ({ navigation }) => {
                   sex: data.sex || '',
                   alumni_photo: data.alumni_photo || '',
                 });
-                await SecureStore.setItemAsync('userEmail', data.email);
+
+                await setAuthCredentials({
+                  token: await getAuthToken(),
+                  email: data.email,
+                  remember: isRememberedSession(),
+                });
               }
 
-              Alert.alert('Saved', 'Your account details were updated successfully.');
+              showBrandedAlert('Saved', 'Your account details were updated successfully.');
             } catch (saveError) {
               console.error('Failed to save account settings:', saveError);
               const serverData = saveError.response?.data;
@@ -254,7 +260,7 @@ const AccountSettingsScreen = ({ navigation }) => {
                   setPickingImage(true);
                   const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
                   if (permissionResult.status !== 'granted') {
-                    Alert.alert('Permission required', 'Permission to access photos is required to choose a profile image.');
+                    showBrandedAlert('Permission required', 'Permission to access photos is required to choose a profile image.');
                     return;
                   }
 
@@ -271,17 +277,17 @@ const AccountSettingsScreen = ({ navigation }) => {
                       // upload immediately and use hosted URL as preview
                       const hostedUrl = await uploadImage(selectedUri);
                       updateField('alumni_photo', hostedUrl);
-                      Alert.alert('Uploaded', 'Profile photo uploaded.');
+                      showBrandedAlert('Uploaded', 'Profile photo uploaded.');
                     } catch (uploadErr) {
                       console.error('Upload failed:', uploadErr);
                       // fallback to local uri preview and inform user
                       updateField('alumni_photo', selectedUri);
-                      Alert.alert('Upload failed', 'Image upload failed — using local preview. You can try saving again.');
+                      showBrandedAlert('Upload failed', 'Image upload failed — using local preview. You can try saving again.');
                     }
                   }
                 } catch (err) {
                   console.error('Image pick failed:', err);
-                  Alert.alert('Error', 'Unable to pick image.');
+                  showBrandedAlert('Error', 'Unable to pick image.');
                 } finally {
                   setPickingImage(false);
                 }
@@ -408,13 +414,7 @@ const AccountSettingsScreen = ({ navigation }) => {
                         { text: 'Cancel', style: 'cancel' },
                       ];
 
-                      if (Platform.OS === 'ios') {
-                        // Action sheet-like on iOS
-                        Alert.alert('Select Gender', undefined, options, { cancelable: true });
-                      } else {
-                        // Android: use same alert with buttons
-                        Alert.alert('Select Gender', undefined, options, { cancelable: true });
-                      }
+                      showBrandedAlert('Select Gender', '', options, { cancelable: true });
                     }}
                   >
                     <Text style={[styles.inputValue, styles.dateValue]}>

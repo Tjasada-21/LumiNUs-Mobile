@@ -4,11 +4,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
 import styles from '../styles/HomeScreen.styles';
+import { clearAuthCredentials, getAuthToken } from '../services/authStorage';
 
 const HomeScreen = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
@@ -18,6 +18,8 @@ const HomeScreen = ({ navigation }) => {
     headerLogoWidth: responsiveWidth(width, 0.28, 122, isTablet ? 176 : 146),
     headerLogoHeight: responsiveHeight(height, 0.045, 30, 42),
     horizontalPadding: isTablet ? 28 : isCompactWidth ? 16 : 20,
+    menuWidth: Math.min(width * 0.92, 340),
+    notifWidth: Math.min(width * 0.88, 340),
     idCardHeight: responsiveWidth(width, 0.62, 204, isTablet ? 320 : 250),
     idPhotoWidth: responsiveWidth(width, 0.28, 62, isTablet ? 138 : 112),
     idPhotoHeight: responsiveWidth(width, 0.42, 96, isTablet ? 160 : 128),
@@ -37,9 +39,8 @@ const HomeScreen = ({ navigation }) => {
   const [isIdFlipped, setIsIdFlipped] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
 
-    // NEW: side menu state/animation
     const [isMenuVisible, setIsMenuVisible] = useState(false);
-    const menuTranslateX = useRef(new Animated.Value(-320)).current;
+    const menuTranslateX = useRef(new Animated.Value(-Math.min(width * 0.92, 340))).current;
 
     // Notifications panel animation (slide from right)
     const [isNotifVisible, setIsNotifVisible] = useState(false);
@@ -77,7 +78,7 @@ const HomeScreen = ({ navigation }) => {
 
     const closeMenu = () => {
         Animated.timing(menuTranslateX, {
-            toValue: -320,
+        toValue: -layout.menuWidth,
             duration: 200,
             useNativeDriver: true,
         }).start(() => setIsMenuVisible(false));
@@ -87,7 +88,7 @@ const HomeScreen = ({ navigation }) => {
     const fetchUserData = async () => {
       try {
         // 1. Grab the VIP pass (token) from the phone's secure vault
-        const token = await SecureStore.getItemAsync('userToken');
+        const token = await getAuthToken();
         
         if (token) {
           // 2. Show the token to Laravel and ask for the user's profile
@@ -132,8 +133,7 @@ const HomeScreen = ({ navigation }) => {
     // close the menu first
     closeMenu();
     try {
-      await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userEmail');
+      await clearAuthCredentials();
     } catch (err) {
       console.error('Failed to clear secure store during sign out', err);
     }
@@ -149,6 +149,70 @@ const HomeScreen = ({ navigation }) => {
       navigation.replace('Login');
     }
   };
+
+  const menuItems = [
+    {
+      key: 'account-settings',
+      title: 'Account Settings',
+      subtitle: 'Manage Your Information',
+      icon: 'person-outline',
+      onPress: openAccountSettings,
+    },
+    {
+      key: 'connections',
+      title: 'My Connections',
+      subtitle: 'View Your Connections',
+      icon: 'people-outline',
+      onPress: () => {
+        closeMenu();
+        navigation.navigate('Profile');
+      },
+    },
+    {
+      key: 'registrations',
+      title: 'My Registrations',
+      subtitle: 'View Your Event Registrations',
+      icon: 'reader-outline',
+      onPress: () => {
+        closeMenu();
+        const parentNavigator = navigation.getParent?.();
+
+        if (parentNavigator?.navigate) {
+          parentNavigator.navigate('EventRegistration');
+          return;
+        }
+
+        navigation.navigate('EventRegistration');
+      },
+    },
+    {
+      key: 'masters',
+      title: 'Get your Master’s or Second Degree',
+      subtitle: 'Continue studying your chosen field',
+      icon: 'book-outline',
+      onPress: () => {
+        closeMenu();
+        const parentNavigator = navigation.getParent?.();
+
+        if (parentNavigator?.navigate) {
+          parentNavigator.navigate('Perks');
+          return;
+        }
+
+        navigation.navigate('Perks');
+      },
+    },
+    {
+      key: 'explore',
+      title: 'Explore the App',
+      subtitle: 'Take a Tour of the App!',
+      icon: 'search-outline',
+      onPress: () => {
+        closeMenu();
+        navigation.navigate('Explore');
+      },
+    },
+  ];
 
   const toggleIdCard = () => {
     const nextValue = isIdFlipped ? 0 : 1;
@@ -408,36 +472,17 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.sideMenuAccent} />
 
               <View style={styles.sideMenuBody}>
-
-                <TouchableOpacity style={styles.menuItem}>
-                  <View style={styles.menuIconCircle}>
-                    <Ionicons name="reader-outline" size={22} color="#31429B" />
-                  </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuItemTitle}>My Registrations</Text>
-                    <Text style={styles.menuItemSub}>View Your Event Registrations</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem}>
-                  <View style={styles.menuIconCircle}>
-                    <Ionicons name="book-outline" size={22} color="#31429B" />
-                  </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuItemTitle}>Get your Master’s or Second Degree</Text>
-                    <Text style={styles.menuItemSub}>Continue studying your chosen field</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem}>
-                  <View style={styles.menuIconCircle}>
-                    <Ionicons name="search-outline" size={22} color="#31429B" />
-                  </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuItemTitle}>Explore the App</Text>
-                    <Text style={styles.menuItemSub}>Take a Tour of the App!</Text>
-                  </View>
-                </TouchableOpacity>
+                {menuItems.map((item) => (
+                  <TouchableOpacity key={item.key} style={styles.menuItem} activeOpacity={0.8} onPress={item.onPress}>
+                    <View style={styles.menuIconCircle}>
+                      <Ionicons name={item.icon} size={22} color="#31429B" />
+                    </View>
+                    <View style={styles.menuTextWrap}>
+                      <Text style={styles.menuItemTitle}>{item.title}</Text>
+                      <Text style={styles.menuItemSub}>{item.subtitle}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               <View style={styles.sideMenuFooter}>

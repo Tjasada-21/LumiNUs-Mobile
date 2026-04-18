@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, Text, TouchableOpacity, 
-  Alert, ActivityIndicator, ImageBackground, Image 
+  ActivityIndicator, ImageBackground, Image 
 } from 'react-native';
 import SmartTextInput from '../components/SmartTextInput';
 import { Ionicons } from '@expo/vector-icons'; // Expo's built-in icons
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import styles from '../styles/LoginScreen.styles';
+import { setAuthCredentials } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -16,9 +18,26 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
+  useEffect(() => {
+    const restoreRememberedLogin = async () => {
+      const savedToken = await SecureStore.getItemAsync('userToken');
+      const savedEmail = await SecureStore.getItemAsync('userEmail');
+
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+
+      if (savedToken) {
+        navigation.replace('Home');
+      }
+    };
+
+    restoreRememberedLogin();
+  }, [navigation]);
+
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showBrandedAlert('Error', 'Please fill in all fields');
       return;
     }
 
@@ -27,12 +46,16 @@ const LoginScreen = ({ navigation }) => {
     try {
       const response = await api.post('/login', { email, password });
       const { token, alumni } = response.data;
-      
-      await SecureStore.setItemAsync('userToken', token);
-      await SecureStore.setItemAsync('userEmail', alumni?.email || email);
-      Alert.alert('Success!', `Welcome back, ${alumni.first_name}!`);
-      
-    navigation.replace('Home'); 
+
+      await setAuthCredentials({
+        token,
+        email: alumni?.email || email,
+        remember: rememberMe,
+      });
+
+      showBrandedAlert('Success!', `Welcome back, ${alumni.first_name}!`);
+
+      navigation.replace('Home');
     } catch (error) {
       console.error('Login error:', error);
       const serverData = error.response?.data;
@@ -55,7 +78,7 @@ const LoginScreen = ({ navigation }) => {
         friendly = error.message;
       }
 
-      Alert.alert('Login Failed', friendly);
+      showBrandedAlert('Login Failed', friendly);
     } finally {
       setLoading(false);
     }

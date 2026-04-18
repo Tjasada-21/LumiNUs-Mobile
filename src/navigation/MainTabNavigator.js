@@ -52,6 +52,8 @@ const MainTabNavigator = () => {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E2E8F0',
+          paddingTop: 0,
+          paddingBottom: 0,
           elevation: 10, // Adds a slight shadow on Android
         }
       })}
@@ -69,6 +71,8 @@ const MainTabNavigator = () => {
             height: 65,
             backgroundColor: '#F2C919',
             borderTopWidth: 0,
+            paddingTop: 0,
+            paddingBottom: 0,
             elevation: 10,
           },
           tabBarActiveTintColor: '#31429B',

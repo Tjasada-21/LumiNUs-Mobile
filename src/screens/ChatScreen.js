@@ -9,10 +9,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/ChatScreen.styles';
+import { getAuthToken } from '../services/authStorage';
 
 const TABS = [
 	{ key: 'all', label: 'All Chats' },
@@ -38,7 +38,7 @@ const ChatScreen = () => {
 	useEffect(() => {
 		const fetchUserData = async () => {
 			try {
-				const token = await SecureStore.getItemAsync('userToken');
+				const token = await getAuthToken();
 
 				if (!token) {
 					return;

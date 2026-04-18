@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, StatusBar, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import styles from '../styles/UserProfileScreen.styles';
+import { getAuthToken } from '../services/authStorage';
 
 const UserProfileScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
@@ -16,7 +16,6 @@ const UserProfileScreen = ({ navigation }) => {
     pillMinWidth: isTablet ? 132 : isCompactWidth ? 108 : 122,
     avatarSize: isTablet ? 118 : isCompactWidth ? 88 : 102,
     heroPadding: isCompactWidth ? 14 : 16,
-    cardHorizontalPadding: isCompactWidth ? 12 : 14,
     nameSize: isCompactWidth ? 19 : 22,
   };
 
@@ -24,13 +23,58 @@ const UserProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const profileName = useMemo(() => {
+    if (!userData) {
+      return 'Dela Cruz, Juan Miguel';
+    }
+
+    return [userData.last_name, userData.first_name]
+      .filter(Boolean)
+      .join(', ')
+      .replace(/, ([^,]+)$/, ', $1');
+  }, [userData]);
+
+  const profileImageUri = useMemo(() => {
+    if (userData?.alumni_photo) {
+      return userData.alumni_photo;
+    }
+
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=1F2F6E&color=fff&size=256`;
+  }, [profileName, userData]);
+
+  const profileSummary = useMemo(() => ({
+    headlineText: userData?.headline || 'Software Engineer at Microsoft',
+    locationText: userData?.location || 'Lipa City, Batangas',
+    classTag: userData?.class_year ? `Class of ${userData.class_year}` : 'Class of 2023',
+    sectionTag: userData?.section || 'BSIT',
+    connectionsCount: userData?.connections_count ?? 123,
+    postsCount: userData?.posts_count ?? 3,
+    biographyText:
+      userData?.bio ||
+      'Class of 2023 | BS Information Technology | Currently a Software Engineer at Microsoft specializing in mobile development. During my stay at NU Lipa, I served as a student leader and fell in love with building tech that solves real-world problems. Passionate about Human-Computer Interaction and clean code. Always down for a coffee chat or a collab on a side project! ☕✨',
+  }), [userData]);
+
+  const workExperience = useMemo(() => {
+    if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
+      return userData.work_experiences[0];
+    }
+
+    return {
+      title: 'Student Developer',
+      subtitle: 'NU Lipa - LumiNUs Portal',
+      period: '2021 - 2022',
+      location: 'Lipa City, Batangas',
+      description: "Contributed to the development of the university's alumni portal.",
+    };
+  }, [userData]);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
         setErrorMessage('');
 
-        const token = await SecureStore.getItemAsync('userToken');
+        const token = await getAuthToken();
 
         if (!token) {
           setErrorMessage('No active session found.');
@@ -52,32 +96,6 @@ const UserProfileScreen = ({ navigation }) => {
 
     fetchProfile();
   }, []);
-
-  const profileName = userData
-    ? [userData.last_name, userData.first_name].filter(Boolean).join(', ').replace(/, ([^,]+)$/, ', $1')
-    : 'Dela Cruz, Juan Miguel';
-
-  const profileImageUri = userData?.alumni_photo
-    ? userData.alumni_photo
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=1F2F6E&color=fff&size=256`;
-
-  const headlineText = userData?.headline || 'Software Engineer at Microsoft';
-  const locationText = userData?.location || 'Lipa City, Batangas';
-  const classTag = userData?.class_year ? `Class of ${userData.class_year}` : 'Class of 2023';
-  const sectionTag = userData?.section || 'BSIT';
-  const connectionsCount = userData?.connections_count ?? 123;
-  const postsCount = userData?.posts_count ?? 3;
-  const biographyText = userData?.bio || 'Class of 2023 | BS Information Technology | Currently a Software Engineer at Microsoft specializing in mobile development. During my stay at NU Lipa, I served as a student leader and fell in love with building tech that solves real-world problems. Passionate about Human-Computer Interaction and clean code. Always down for a coffee chat or a collab on a side project! ☕✨';
-
-  const workExperience = Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0
-    ? userData.work_experiences[0]
-    : {
-        title: 'Student Developer',
-        subtitle: 'NU Lipa - LumiNUs Portal',
-        period: '2021 - 2022',
-        location: 'Lipa City, Batangas',
-        description: "Contributed to the development of the university's alumni portal.",
-      };
 
   const openAccountSettings = () => {
     const parentNavigator = navigation.getParent?.();
@@ -119,13 +137,25 @@ const UserProfileScreen = ({ navigation }) => {
             </View>
           ) : (
             <>
-                <View style={[styles.heroCard, { padding: layout.heroPadding }]}>
+              <View style={[styles.heroCard, { padding: layout.heroPadding }]}>
                 <View style={styles.heroRow}>
-                  <Image source={{ uri: profileImageUri }} style={[styles.avatar, { width: layout.avatarSize, height: layout.avatarSize, borderRadius: layout.avatarSize / 2 }]} />
+                  <Image
+                    source={{ uri: profileImageUri }}
+                    style={[
+                      styles.avatar,
+                      {
+                        width: layout.avatarSize,
+                        height: layout.avatarSize,
+                        borderRadius: layout.avatarSize / 2,
+                      },
+                    ]}
+                  />
 
                   <View style={styles.heroCopy}>
                     <View style={styles.heroTitleRow}>
-                      <Text style={[styles.name, { fontSize: layout.nameSize, lineHeight: layout.nameSize + 2 }]}>{profileName}</Text>
+                      <Text style={[styles.name, { fontSize: layout.nameSize, lineHeight: layout.nameSize + 2 }]}>
+                        {profileName}
+                      </Text>
                       <TouchableOpacity onPress={openAccountSettings} style={styles.iconButton} activeOpacity={0.8}>
                         <Ionicons name="settings" size={18} color="#FFFFFF" />
                       </TouchableOpacity>
@@ -133,16 +163,18 @@ const UserProfileScreen = ({ navigation }) => {
 
                     <View style={styles.tagPill}>
                       <Ionicons name="school" size={11} color="#31429B" />
-                      <Text style={styles.tagText}>{classTag} | {sectionTag}</Text>
+                      <Text style={styles.tagText}>
+                        {profileSummary.classTag} | {profileSummary.sectionTag}
+                      </Text>
                     </View>
 
                     <View style={styles.statsRow}>
                       <View style={styles.statBlock}>
-                        <Text style={styles.statValue}>{connectionsCount}</Text>
+                        <Text style={styles.statValue}>{profileSummary.connectionsCount}</Text>
                         <Text style={styles.statLabel}>Connections</Text>
                       </View>
                       <View style={styles.statBlock}>
-                        <Text style={styles.statValue}>{postsCount}</Text>
+                        <Text style={styles.statValue}>{profileSummary.postsCount}</Text>
                         <Text style={styles.statLabel}>Posts</Text>
                       </View>
                     </View>
@@ -161,11 +193,11 @@ const UserProfileScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.aboutItem}>
                     <Ionicons name="briefcase" size={16} color="#404040" />
-                    <Text style={styles.aboutText}>{headlineText}</Text>
+                    <Text style={styles.aboutText}>{profileSummary.headlineText}</Text>
                   </View>
                   <View style={styles.aboutItem}>
                     <Ionicons name="location-sharp" size={16} color="#404040" />
-                    <Text style={styles.aboutText}>{locationText}</Text>
+                    <Text style={styles.aboutText}>{profileSummary.locationText}</Text>
                   </View>
                 </View>
               </View>
@@ -179,7 +211,7 @@ const UserProfileScreen = ({ navigation }) => {
                       <Text style={styles.editPillText}>Edit</Text>
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.biographyText}>{biographyText}</Text>
+                  <Text style={styles.biographyText}>{profileSummary.biographyText}</Text>
                 </View>
               </View>
 
@@ -233,4 +265,5 @@ const UserProfileScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
+
 export default UserProfileScreen;

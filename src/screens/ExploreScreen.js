@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { clamp, responsiveWidth } from '../utils/responsive';
 import styles from '../styles/ExploreScreen.styles';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const SECTION_DATA = [
   {
@@ -158,7 +159,7 @@ const ExploreScreen = ({ navigation }) => {
         })
         .catch((err) => {
           console.error('Failed to open URL', err);
-          Alert.alert('Unable to open link', 'Could not open the website.');
+          showBrandedAlert('Unable to open link', 'Could not open the website.');
         });
     }
   };

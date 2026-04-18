@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { getAuthToken } from './authStorage';
 
 // Replace with your computer's actual IPv4 address
 // Since you are using Docker/Sail, DO NOT add a port number.
@@ -14,7 +14,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('userToken');
+  const token = await getAuthToken();
 
   if (token) {
     config.headers = config.headers ?? {};
