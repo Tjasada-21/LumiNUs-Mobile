@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
@@ -7,11 +7,12 @@ import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import FeedScreen from '../screens/UserFeedScreen';
+import { sharedScreenStyles } from '../styles/sharedStyles';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
-  <View style={styles.dummyContainer}>
-    <Text style={styles.dummyText}>{name} Screen Coming Soon</Text>
+  <View style={sharedScreenStyles.container}>
+    <Text style={sharedScreenStyles.title}>{name} Screen Coming Soon</Text>
   </View>
 );
 
@@ -79,10 +80,5 @@ const MainTabNavigator = () => {
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  dummyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F6F8' },
-  dummyText: { fontSize: 18, color: '#31429B', fontWeight: 'bold' }
-});
 
 export default MainTabNavigator;
