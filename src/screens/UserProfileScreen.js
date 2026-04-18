@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, StatusBar, useWindowDimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
+import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/UserProfileScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
@@ -11,9 +12,6 @@ const UserProfileScreen = ({ navigation }) => {
   const isCompactWidth = width < 375;
   const isTablet = width >= 768;
   const layout = {
-    brandLogoWidth: isTablet ? 176 : isCompactWidth ? 122 : 146,
-    brandLogoHeight: isTablet ? 50 : isCompactWidth ? 32 : 42,
-    pillMinWidth: isTablet ? 132 : isCompactWidth ? 108 : 122,
     avatarSize: isTablet ? 118 : isCompactWidth ? 88 : 102,
     heroPadding: isCompactWidth ? 14 : 16,
     nameSize: isCompactWidth ? 19 : 22,
@@ -110,18 +108,8 @@ const UserProfileScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#31429B" translucent={false} />
       <View style={styles.container}>
-        <View style={styles.brandHeader}>
-          <View style={styles.brandRow}>
-            <Image source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} style={[styles.brandLogo, { width: layout.brandLogoWidth, height: layout.brandLogoHeight }]} resizeMode="contain" />
-            <View style={[styles.nulipaPill, { minWidth: layout.pillMinWidth }]}>
-              <Image source={require('../../assets/images/nulogo.png')} style={styles.nulipaIcon} resizeMode="contain" />
-              <Text style={styles.nulipaText}>NU LIPA</Text>
-            </View>
-          </View>
-          <View style={styles.brandAccent} />
-        </View>
+        <BrandHeader />
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {loading ? (
