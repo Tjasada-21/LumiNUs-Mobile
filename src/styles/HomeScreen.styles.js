@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: '100%',
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
+    borderTopLeftRadius: 28,
+    borderBottomLeftRadius: 28,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -359,8 +359,8 @@ const styles = StyleSheet.create({
     width: '92%',
     maxWidth: 340,
     backgroundColor: '#F3F3F3',
-    borderTopLeftRadius: 28,
-    borderBottomLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   sideMenuHeader: {
