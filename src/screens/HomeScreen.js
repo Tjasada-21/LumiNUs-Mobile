@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, useWindowDimensions
+  View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
+import styles from '../styles/HomeScreen.styles';
 
 const HomeScreen = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
@@ -29,9 +30,6 @@ const HomeScreen = ({ navigation }) => {
     quickLinkWidth: responsiveWidth(width, 0.42, 150, isTablet ? 230 : 192),
     quickLinkIconSize: responsiveWidth(width, 0.09, 28, 42),
     quickLinkIconNUSize: responsiveWidth(width, 0.07, 24, 34),
-    quickLinksOverlap: isCompactWidth ? 4 : 12,
-    menuWidth: responsiveWidth(width, 0.9, 280, 340),
-    notifWidth: responsiveWidth(width, 0.88, 300, 420),
   };
 
     const [userData, setUserData] = useState(null);
@@ -214,170 +212,177 @@ const HomeScreen = ({ navigation }) => {
     <SafeAreaView style={styles.safeAreaTop} edges={['top']}>
       <View style={styles.container}>
         <BrandHeader />
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.mainScrollContent}
-      >
-        {/* 2. USER PROFILE GREETING + ID CARD (card wrapper with shadow) */}
-        <View style={styles.profileCardWrapper}>
-          <View style={styles.profileSection}>
-          {/* CHANGED: make dynamic avatar section pressable */}
-          <TouchableOpacity style={styles.profileInfo} activeOpacity={0.8} onPress={openMenu}>
-            <Image 
-              source={{ 
-                uri: userData?.alumni_photo 
-                  ? userData.alumni_photo 
-                  : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`
-              }} 
-              style={styles.avatar} 
-            />
-            <View>
-              <Text style={styles.greeting}>
-                Hi, {userData ? `${userData.first_name}` : 'Loading...'}!
-              </Text>
-              <Text style={styles.studentId}>
-                Student {userData ? userData.student_id_number : '...'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.bellIcon} onPress={openNotifications}>
-            <Ionicons name="notifications" size={24} color="#00205B" />
-          </TouchableOpacity>
-        </View>
-
-        {/* 3. DIGITAL ALUMNI ID CARD */}
-        <View style={styles.idSection}>
-
-          <Pressable onPress={toggleIdCard}>
-            <View style={[styles.idCardPerspective, { height: layout.idCardHeight }]}>
-              <Animated.View
-                style={[
-                  styles.idCardFace,
-                  styles.idCardFrontFace,
-                  { transform: [{ rotateY: frontRotateY }] },
-                ]}
-              >
-                <ImageBackground
-                  source={require('../../assets/images/BlankID_Front 1.png')}
-                  style={styles.idBackground}
-                  imageStyle={styles.idBackgroundImage}
-                  resizeMode="cover"
-                >
-                  {/* Photo area (right side) */}
-                  <Image
-                    source={{ 
-                uri: userData?.alumni_photo 
-                  ? userData.alumni_photo 
-                  : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`
-              }} 
-                    style={[
-                      styles.idPhoto,
-                      {
-                        width: layout.idPhotoWidth,
-                        height: layout.idPhotoHeight,
-                        right: layout.idPhotoRight,
-                        top: layout.idPhotoTop,
-                      },
-                    ]}
-                    resizeMode="cover"
-                  />
-
-                  {/* Text overlay (left-bottom) */}
-                  <View style={[styles.idCardContent, { top: layout.idContentTop, width: layout.idContentWidth }]}>
-                    <Text style={styles.idName}>
-                      {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
-                    </Text>
-                    <Text style={styles.idCourse}>BSIT-MWA</Text>
-                    <Text style={styles.idClass}>Class of 2023</Text>
-                  </View>
-                </ImageBackground>
-              </Animated.View>
-
-              <Animated.View
-                style={[
-                  styles.idCardFace,
-                  styles.idCardBackFace,
-                  { transform: [{ rotateY: backRotateY }] },
-                ]}
-              >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.mainScrollContent}
+        >
+          {/* 2. USER PROFILE GREETING + ID CARD (card wrapper with shadow) */}
+          <View style={styles.profileCardWrapper}>
+            <View style={styles.profileSection}>
+              <TouchableOpacity style={styles.profileInfo} activeOpacity={0.8} onPress={openMenu}>
                 <Image
-                  source={require('../../assets/images/BlankID_Back 1.png')}
-                  style={styles.idBackImage}
-                  resizeMode="cover"
+                  source={{
+                    uri: userData?.alumni_photo
+                      ? userData.alumni_photo
+                      : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`,
+                  }}
+                  style={styles.avatar}
                 />
-              </Animated.View>
+                <View>
+                  <Text style={styles.greeting}>
+                    Hi, {userData ? `${userData.first_name}` : 'Loading...'}!
+                  </Text>
+                  <Text style={styles.studentId}>
+                    Student {userData ? userData.student_id_number : '...'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.bellIcon} onPress={openNotifications}>
+                <Ionicons name="notifications" size={24} color="#00205B" />
+              </TouchableOpacity>
             </View>
-          </Pressable>
-        </View>
-        </View>
 
-    
-        {/* 4. WHAT'S NEW (Horizontal Scroll) */}
-        <View style={[styles.sectionContainer, styles.sectionInset]}>
-          <Text style={styles.sectionTitle}>What's New</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.horizontalScroll}
-            contentContainerStyle={styles.horizontalScrollContent}
-          >
-            
-            {/* Pickle Bark Promo Card Built with Text */}
-            <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
-              <View style={styles.promoLeft} />
+            <View style={styles.idSection}>
+              <Pressable onPress={toggleIdCard}>
+                <View style={[styles.idCardPerspective, { height: layout.idCardHeight }]}>
+                  <Animated.View
+                    style={[
+                      styles.idCardFace,
+                      styles.idCardFrontFace,
+                      { transform: [{ rotateY: frontRotateY }] },
+                    ]}
+                  >
+                    <ImageBackground
+                      source={require('../../assets/images/BlankID_Front 1.png')}
+                      style={styles.idBackground}
+                      imageStyle={styles.idBackgroundImage}
+                      resizeMode="cover"
+                    >
+                      <Image
+                        source={{
+                          uri: userData?.alumni_photo
+                            ? userData.alumni_photo
+                            : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`,
+                        }}
+                        style={[
+                          styles.idPhoto,
+                          {
+                            width: layout.idPhotoWidth,
+                            height: layout.idPhotoHeight,
+                            right: layout.idPhotoRight,
+                            top: layout.idPhotoTop,
+                          },
+                        ]}
+                        resizeMode="cover"
+                      />
 
-              <View style={styles.promoRight}>
-                <Text style={styles.promoEyebrow}>OPEN PLAY</Text>
-                <Text style={styles.promoTitleMain}>PICKLE</Text>
-                <Text style={styles.promoTitleSub}>BARK</Text>
-                <Text style={styles.promoDate}>March 14, 2026</Text>
-                <Text style={styles.promoLocation}>GoldenTop Sports Center</Text>
+                      <View style={[styles.idCardContent, { top: layout.idContentTop, width: layout.idContentWidth }]}>
+                        <Text style={styles.idName}>
+                          {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
+                        </Text>
+                        <Text style={styles.idCourse}>BSIT-MWA</Text>
+                        <Text style={styles.idClass}>Class of 2023</Text>
+                      </View>
+                    </ImageBackground>
+                  </Animated.View>
+
+                  <Animated.View
+                    style={[
+                      styles.idCardFace,
+                      styles.idCardBackFace,
+                      { transform: [{ rotateY: backRotateY }] },
+                    ]}
+                  >
+                    <Image
+                      source={require('../../assets/images/BlankID_Back 1.png')}
+                      style={styles.idBackImage}
+                      resizeMode="cover"
+                    />
+                  </Animated.View>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={[styles.sectionContainer, styles.sectionInset, styles.sectionNudgeRight]}>
+            <Text style={styles.sectionTitle}>What's New</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.horizontalScroll}
+              contentContainerStyle={styles.horizontalScrollContent}
+            >
+              <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
+                <View style={styles.promoLeft} />
+                <View style={styles.promoRight}>
+                  <Text style={styles.promoEyebrow}>OPEN PLAY</Text>
+                  <Text style={styles.promoTitleMain}>PICKLE</Text>
+                  <Text style={styles.promoTitleSub}>BARK</Text>
+                  <Text style={styles.promoDate}>March 14, 2026</Text>
+                  <Text style={styles.promoLocation}>GoldenTop Sports Center</Text>
+                </View>
               </View>
-            </View>
 
-            {/* A second placeholder card so you can test scrolling */}
-            <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight, backgroundColor: '#E2E8F0' }]}>
-               <View style={styles.promoRight}>
+              <View
+                style={[
+                  styles.promoCard,
+                  { width: layout.promoCardWidth, height: layout.promoCardHeight, backgroundColor: '#E2E8F0' },
+                ]}
+              >
+                <View style={styles.promoRight}>
                   <Text style={styles.promoEyebrow}>COMING SOON</Text>
                   <Text style={styles.promoTitleMain}>ALUMNI</Text>
                   <Text style={styles.promoTitleSub}>HOMECOMING</Text>
-               </View>
-            </View>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
 
-          </ScrollView>
-        </View>
-
-        {/* 5. QUICK LINKS */}
-        <View style={[styles.sectionContainer, styles.sectionInset, styles.quickLinksSection, { marginBottom: layout.quickLinksOverlap }]}>
-          <Text style={styles.sectionTitle}>Quick Links</Text>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickLinksScrollContent}
+          <View
+            style={[
+              styles.sectionContainer,
+              styles.sectionInset,
+              styles.sectionNudgeRight,
+              styles.quickLinksSection,
+              { marginBottom: layout.quickLinksOverlap },
+            ]}
           >
-            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
-              <Image source={require('../../assets/images/view-yearbook-icon.png')} style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]} />
-              <Text style={styles.quickLinkText}>View My{'\n'}Yearbook</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Quick Links</Text>
 
-            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
-              <Image source={require('../../assets/images/view-events-icon.png')} style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]} />
-              <Text style={styles.quickLinkText}>View{'\n'}Events</Text>
-            </TouchableOpacity>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickLinksScrollContent}
+            >
+              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+                <Image
+                  source={require('../../assets/images/view-yearbook-icon.png')}
+                  style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]}
+                />
+                <Text style={styles.quickLinkText}>View My{'\n'}Yearbook</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]} onPress={openNUWebsite}>
-              <Image source={require('../../assets/images/nulogo.png')} style={[styles.quickLinkIconNU, { width: layout.quickLinkIconNUSize, height: layout.quickLinkIconNUSize }]} />
-              <Text style={styles.quickLinkText}>National-U{'\n'}Website</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+                <Image
+                  source={require('../../assets/images/view-events-icon.png')}
+                  style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]}
+                />
+                <Text style={styles.quickLinkText}>View{'\n'}Events</Text>
+              </TouchableOpacity>
 
-      </ScrollView>
+              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]} onPress={openNUWebsite}>
+                <Image
+                  source={require('../../assets/images/nulogo.png')}
+                  style={[styles.quickLinkIconNU, { width: layout.quickLinkIconNUSize, height: layout.quickLinkIconNUSize }]}
+                />
+                <Text style={styles.quickLinkText}>National-U{'\n'}Website</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
 
-        {/* NEW: LEFT SLIDE MENU */}
+        </ScrollView>
+
         <Modal
           transparent
           visible={isMenuVisible}
@@ -403,25 +408,6 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.sideMenuAccent} />
 
               <View style={styles.sideMenuBody}>
-                <TouchableOpacity style={styles.menuItem} onPress={openAccountSettings}>
-                  <View style={styles.menuIconCircle}>
-                    <Ionicons name="person-outline" size={22} color="#31429B" />
-                  </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuItemTitle}>Account Settings</Text>
-                    <Text style={styles.menuItemSub}>Manage Your Information</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem}>
-                  <View style={styles.menuIconCircle}>
-                    <Ionicons name="people-outline" size={22} color="#31429B" />
-                  </View>
-                  <View style={styles.menuTextWrap}>
-                    <Text style={styles.menuItemTitle}>My Connections</Text>
-                    <Text style={styles.menuItemSub}>View Your Connections</Text>
-                  </View>
-                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem}>
                   <View style={styles.menuIconCircle}>
@@ -506,6 +492,7 @@ const HomeScreen = ({ navigation }) => {
   );
 };
 
+/*
 const styles = StyleSheet.create({
   safeAreaTop: { flex: 1, backgroundColor: '#31429B' },
   container: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -921,5 +908,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+*/
 
 export default HomeScreen;
