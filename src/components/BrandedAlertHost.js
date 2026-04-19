@@ -4,6 +4,34 @@ import { registerBrandedAlertHandler, unregisterBrandedAlertHandler } from '../s
 
 const defaultButtons = [{ text: 'OK' }];
 
+const getAlertVariant = (title, options = {}) => {
+  if (options.variant) {
+    return options.variant;
+  }
+
+  const normalizedTitle = `${title ?? ''}`.trim().toLowerCase();
+
+  if (
+    normalizedTitle.includes('error') ||
+    normalizedTitle.includes('failed') ||
+    normalizedTitle.includes('unable') ||
+    normalizedTitle.includes('permission required')
+  ) {
+    return 'error';
+  }
+
+  if (
+    normalizedTitle.includes('success') ||
+    normalizedTitle.includes('saved') ||
+    normalizedTitle.includes('uploaded') ||
+    normalizedTitle.includes('welcome')
+  ) {
+    return 'success';
+  }
+
+  return 'neutral';
+};
+
 const BrandedAlertHost = () => {
   const [alertState, setAlertState] = useState(null);
 
@@ -18,6 +46,7 @@ const BrandedAlertHost = () => {
         message,
         buttons: buttons.length > 0 ? buttons : defaultButtons,
         cancelable: options.cancelable !== false,
+        variant: getAlertVariant(title, options),
       });
     };
 
@@ -46,6 +75,24 @@ const BrandedAlertHost = () => {
   }, [alertState]);
 
   const buttons = useMemo(() => alertState?.buttons ?? defaultButtons, [alertState]);
+  const accentColor =
+    alertState?.variant === 'error'
+      ? '#D92D20'
+      : alertState?.variant === 'success'
+        ? '#15803D'
+        : '#31429B';
+  const accentBackgroundColor =
+    alertState?.variant === 'error'
+      ? '#FEE4E2'
+      : alertState?.variant === 'success'
+        ? '#DCFCE7'
+        : '#31429B';
+  const buttonBackgroundColor =
+    alertState?.variant === 'error'
+      ? '#D92D20'
+      : alertState?.variant === 'success'
+        ? '#15803D'
+        : '#31429B';
 
   const handleButtonPress = async (button) => {
     hideAlert();
@@ -59,8 +106,8 @@ const BrandedAlertHost = () => {
     <Modal visible={Boolean(alertState)} transparent animationType="fade" onRequestClose={hideAlert}>
       <Pressable style={styles.overlay} onPress={alertState?.cancelable ? hideAlert : undefined}>
         <Pressable style={styles.card} onPress={() => {}}>
-          <View style={styles.headerBar} />
-          <Text style={styles.title}>{alertState?.title ?? ''}</Text>
+          <View style={[styles.headerBar, { backgroundColor: accentBackgroundColor }]} />
+          <Text style={[styles.title, { color: accentColor }]}>{alertState?.title ?? ''}</Text>
           {!!alertState?.message && <Text style={styles.message}>{alertState.message}</Text>}
           <View style={styles.buttonRow}>
             {buttons.map((button, index) => {
@@ -68,7 +115,10 @@ const BrandedAlertHost = () => {
               return (
                 <Pressable
                   key={`${button.text}-${index}`}
-                  style={[styles.button, isPrimary ? styles.primaryButton : styles.secondaryButton]}
+                  style={[
+                    styles.button,
+                    isPrimary ? [styles.primaryButton, { backgroundColor: buttonBackgroundColor }] : styles.secondaryButton,
+                  ]}
                   onPress={() => handleButtonPress(button)}
                 >
                   <Text style={[styles.buttonText, isPrimary ? styles.primaryButtonText : styles.secondaryButtonText]}>
@@ -109,7 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#31429B',
   },
   title: {
-    color: '#31429B',
+    color: '#f02121',
     fontSize: 20,
     fontFamily: 'Poppins_700Bold',
     textAlign: 'center',
