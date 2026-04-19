@@ -5,6 +5,7 @@ import BrandHeader from '../components/BrandHeader';
 import api from '../services/api';
 import { showBrandedAlert } from '../services/brandedAlert';
 import styles from '../styles/ForgetPasswordScreen.styles';
+import SmartTextInput from '../components/SmartTextInput';
 
 const ForgetPasswordScreen = () => {
   const [email, setEmail] = useState('');
@@ -61,7 +62,7 @@ const ForgetPasswordScreen = () => {
           <Text style={styles.subtitle}>We’ll email you a link to reset your password.</Text>
 
           <Text style={styles.label}>Enter Your Personal Email</Text>
-          <TextInput
+          <SmartTextInput
             style={styles.input}
             placeholder="name@example.com"
             placeholderTextColor="#A0A0A0"
