@@ -20,7 +20,7 @@ const TABS = [
 	{ key: 'favorites', label: 'Favorites' },
 ];
 
-const ChatScreen = () => {
+const ChatScreen = ({ navigation }) => {
 	const { width } = useWindowDimensions();
 	const isCompactWidth = width < 375;
 	const isTablet = width >= 768;
@@ -34,6 +34,17 @@ const ChatScreen = () => {
 
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
+
+	const openSearchMessage = () => {
+		const parentNavigator = navigation.getParent?.();
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('SearchMessage');
+			return;
+		}
+
+		navigation.navigate('SearchMessage');
+	};
 
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -88,7 +99,11 @@ const ChatScreen = () => {
 						</View>
 
 						<View style={styles.actionsRow}>
-							<TouchableOpacity style={[styles.circleAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} activeOpacity={0.8}>
+							<TouchableOpacity
+								style={[styles.circleAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]}
+								onPress={openSearchMessage}
+								activeOpacity={0.8}
+							>
 								<Ionicons name="search-outline" size={25} color="#31429B" />
 							</TouchableOpacity>
 							<TouchableOpacity style={[styles.circleAction, styles.composeAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} activeOpacity={0.8}>

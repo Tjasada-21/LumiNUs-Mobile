@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
-import ExploreScreen from '../screens/ExploreScreen';
 import ChatScreen from '../screens/ChatScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import FeedScreen from '../screens/UserFeedScreen';
+import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 
 // A temporary placeholder screen for your other tabs until we build them!
@@ -19,6 +20,34 @@ const DummyScreen = ({ name }) => (
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
+  const getTabBarStyle = (route) => {
+    const baseStyle = {
+      height: 65,
+      backgroundColor: '#FFFFFF',
+      borderTopWidth: 1,
+      borderTopColor: '#E2E8F0',
+      paddingTop: 0,
+      paddingBottom: 0,
+      elevation: 10,
+    };
+
+    if (route.name !== 'Explore') {
+      return baseStyle;
+    }
+
+    const nestedRouteName = getFocusedRouteNameFromRoute(route);
+
+    if (!nestedRouteName || nestedRouteName === 'ExploreHome') {
+      return {
+        ...baseStyle,
+        backgroundColor: '#F2C919',
+        borderTopWidth: 0,
+      };
+    }
+
+    return baseStyle;
+  };
+
   return (
     <Tab.Navigator
       sceneContainerStyle={{ backgroundColor: '#FFFFFF' }}
@@ -47,15 +76,7 @@ const MainTabNavigator = () => {
         tabBarInactiveTintColor: '#8E8E93', // Inactive icon color (Grey)
         tabBarShowLabel: false, // Hides the text labels to match your design
         headerShown: false, // Hides the default top header (since you built a custom one)
-        tabBarStyle: {
-          height: 65, // Gives the bar a nice, thick touch target
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
-          paddingTop: 0,
-          paddingBottom: 0,
-          elevation: 10, // Adds a slight shadow on Android
-        }
+        tabBarStyle: getTabBarStyle(route),
       })}
     >
       {/* Tab 1: The actual Home Screen */}
@@ -65,16 +86,8 @@ const MainTabNavigator = () => {
       <Tab.Screen name="Messages" component={ChatScreen} />
       <Tab.Screen
         name="Explore"
-        component={ExploreScreen}
+        component={ExploreStackNavigator}
         options={{
-          tabBarStyle: {
-            height: 65,
-            backgroundColor: '#F2C919',
-            borderTopWidth: 0,
-            paddingTop: 0,
-            paddingBottom: 0,
-            elevation: 10,
-          },
           tabBarActiveTintColor: '#31429B',
           tabBarInactiveTintColor: '#31429B',
         }}

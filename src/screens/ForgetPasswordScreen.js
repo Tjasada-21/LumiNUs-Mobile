@@ -1,12 +1,48 @@
-import React from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BrandHeader from '../components/BrandHeader';
+import api from '../services/api';
+import { showBrandedAlert } from '../services/brandedAlert';
 import styles from '../styles/ForgetPasswordScreen.styles';
 
 const ForgetPasswordScreen = () => {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 48, 360);
+
+  const handleSendEmail = async () => {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail) {
+      showBrandedAlert('Missing Email', 'Enter your personal email address first.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await api.post('/forgot-password', { email: trimmedEmail });
+      showBrandedAlert('Email Sent', response.data?.message || 'Check your email for password reset instructions.');
+    } catch (error) {
+      const serverData = error.response?.data;
+      let friendly = 'Failed to connect to the server.';
+
+      if (serverData?.errors) {
+        const firstKey = Object.keys(serverData.errors)[0];
+        friendly = serverData.errors[firstKey]?.[0] || 'Unable to send the reset email.';
+      } else if (serverData?.message) {
+        friendly = serverData.message;
+      } else if (error.message) {
+        friendly = error.message;
+      }
+
+      showBrandedAlert('Reset Failed', friendly);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -27,14 +63,22 @@ const ForgetPasswordScreen = () => {
           <Text style={styles.label}>Enter Your Personal Email</Text>
           <TextInput
             style={styles.input}
-            placeholder=""
+            placeholder="name@example.com"
             placeholderTextColor="#A0A0A0"
+            value={email}
+            onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
           />
 
-          <TouchableOpacity style={styles.button} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>Send Email</Text>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            activeOpacity={0.85}
+            onPress={handleSendEmail}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send Email'}</Text>
           </TouchableOpacity>
         </View>
       </View>

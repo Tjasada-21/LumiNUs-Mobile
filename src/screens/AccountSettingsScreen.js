@@ -451,7 +451,11 @@ const AccountSettingsScreen = ({ navigation }) => {
 
 
 
-          <TouchableOpacity style={styles.resetButton} activeOpacity={0.9}>
+          <TouchableOpacity
+            style={styles.resetButton}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('ResetPassword', { student_id_number: userData?.student_id_number || '' })}
+          >
             <Text style={styles.resetButtonText}>Reset Account Password</Text>
           </TouchableOpacity>
         </ScrollView>

@@ -195,11 +195,11 @@ const HomeScreen = ({ navigation }) => {
         const parentNavigator = navigation.getParent?.();
 
         if (parentNavigator?.navigate) {
-          parentNavigator.navigate('Perks');
+          parentNavigator.navigate('Explore', { screen: 'Perks' });
           return;
         }
 
-        navigation.navigate('Perks');
+        navigation.navigate('Explore', { screen: 'Perks' });
       },
     },
     {
