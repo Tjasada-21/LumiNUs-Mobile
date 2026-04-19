@@ -126,11 +126,11 @@ const HomeScreen = ({ navigation }) => {
     const parentNavigator = navigation.getParent?.();
 
     if (parentNavigator?.navigate) {
-      parentNavigator.navigate('EventsScreen');
+      parentNavigator.navigate('Home', { screen: 'EventsScreen' });
       return;
     }
 
-    navigation.navigate('EventsScreen');
+    navigation.navigate('Home', { screen: 'EventsScreen' });
   };
 
   const openAccountSettings = () => {

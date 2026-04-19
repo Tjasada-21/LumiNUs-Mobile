@@ -8,8 +8,8 @@ const BrandHeader = () => {
   const isTablet = width >= 768;
 
   const layout = {
-    headerLogoWidth: responsiveWidth(width, 0.28, 122, isTablet ? 176 : 146),
-    headerLogoHeight: responsiveHeight(height, 0.045, 30, 42),
+    headerLogoWidth: responsiveWidth(width, 0.39, 160, isTablet ? 238 : 196),
+    headerLogoHeight: responsiveHeight(height, 0.06, 40, 56),
     pillMinWidth: isTablet ? 132 : isCompactWidth ? 108 : 122,
   };
 
@@ -44,8 +44,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   brandLogo: {
-    width: 136,
-    height: 42,
+    width: 176,
+    height: 56,
+    marginLeft: -15,
   },
   nulipaPill: {
     flexDirection: 'row',

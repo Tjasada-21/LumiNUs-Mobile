@@ -110,8 +110,12 @@ const ExploreScreen = ({ navigation }) => {
     }
 
     if (item.action === 'goToEventsScreen') {
-      if (typeof navigation.navigate === 'function') {
-        navigation.navigate('EventsScreen');
+      const parentNavigator = navigation.getParent?.();
+
+      if (parentNavigator?.navigate) {
+        parentNavigator.navigate('EventsScreen');
+      } else if (typeof navigation.navigate === 'function') {
+        navigation.navigate('Home', { screen: 'EventsScreen' });
       }
       return;
     }
