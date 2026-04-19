@@ -21,11 +21,10 @@ const HomeScreen = ({ navigation }) => {
     horizontalPadding: isTablet ? 28 : isCompactWidth ? 16 : 20,
     menuWidth: Math.min(width * 0.92, 340),
     notifWidth: Math.min(width * 0.88, 340),
-    idCardHeight: responsiveWidth(width, 0.62, 204, isTablet ? 320 : 250),
-    idPhotoWidth: responsiveWidth(width, 0.28, 62, isTablet ? 138 : 112),
+    idPhotoWidth: responsiveWidth(width, 0.272, 62, isTablet ? 138 : 112),
     idPhotoHeight: responsiveWidth(width, 0.50, 96, isTablet ? 160 : 128),
-    idPhotoRight: isCompactWidth ? '1.3%' : '1.9%',
-    idPhotoTop: isCompactWidth ? '13.2%' : '13.5%',
+    idPhotoRight: isCompactWidth ? '2%' : '1.9%',
+    idPhotoTop: isCompactWidth ? '12%' : '13.5%',
     idContentTop: isCompactWidth ? '24%' : '26%',
     idContentWidth: isCompactWidth ? '65%' : '70.62%',
     promoCardWidth: responsiveWidth(width, 0.75, 240, isTablet ? 360 : 300),
@@ -251,12 +250,12 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
-  const frontRotateY = flipAnimation.interpolate({
+  const frontRotateX = flipAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
 
-  const backRotateY = flipAnimation.interpolate({
+  const backRotateX = flipAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ['180deg', '360deg'],
   });
@@ -338,12 +337,12 @@ const HomeScreen = ({ navigation }) => {
 
             <View style={styles.idSection}>
               <Pressable onPress={toggleIdCard}>
-                <View style={[styles.idCardPerspective, { height: layout.idCardHeight }]}>
+                <View style={styles.idCardPerspective}>
                   <Animated.View
                     style={[
                       styles.idCardFace,
                       styles.idCardFrontFace,
-                      { transform: [{ rotateY: frontRotateY }] },
+                      { transform: [{ rotateX: frontRotateX }] },
                     ]}
                   >
                     <ImageBackground
@@ -354,8 +353,10 @@ const HomeScreen = ({ navigation }) => {
                     >
                       <Image
                         source={{
-                          uri: userData?.alumni_photo
-                            ? userData.alumni_photo
+                          uri: userData?.card_photo
+                            ? userData.card_photo
+                            : userData?.alumni_photo
+                              ? userData.alumni_photo
                             : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`,
                         }}
                         style={[
@@ -386,7 +387,7 @@ const HomeScreen = ({ navigation }) => {
                     style={[
                       styles.idCardFace,
                       styles.idCardBackFace,
-                      { transform: [{ rotateY: backRotateY }] },
+                      { transform: [{ rotateX: backRotateX }] },
                     ]}
                   >
                     <Image
