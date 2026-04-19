@@ -261,6 +261,10 @@ const HomeScreen = ({ navigation }) => {
     outputRange: ['180deg', '360deg'],
   });
 
+  const graduationYear = userData?.year_graduated
+    ? String(userData.year_graduated).slice(0, 4)
+    : 'LOADING...';
+
   const notifData = Array.isArray(notifications) ? notifications : [];
 
   const renderEmptyNotifications = () => (
@@ -370,8 +374,10 @@ const HomeScreen = ({ navigation }) => {
                         <Text style={styles.idName}>
                           {userData ? `${userData.first_name}\n${userData.last_name}`.toUpperCase() : 'LOADING...'}
                         </Text>
-                        <Text style={styles.idCourse}>BSIT-MWA</Text>
-                        <Text style={styles.idClass}>Class of 2023</Text>
+                        <Text style={styles.idCourse}>
+                          {userData?.program ? userData.program.toUpperCase() : 'LOADING...'}
+                        </Text>
+                        <Text style={styles.idClass}>Class of {graduationYear}</Text>
                       </View>
                     </ImageBackground>
                   </Animated.View>
