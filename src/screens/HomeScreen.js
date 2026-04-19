@@ -250,12 +250,12 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
-  const frontRotateX = flipAnimation.interpolate({
+  const frontRotateY = flipAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
 
-  const backRotateX = flipAnimation.interpolate({
+  const backRotateY = flipAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ['180deg', '360deg'],
   });
@@ -342,7 +342,7 @@ const HomeScreen = ({ navigation }) => {
                     style={[
                       styles.idCardFace,
                       styles.idCardFrontFace,
-                      { transform: [{ rotateX: frontRotateX }] },
+                      { transform: [{ perspective: 1000 }, { rotateY: frontRotateY }] },
                     ]}
                   >
                     <ImageBackground
@@ -387,7 +387,7 @@ const HomeScreen = ({ navigation }) => {
                     style={[
                       styles.idCardFace,
                       styles.idCardBackFace,
-                      { transform: [{ rotateX: backRotateX }] },
+                      { transform: [{ perspective: 1000 }, { rotateY: backRotateY }] },
                     ]}
                   >
                     <Image
