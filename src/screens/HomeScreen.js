@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
@@ -22,9 +23,9 @@ const HomeScreen = ({ navigation }) => {
     notifWidth: Math.min(width * 0.88, 340),
     idCardHeight: responsiveWidth(width, 0.62, 204, isTablet ? 320 : 250),
     idPhotoWidth: responsiveWidth(width, 0.28, 62, isTablet ? 138 : 112),
-    idPhotoHeight: responsiveWidth(width, 0.42, 96, isTablet ? 160 : 128),
-    idPhotoRight: isCompactWidth ? '.6%' : '1.9%',
-    idPhotoTop: isCompactWidth ? '13.3%' : '13.5%',
+    idPhotoHeight: responsiveWidth(width, 0.50, 96, isTablet ? 160 : 128),
+    idPhotoRight: isCompactWidth ? '1.3%' : '1.9%',
+    idPhotoTop: isCompactWidth ? '13.2%' : '13.5%',
     idContentTop: isCompactWidth ? '24%' : '26%',
     idContentWidth: isCompactWidth ? '65%' : '70.62%',
     promoCardWidth: responsiveWidth(width, 0.75, 240, isTablet ? 360 : 300),
@@ -117,6 +118,21 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const openViewYearbook = () => {
+    navigation.navigate('ViewYearbook');
+  };
+
+  const openEventsScreen = () => {
+    const parentNavigator = navigation.getParent?.();
+
+    if (parentNavigator?.navigate) {
+      parentNavigator.navigate('EventsScreen');
+      return;
+    }
+
+    navigation.navigate('EventsScreen');
+  };
+
   const openAccountSettings = () => {
     closeMenu();
     const parentNavigator = navigation.getParent?.();
@@ -138,16 +154,25 @@ const HomeScreen = ({ navigation }) => {
       console.error('Failed to clear secure store during sign out', err);
     }
 
-    // Try to replace the root stack to the Login screen. If this navigator
-    // is nested (Tab -> Stack), walk up parents to reach the stack.
     const parent = navigation.getParent?.();
     const root = parent?.getParent?.() ?? parent;
 
-    if (root?.replace) {
-      root.replace('Login');
-    } else {
-      navigation.replace('Login');
+    if (root?.dispatch) {
+      root.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+      return;
     }
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      })
+    );
   };
 
   const menuItems = [
@@ -321,7 +346,7 @@ const HomeScreen = ({ navigation }) => {
                       source={require('../../assets/images/BlankID_Front 1.png')}
                       style={styles.idBackground}
                       imageStyle={styles.idBackgroundImage}
-                      resizeMode="cover"
+                      resizeMode="contain"
                     >
                       <Image
                         source={{
@@ -361,7 +386,7 @@ const HomeScreen = ({ navigation }) => {
                     <Image
                       source={require('../../assets/images/BlankID_Back 1.png')}
                       style={styles.idBackImage}
-                      resizeMode="cover"
+                      resizeMode="contain"
                     />
                   </Animated.View>
                 </View>
@@ -419,7 +444,7 @@ const HomeScreen = ({ navigation }) => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.quickLinksScrollContent}
             >
-              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]} onPress={openViewYearbook}>
                 <Image
                   source={require('../../assets/images/view-yearbook-icon.png')}
                   style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]}
@@ -427,7 +452,7 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.quickLinkText}>View My{'\n'}Yearbook</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]}>
+              <TouchableOpacity style={[styles.quickLinkBox, { width: layout.quickLinkWidth }]} onPress={openEventsScreen}>
                 <Image
                   source={require('../../assets/images/view-events-icon.png')}
                   style={[styles.quickLinkIcon, { width: layout.quickLinkIconSize, height: layout.quickLinkIconSize }]}

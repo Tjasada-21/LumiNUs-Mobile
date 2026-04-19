@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   idCardFace: {
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   idCardFrontFace: {
@@ -100,11 +100,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   idBackgroundImage: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   idPhoto: {
     position: 'absolute',
-    top: '13%',
+    top: '11%',
     right: '1.3%',
     width: '30%',
     height: '28%',

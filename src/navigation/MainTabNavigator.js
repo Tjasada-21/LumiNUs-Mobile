@@ -7,6 +7,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import FeedScreen from '../screens/UserFeedScreen';
+import ViewYearbookScreen from '../screens/ViewYearbookScreen';
 import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 
@@ -94,6 +95,14 @@ const MainTabNavigator = () => {
       />
       <Tab.Screen name="Feed" component={FeedScreen} />
       <Tab.Screen name="Profile" component={UserProfileScreen} />
+      <Tab.Screen
+        name="ViewYearbook"
+        component={ViewYearbookScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
     </Tab.Navigator>
   );
 };
