@@ -8,6 +8,7 @@ import ViewYearbookScreen from '../screens/ViewYearbookScreen';
 import AlumniTracerScreen from '../screens/AlumniTracerScreen';
 import EventRegistrationScreen from '../screens/EventRegistrationScreen';
 import ForgetPasswordScreen from '../screens/ForgetPasswordScreen';
+import NewMessageScreen from '../screens/NewMessageScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import SearchMessageScreen from '../screens/SearchMessageScreen';
 
@@ -18,7 +19,7 @@ const AppNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: 'fade_from_bottom',
         animationTypeForReplace: 'push',
         contentStyle: { backgroundColor: '#FFFFFF' },
       }}
@@ -30,6 +31,7 @@ const AppNavigator = () => {
       <Stack.Screen name="AlumniTracer" component={AlumniTracerScreen} />
       <Stack.Screen name="EventRegistration" component={EventRegistrationScreen} />
       <Stack.Screen name="ForgetPassword" component={ForgetPasswordScreen} />
+      <Stack.Screen name="NewMessage" component={NewMessageScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="SearchMessage" component={SearchMessageScreen} />
       {/* We will add Register and Home screens here later! */}

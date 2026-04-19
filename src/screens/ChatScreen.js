@@ -46,6 +46,17 @@ const ChatScreen = ({ navigation }) => {
 		navigation.navigate('SearchMessage');
 	};
 
+	const openNewMessage = () => {
+		const parentNavigator = navigation.getParent?.();
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('NewMessage');
+			return;
+		}
+
+		navigation.navigate('NewMessage');
+	};
+
 	useEffect(() => {
 		const fetchUserData = async () => {
 			try {
@@ -106,7 +117,7 @@ const ChatScreen = ({ navigation }) => {
 							>
 								<Ionicons name="search-outline" size={25} color="#31429B" />
 							</TouchableOpacity>
-							<TouchableOpacity style={[styles.circleAction, styles.composeAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} activeOpacity={0.8}>
+							<TouchableOpacity style={[styles.circleAction, styles.composeAction, { width: layout.actionSize, height: layout.actionSize, borderRadius: layout.actionSize / 2 }]} onPress={openNewMessage} activeOpacity={0.8}>
 								<Ionicons name="create-outline" size={20} color="#FFFFFF" />
 							</TouchableOpacity>
 						</View>

@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, useWindowDimensions, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
 
 const BrandHeader = () => {
+  const navigation = useNavigation();
   const { width, height } = useWindowDimensions();
   const isCompactWidth = width < 375;
   const isTablet = width >= 768;
@@ -16,11 +18,18 @@ const BrandHeader = () => {
   return (
     <View style={styles.brandHeader}>
       <View style={styles.brandRow}>
-        <Image
-          source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
-          style={[styles.brandLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
-          resizeMode="contain"
-        />
+        <Pressable
+          onPress={() => navigation.navigate('Home', { screen: 'HomeTab' })}
+          accessibilityRole="button"
+          accessibilityLabel="Go to home screen"
+          hitSlop={10}
+        >
+          <Image
+            source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')}
+            style={[styles.brandLogo, { width: layout.headerLogoWidth, height: layout.headerLogoHeight }]}
+            resizeMode="contain"
+          />
+        </Pressable>
         <View style={[styles.nulipaPill, { minWidth: layout.pillMinWidth }]}>
           <Image source={require('../../assets/images/nulogo.png')} style={styles.nulipaIcon} resizeMode="contain" />
           <Text style={styles.nulipaText}>NU LIPA</Text>

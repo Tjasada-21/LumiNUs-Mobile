@@ -7,7 +7,12 @@ const Stack = createNativeStackNavigator();
 
 const ExploreStackNavigator = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade_from_bottom',
+      }}
+    >
       <Stack.Screen name="ExploreHome" component={ExploreScreen} />
       <Stack.Screen name="Perks" component={PerksScreen} />
     </Stack.Navigator>
