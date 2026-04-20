@@ -7,7 +7,7 @@ import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/UserFeedScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
-const UserFeedScreen = () => {
+const UserFeedScreen = ({ navigation }) => {
 	// SECTION: Screen state
 	const [userData, setUserData] = useState(null);
 
@@ -78,17 +78,18 @@ const UserFeedScreen = () => {
 						<Text style={styles.createPostTitle}>Create a Post</Text>
 
 						<View style={styles.composeRow}>
-							<View style={styles.composeBubble}>
+							<Pressable style={styles.composeBubble} onPress={() => navigation.navigate('CreatePostScreen')}>
 								<Image
 									source={{ uri: alumniPhotoUri }}
 									style={styles.composeAvatar}
 								/>
-								<Text style={styles.composePrompt}>What do you want to talk about?</Text>
-							</View>
-
-							<Pressable style={styles.sendButton}>
-								<Ionicons name="send" size={20} color="#31429B" />
+								<Text style={styles.composePrompt}>What's on your mind?</Text>
+								<View style={styles.sendButton}>
+									<Ionicons name="send" size={20} color="#31429B" />
+								</View>
 							</Pressable>
+
+							
 						</View>
 
 						<View style={styles.actionRow}>

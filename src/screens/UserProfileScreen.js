@@ -47,8 +47,10 @@ const UserProfileScreen = ({ navigation }) => {
   const profileSummary = useMemo(() => ({
     headlineText: userData?.headline || 'Software Engineer at Microsoft',
     locationText: userData?.location || 'Lipa City, Batangas',
-    classTag: userData?.class_year ? `Class of ${userData.class_year}` : 'Class of 2023',
-    sectionTag: userData?.section || 'BSIT',
+    classTag: userData?.year_graduated
+      ? `Class of ${String(userData.year_graduated).match(/\d{4}/)?.[0] ?? String(userData.year_graduated).slice(0, 4)}`
+      : 'Class of',
+    sectionTag: userData?.program || 'BSIT',
     connectionsCount: userData?.connections_count ?? 123,
     postsCount: userData?.posts_count ?? 3,
     biographyText:

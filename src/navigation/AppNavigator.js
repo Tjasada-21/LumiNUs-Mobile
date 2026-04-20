@@ -9,6 +9,7 @@ import AlumniTracerScreen from '../screens/AlumniTracerScreen';
 import EventRegistrationScreen from '../screens/EventRegistrationScreen';
 import ForgetPasswordScreen from '../screens/ForgetPasswordScreen';
 import NewMessageScreen from '../screens/NewMessageScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import SearchMessageScreen from '../screens/SearchMessageScreen';
 
@@ -34,6 +35,7 @@ const AppNavigator = () => {
       <Stack.Screen name="NewMessage" component={NewMessageScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="SearchMessage" component={SearchMessageScreen} />
+      <Stack.Screen name="CreatePostScreen" component={CreatePostScreen} />
       {/* We will add Register and Home screens here later! */}
 
 
