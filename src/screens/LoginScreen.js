@@ -12,12 +12,14 @@ import { setAuthCredentials } from '../services/authStorage';
 import { showBrandedAlert } from '../services/brandedAlert';
 
 const LoginScreen = ({ navigation }) => {
+  // SECTION: Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
+  // SECTION: Restore saved login
   useEffect(() => {
     const restoreRememberedLogin = async () => {
       const savedToken = await SecureStore.getItemAsync('userToken');
@@ -35,6 +37,7 @@ const LoginScreen = ({ navigation }) => {
     restoreRememberedLogin();
   }, [navigation]);
 
+  // HANDLER: Submit the login form
   const handleLogin = async () => {
     if (!email || !password) {
       showBrandedAlert('Error', 'Please fill in all fields');
@@ -85,24 +88,24 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    // 1. The Yellow Building Background
     <ImageBackground 
       source={require('../../assets/images/unnamed.png')} 
       style={styles.backgroundImage}
       resizeMode="cover"
     >
+      {/* SECTION: Background */}
       
-      {/* 2. The Blue Card Container */}
+      {/* SECTION: Login card */}
       <View style={styles.cardContainer}>
         
-        {/* Logo */}
+        {/* SECTION: Logo */}
         <Image 
           source={require('../../assets/images/lumi-n-us-logo-landscape-2.png')} 
           style={styles.logo} 
           resizeMode="contain"
         />
 
-        {/* Email Field */}
+        {/* SECTION: Email field */}
         <Text style={styles.label}>Email Address</Text>
         <SmartTextInput
           style={styles.input}
@@ -114,7 +117,7 @@ const LoginScreen = ({ navigation }) => {
           keyboardType="email-address"
         />
 
-        {/* Password Field */}
+        {/* SECTION: Password field */}
         <Text style={styles.label}>Password</Text>
         <View style={styles.passwordContainer}>
           <SmartTextInput
@@ -133,7 +136,7 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Remember Me & Forget Password Row */}
+        {/* SECTION: Login options */}
         <View style={styles.optionsRow}>
           <TouchableOpacity 
             style={styles.rememberContainer} 
@@ -150,7 +153,7 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Sign In Button */}
+        {/* SECTION: Submit button */}
         <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#31429B" />

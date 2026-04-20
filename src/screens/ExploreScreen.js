@@ -79,6 +79,7 @@ const SECTION_DATA = [
 ];
 
 const ExploreScreen = ({ navigation }) => {
+  // SECTION: Layout values
   const { width } = useWindowDimensions();
   const itemWidth = clamp((width - 52) / 3, 92, 132);
   const iconWrapSize = clamp(width * 0.22, 74, 92);
@@ -87,6 +88,7 @@ const ExploreScreen = ({ navigation }) => {
   const logoHeight = clamp(width * 0.16, 48, 72);
   const scrollPaddingHorizontal = width < 375 ? 12 : 14;
 
+  // HANDLER: Open a section destination
   const handleItemPress = (item) => {
     if (item.action === 'goToViewYearbook') {
       if (typeof navigation.navigate === 'function') {
@@ -174,6 +176,7 @@ const ExploreScreen = ({ navigation }) => {
         <View style={styles.gradientOverlayTop} />
         <View style={styles.gradientOverlayBottom} />
 
+        {/* SECTION: Explore sections */}
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingHorizontal: scrollPaddingHorizontal }]}
           showsVerticalScrollIndicator={false}

@@ -8,6 +8,7 @@ import styles from '../styles/UserProfileScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
 const UserProfileScreen = ({ navigation }) => {
+	// SECTION: Layout values
   const { width } = useWindowDimensions();
   const isCompactWidth = width < 375;
   const isTablet = width >= 768;
@@ -21,6 +22,7 @@ const UserProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
+	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
     if (!userData) {
       return 'Dela Cruz, Juan Miguel';
@@ -32,6 +34,7 @@ const UserProfileScreen = ({ navigation }) => {
       .replace(/, ([^,]+)$/, ', $1');
   }, [userData]);
 
+	// DERIVED VALUE: Profile image URI
   const profileImageUri = useMemo(() => {
     if (userData?.alumni_photo) {
       return userData.alumni_photo;
@@ -40,6 +43,7 @@ const UserProfileScreen = ({ navigation }) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=1F2F6E&color=fff&size=256`;
   }, [profileName, userData]);
 
+	// DERIVED VALUE: Profile summary values
   const profileSummary = useMemo(() => ({
     headlineText: userData?.headline || 'Software Engineer at Microsoft',
     locationText: userData?.location || 'Lipa City, Batangas',
@@ -52,6 +56,7 @@ const UserProfileScreen = ({ navigation }) => {
       'Class of 2023 | BS Information Technology | Currently a Software Engineer at Microsoft specializing in mobile development. During my stay at NU Lipa, I served as a student leader and fell in love with building tech that solves real-world problems. Passionate about Human-Computer Interaction and clean code. Always down for a coffee chat or a collab on a side project! ☕✨',
   }), [userData]);
 
+	// DERIVED VALUE: Work experience card data
   const workExperience = useMemo(() => {
     if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
       return userData.work_experiences[0];
@@ -66,6 +71,7 @@ const UserProfileScreen = ({ navigation }) => {
     };
   }, [userData]);
 
+	// SECTION: Load profile data
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -95,6 +101,7 @@ const UserProfileScreen = ({ navigation }) => {
     fetchProfile();
   }, []);
 
+  // HANDLER: Open account settings
   const openAccountSettings = () => {
     const parentNavigator = navigation.getParent?.();
 
@@ -111,6 +118,7 @@ const UserProfileScreen = ({ navigation }) => {
       <View style={styles.container}>
         <BrandHeader />
 
+        {/* SECTION: Profile content */}
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.stateWrap}>

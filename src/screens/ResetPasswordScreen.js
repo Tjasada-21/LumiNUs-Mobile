@@ -7,6 +7,7 @@ import { showBrandedAlert } from '../services/brandedAlert';
 import styles from '../styles/ResetPasswordScreen.styles';
 
 const ResetPasswordScreen = ({ navigation, route }) => {
+  // SECTION: Layout values
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 48, 330);
 
@@ -15,6 +16,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // SECTION: Restore preset student number
   useEffect(() => {
     const presetStudentNumber = route?.params?.student_id_number || '';
 
@@ -23,6 +25,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     }
   }, [route?.params?.student_id_number]);
 
+  // HANDLER: Submit the password reset form
   const handleResetPassword = async () => {
     const trimmedStudentNumber = studentIdNumber.trim();
 
@@ -68,6 +71,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* SECTION: Password reset form */}
       <View style={styles.page}>
         <BrandHeader />
 

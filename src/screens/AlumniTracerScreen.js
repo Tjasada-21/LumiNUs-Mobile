@@ -6,6 +6,7 @@ import styles from '../styles/AlumniTracerScreen.styles';
 const AlumniTracerScreen = () => {
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
+			{/* SECTION: Empty state */}
 			<View style={styles.container}>
 				<Text style={styles.title}>Alumni Tracer</Text>
 				<Text style={styles.subtitle}>Tracer details will appear here.</Text>

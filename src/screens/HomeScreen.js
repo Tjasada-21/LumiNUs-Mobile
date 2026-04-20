@@ -12,6 +12,7 @@ import styles from '../styles/HomeScreen.styles';
 import { clearAuthCredentials, getAuthToken } from '../services/authStorage';
 
 const HomeScreen = ({ navigation }) => {
+	// SECTION: Layout values
   const { width, height } = useWindowDimensions();
   const isCompactWidth = width < 375;
   const isTablet = width >= 768;
@@ -34,6 +35,7 @@ const HomeScreen = ({ navigation }) => {
     quickLinkIconNUSize: responsiveWidth(width, 0.07, 24, 34),
   };
 
+	// SECTION: Screen state
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState([]);
   const [isIdFlipped, setIsIdFlipped] = useState(false);
@@ -46,6 +48,7 @@ const HomeScreen = ({ navigation }) => {
     const [isNotifVisible, setIsNotifVisible] = useState(false);
     const notifTranslateX = useRef(new Animated.Value(Dimensions.get('window').width)).current;
 
+  	// HANDLER: Open the notifications panel
     const openNotifications = () => {
       setIsNotifVisible(true);
       requestAnimationFrame(() => {
@@ -57,6 +60,7 @@ const HomeScreen = ({ navigation }) => {
       });
     };
 
+  	// HANDLER: Close the notifications panel
     const closeNotifications = () => {
       Animated.timing(notifTranslateX, {
         toValue: Dimensions.get('window').width,
@@ -65,6 +69,7 @@ const HomeScreen = ({ navigation }) => {
       }).start(() => setIsNotifVisible(false));
     };
 
+  	// HANDLER: Open the side menu
     const openMenu = () => {
         setIsMenuVisible(true)
         requestAnimationFrame(() => {
@@ -76,6 +81,7 @@ const HomeScreen = ({ navigation }) => {
         });
     };
 
+  	// HANDLER: Close the side menu
     const closeMenu = () => {
         Animated.timing(menuTranslateX, {
         toValue: -layout.menuWidth,
@@ -84,6 +90,7 @@ const HomeScreen = ({ navigation }) => {
         }).start(() => setIsMenuVisible(false));
     };
 
+  	// SECTION: Load user data
     useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -107,6 +114,7 @@ const HomeScreen = ({ navigation }) => {
     fetchUserData();
   }, []);
 
+	// HANDLER: Open the NU website
   const openNUWebsite = async () => {
     const url = 'https://national-u.edu.ph/';
     const supported = await Linking.canOpenURL(url);
@@ -117,10 +125,12 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+	// HANDLER: Open the yearbook screen
   const openViewYearbook = () => {
     navigation.navigate('ViewYearbook');
   };
 
+	// HANDLER: Open the events screen
   const openEventsScreen = () => {
     const parentNavigator = navigation.getParent?.();
 
@@ -132,6 +142,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('Home', { screen: 'EventsScreen' });
   };
 
+	// HANDLER: Open account settings
   const openAccountSettings = () => {
     closeMenu();
     const parentNavigator = navigation.getParent?.();
@@ -144,6 +155,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('AccountSettings');
   };
 
+	// HANDLER: Sign out the user
   const signOut = async () => {
     // close the menu first
     closeMenu();
@@ -174,6 +186,7 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
+	// SECTION: Side menu items
   const menuItems = [
     {
       key: 'account-settings',
@@ -238,6 +251,7 @@ const HomeScreen = ({ navigation }) => {
     },
   ];
 
+	// HANDLER: Flip the ID card
   const toggleIdCard = () => {
     const nextValue = isIdFlipped ? 0 : 1;
 
@@ -250,6 +264,7 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
+	// DERIVED VALUES: Card rotation and display data
   const frontRotateY = flipAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
@@ -266,12 +281,14 @@ const HomeScreen = ({ navigation }) => {
 
   const notifData = Array.isArray(notifications) ? notifications : [];
 
+	// RENDER HELPER: Empty notifications state
   const renderEmptyNotifications = () => (
     <View style={styles.emptyNotifWrap}>
       <Text style={styles.emptyNotifText}>No notifications yet.</Text>
     </View>
   );
 
+	// RENDER HELPER: Notification row
   const renderNotificationItem = ({ item }) => {
     const name = String(item?.name ?? 'Unknown User');
     const time = String(item?.time ?? '');
@@ -308,7 +325,7 @@ const HomeScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainScrollContent}
         >
-          {/* 2. USER PROFILE GREETING + ID CARD (card wrapper with shadow) */}
+          {/* SECTION: User profile and ID card */}
           <View style={styles.profileCardWrapper}>
             <View style={styles.profileSection}>
               <TouchableOpacity style={styles.profileInfo} activeOpacity={0.8} onPress={openMenu}>
@@ -401,6 +418,7 @@ const HomeScreen = ({ navigation }) => {
             </View>
           </View>
 
+          {/* SECTION: What's New */}
           <View style={[styles.sectionContainer, styles.sectionInset, styles.sectionNudgeRight]}>
             <Text style={styles.sectionTitle}>What's New</Text>
             <ScrollView
@@ -435,6 +453,7 @@ const HomeScreen = ({ navigation }) => {
             </ScrollView>
           </View>
 
+          {/* SECTION: Quick Links */}
           <View
             style={[
               styles.sectionContainer,
@@ -479,6 +498,7 @@ const HomeScreen = ({ navigation }) => {
 
         </ScrollView>
 
+        {/* SECTION: Side menu modal */}
         <Modal
           transparent
           visible={isMenuVisible}

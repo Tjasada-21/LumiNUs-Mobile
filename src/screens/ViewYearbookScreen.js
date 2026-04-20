@@ -24,6 +24,7 @@ const pageTemplates = [
 ];
 
 const ViewYearbookScreen = () => {
+	// SECTION: Page state
 	const [pageIndex, setPageIndex] = React.useState(0);
 
 	const totalPages = 25;
@@ -32,18 +33,22 @@ const ViewYearbookScreen = () => {
 	const isFirstPage = pageIndex === 0;
 	const isLastPage = pageIndex === totalPages - 1;
 
+	// HANDLER: Go to the first page
 	const goToFirstPage = () => {
 		setPageIndex(0);
 	};
 
+	// HANDLER: Go to the previous page
 	const goToPreviousPage = () => {
 		setPageIndex((currentValue) => Math.max(0, currentValue - 1));
 	};
 
+	// HANDLER: Go to the next page
 	const goToNextPage = () => {
 		setPageIndex((currentValue) => Math.min(totalPages - 1, currentValue + 1));
 	};
 
+	// HANDLER: Go to the last page
 	const goToLastPage = () => {
 		setPageIndex(totalPages - 1);
 	};
@@ -53,6 +58,7 @@ const ViewYearbookScreen = () => {
 			<View style={styles.container}>
 				<BrandHeader />
 
+				{/* SECTION: Yearbook viewer */}
 				<View style={screenStyles.content}>
 					<View style={screenStyles.titleStrip}>
 						<Text style={screenStyles.title}>Virtual Yearbook</Text>

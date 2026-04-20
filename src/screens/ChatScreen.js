@@ -21,6 +21,7 @@ const TABS = [
 ];
 
 const ChatScreen = ({ navigation }) => {
+	// SECTION: Layout values
 	const { width } = useWindowDimensions();
 	const isCompactWidth = width < 375;
 	const isTablet = width >= 768;
@@ -35,6 +36,7 @@ const ChatScreen = ({ navigation }) => {
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
 
+	// HANDLER: Open the search screen
 	const openSearchMessage = () => {
 		const parentNavigator = navigation.getParent?.();
 
@@ -46,6 +48,7 @@ const ChatScreen = ({ navigation }) => {
 		navigation.navigate('SearchMessage');
 	};
 
+	// HANDLER: Open the new message screen
 	const openNewMessage = () => {
 		const parentNavigator = navigation.getParent?.();
 
@@ -57,6 +60,7 @@ const ChatScreen = ({ navigation }) => {
 		navigation.navigate('NewMessage');
 	};
 
+	// SECTION: Load the current user
 	useEffect(() => {
 		const fetchUserData = async () => {
 			try {
@@ -78,6 +82,7 @@ const ChatScreen = ({ navigation }) => {
 		fetchUserData();
 	}, []);
 
+	// DERIVED VALUE: Display name
 	const displayName = useMemo(() => {
 		if (!userData) {
 			return 'Alumni User';
@@ -85,6 +90,7 @@ const ChatScreen = ({ navigation }) => {
 		return `${userData.first_name ?? ''}`.trim() || 'Alumni User';
 	}, [userData]);
 
+	// DERIVED VALUE: Avatar URI
 	const avatarUri = useMemo(() => {
 		if (userData?.alumni_photo) {
 			return userData.alumni_photo;
@@ -149,4 +155,5 @@ const ChatScreen = ({ navigation }) => {
 		</SafeAreaView>
 	);
 };
+
 export default ChatScreen;

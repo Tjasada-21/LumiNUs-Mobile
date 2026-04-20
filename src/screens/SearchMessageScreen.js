@@ -59,6 +59,7 @@ const SUGGESTED_PEOPLE = [
 ];
 
 const SearchMessageScreen = ({ navigation }) => {
+	// SECTION: Layout values
 	const { width } = useWindowDimensions();
 	const isCompactWidth = width < 375;
 	const horizontalPadding = isCompactWidth ? 14 : 16;
@@ -66,6 +67,7 @@ const SearchMessageScreen = ({ navigation }) => {
 
 	const [query, setQuery] = useState('');
 
+	// DERIVED VALUE: Filtered people list
 	const filteredPeople = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
 
@@ -78,6 +80,7 @@ const SearchMessageScreen = ({ navigation }) => {
 		});
 	}, [query]);
 
+	// RENDER HELPER: Suggested person row
 	const renderSuggestedPerson = ({ item }) => (
 		<Pressable style={styles.resultRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
 			<Image
@@ -94,6 +97,7 @@ const SearchMessageScreen = ({ navigation }) => {
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
 			<View style={styles.container}>
 				<BrandHeader />
+				{/* SECTION: Search header */}
 				<FlatList
 					data={filteredPeople}
 					renderItem={renderSuggestedPerson}

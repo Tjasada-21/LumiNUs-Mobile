@@ -46,6 +46,7 @@ const getMonthDays = (year, monthIndex) => {
 };
 
 const EventsScreen = () => {
+	// SECTION: Screen state
 	const [calendarVisible, setCalendarVisible] = React.useState(false);
 	const [registrationsVisible, setRegistrationsVisible] = React.useState(false);
 	const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -55,6 +56,7 @@ const EventsScreen = () => {
 	const calendarWidth = Math.min(screenWidth - 40, 360);
 	const slideDistance = calendarWidth - 36;
 
+	// DERIVED VALUES: Calendar and search filtering
 	const currentYear = currentDate.getFullYear();
 	const currentMonth = currentDate.getMonth();
 	const monthLabel = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -72,22 +74,27 @@ const EventsScreen = () => {
 	const visibleComingSoonItems = COMING_SOON_PLACEHOLDER_ITEMS.filter((item) => matchesSearch(item.searchTerms));
 	const hasPreRegisteredEvents = PRE_REGISTERED_EVENTS.length > 0;
 
+	// HANDLER: Open the calendar modal
 	const openCalendar = () => {
 		setCalendarVisible(true);
 	};
 
+	// HANDLER: Open the registrations modal
 	const openRegistrations = () => {
 		setRegistrationsVisible(true);
 	};
 
+	// HANDLER: Close the calendar modal
 	const closeCalendar = () => {
 		setCalendarVisible(false);
 	};
 
+	// HANDLER: Close the registrations modal
 	const closeRegistrations = () => {
 		setRegistrationsVisible(false);
 	};
 
+	// HANDLER: Animate month transitions
 	const animateMonthChange = (direction) => {
 		const nextDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
 		const exitOffset = direction > 0 ? -slideDistance : slideDistance;
@@ -110,14 +117,17 @@ const EventsScreen = () => {
 		});
 	};
 
+	// HANDLER: Go to the previous month
 	const goToPreviousMonth = () => {
 		animateMonthChange(-1);
 	};
 
+	// HANDLER: Go to the next month
 	const goToNextMonth = () => {
 		animateMonthChange(1);
 	};
 
+	// SECTION: Swipe gesture support
 	const calendarPanResponder = React.useRef(
 		PanResponder.create({
 			onStartShouldSetPanResponder: () => false,
@@ -147,6 +157,7 @@ const EventsScreen = () => {
 			<View style={styles.container}>
 				<BrandHeader />
 
+				{/* SECTION: Search and actions */}
 				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 					<View style={styles.searchRow}>
 						<View style={styles.searchFieldWrap}>
@@ -173,6 +184,7 @@ const EventsScreen = () => {
 
 					<Text style={styles.sectionTitle}>Events For You!</Text>
 
+					{/* SECTION: Featured events */}
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalCardsRow}>
 						{visibleFeaturedItems.map((item) => (
 										<View key={`featured-placeholder-${item.id}`} style={styles.featuredCardPlaceholder}>
@@ -188,6 +200,7 @@ const EventsScreen = () => {
 
 					<Text style={[styles.sectionTitle, styles.comingSoonTitle]}>Coming Soon at NU Lipa!</Text>
 
+					{/* SECTION: Calendar modal */}
 					<Modal transparent visible={calendarVisible} animationType="fade" onRequestClose={closeCalendar}>
 						<View style={styles.calendarOverlay}>
 							<Pressable style={styles.calendarBackdrop} onPress={closeCalendar} />
@@ -243,6 +256,7 @@ const EventsScreen = () => {
 						</View>
 					</Modal>
 
+					{/* SECTION: Registrations modal */}
 					<Modal transparent visible={registrationsVisible} animationType="fade" onRequestClose={closeRegistrations}>
 						<View style={styles.calendarOverlay}>
 							<Pressable style={styles.calendarBackdrop} onPress={closeRegistrations} />
@@ -287,6 +301,7 @@ const EventsScreen = () => {
 						</View>
 					</Modal>
 
+					{/* SECTION: Coming soon events */}
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.comingSoonRow}>
 						{visibleComingSoonItems.map((item) => (
 							<View key={`coming-soon-${item.id}`} style={styles.eventCard}>

@@ -26,6 +26,7 @@ const formatDate = (value) => {
 };
 
 const AccountSettingsScreen = ({ navigation }) => {
+  // SECTION: Screen layout values
   const { width } = useWindowDimensions();
   const isCompactWidth = width < 390;
   const isTablet = width >= 768;
@@ -52,6 +53,7 @@ const AccountSettingsScreen = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [pickingImage, setPickingImage] = useState(false);
 
+  // SECTION: Load account data
   useEffect(() => {
     const fetchAccountData = async () => {
       try {
@@ -90,6 +92,7 @@ const AccountSettingsScreen = ({ navigation }) => {
     fetchAccountData();
   }, []);
 
+  // HANDLER: Update a single form field
   const updateField = (field, value) => {
     setFormData((current) => ({
       ...current,
@@ -97,6 +100,7 @@ const AccountSettingsScreen = ({ navigation }) => {
     }));
   };
 
+  // HANDLER: Upload a selected profile image
   const uploadImage = async (uri) => {
     try {
       const filename = uri.split('/').pop();
@@ -122,6 +126,8 @@ const AccountSettingsScreen = ({ navigation }) => {
       throw err;
     }
   };
+
+  // HANDLER: Save the profile changes
   const handleSave = async () => {
     if (!userData?.email) {
       setErrorMessage('Missing the current account email.');
@@ -245,11 +251,14 @@ const AccountSettingsScreen = ({ navigation }) => {
       <View style={styles.container}>
         <BrandHeader />
 
+        {/* SECTION: Account form */}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* SECTION: Home shortcut */}
           <TouchableOpacity style={styles.homeButton} activeOpacity={0.8} onPress={() => navigation.navigate('Home')}>
             <Ionicons name="home-outline" size={24} color="#31429B" />
           </TouchableOpacity>
 
+          {/* SECTION: Profile photo */}
           <View style={styles.profileWrap}>
             <Image source={{ uri: profileImageUri }} style={[styles.profileImage, { width: layout.profileSize, height: layout.profileSize, borderRadius: layout.profileSize / 2 }]} />
             <TouchableOpacity
@@ -301,6 +310,7 @@ const AccountSettingsScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
+          {/* SECTION: User information */}
           <View style={[styles.formCard, { paddingHorizontal: layout.cardPadding, paddingVertical: layout.cardPadding }]}>
             <Text style={styles.sectionHeading}>User Information</Text>
 
@@ -340,6 +350,7 @@ const AccountSettingsScreen = ({ navigation }) => {
               />
             </View>
 
+            {/* SECTION: Personal details */}
             <Text style={[styles.sectionHeading, styles.sectionHeadingSpacing]}>Personal Details</Text>
 
             <View style={styles.inputBlockCompact}>
@@ -429,6 +440,7 @@ const AccountSettingsScreen = ({ navigation }) => {
             {/* Profile Photo URL field removed */}
           </View>
 
+          {/* SECTION: Save state and actions */}
           {loading ? (
             <Text style={styles.loadingText}>Loading your current profile data...</Text>
           ) : null}

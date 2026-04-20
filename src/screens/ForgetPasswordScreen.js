@@ -8,11 +8,13 @@ import styles from '../styles/ForgetPasswordScreen.styles';
 import SmartTextInput from '../components/SmartTextInput';
 
 const ForgetPasswordScreen = () => {
+  // SECTION: Form state
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width - 48, 360);
 
+  // HANDLER: Request a reset email
   const handleSendEmail = async () => {
     const trimmedEmail = email.trim();
 
@@ -47,6 +49,7 @@ const ForgetPasswordScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {/* SECTION: Password reset form */}
       <View style={styles.page}>
         <BrandHeader />
 

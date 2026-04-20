@@ -8,8 +8,10 @@ import styles from '../styles/UserFeedScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
 const UserFeedScreen = () => {
+	// SECTION: Screen state
 	const [userData, setUserData] = useState(null);
 
+	// SECTION: Load profile data
 	useEffect(() => {
 		const fetchProfile = async () => {
 			try {
@@ -32,6 +34,7 @@ const UserFeedScreen = () => {
 		fetchProfile();
 	}, []);
 
+	// DERIVED VALUE: Avatar URI
 	const alumniPhotoUri = useMemo(() => {
 		if (userData?.alumni_photo) {
 			return userData.alumni_photo;
@@ -50,6 +53,7 @@ const UserFeedScreen = () => {
 			<View style={styles.container}>
 				<BrandHeader />
 
+				{/* SECTION: Feed composer */}
 				<ScrollView
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={styles.content}

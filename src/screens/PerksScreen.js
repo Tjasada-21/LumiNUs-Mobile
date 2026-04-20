@@ -69,6 +69,7 @@ const resolveImageUri = (value) => {
 };
 
 const PerksScreen = ({ navigation }) => {
+	// SECTION: Layout values
 	const { width } = useWindowDimensions();
 	const isTablet = width >= 768;
 	const isCompactWidth = width < 375;
@@ -85,6 +86,7 @@ const PerksScreen = ({ navigation }) => {
 	const [refreshing, setRefreshing] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
 
+	// HANDLER: Load perks from the API
 	const fetchPerks = async () => {
 		try {
 			setErrorMessage('');
@@ -103,6 +105,7 @@ const PerksScreen = ({ navigation }) => {
 		fetchPerks();
 	}, []);
 
+	// DERIVED VALUE: Filter perks by search query
 	const filteredPerks = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
 
@@ -117,6 +120,7 @@ const PerksScreen = ({ navigation }) => {
 		});
 	}, [perks, query]);
 
+	// RENDER HELPER: Perk card
 	const renderPerkCard = ({ item }) => {
 		const imageUri = resolveImageUri(getPerkImageUri(item));
 
@@ -154,6 +158,7 @@ const PerksScreen = ({ navigation }) => {
 			<View style={styles.container}>
 				<BrandHeader />
 
+				{/* SECTION: Search and results */}
 				<View style={styles.content}>
 					<View style={styles.searchWrap}>
 						<Ionicons name="search-outline" size={22} color="#7B7B7B" style={styles.searchIcon} />
