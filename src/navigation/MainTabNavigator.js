@@ -11,6 +11,7 @@ import ViewYearbookScreen from '../screens/ViewYearbookScreen';
 import EventsScreen from '../screens/EventsScreen';
 import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
+import ProfileViewScreen from '../screens/ProfileViewScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -107,6 +108,15 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="EventsScreen"
         component={EventsScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+
+      <Tab.Screen
+        name="ProfileView"
+        component={ProfileViewScreen}
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },

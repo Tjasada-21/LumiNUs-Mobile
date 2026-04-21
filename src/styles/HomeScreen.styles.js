@@ -49,6 +49,31 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 17, fontWeight: '800', color: '#0A1142' },
   studentId: { fontSize: 10, color: '#666', marginTop: 1 },
   bellIcon: { backgroundColor: '#F2C919', padding: 7, borderRadius: 18 },
+  bellIconInner: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -7,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#D92D20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 10,
+  },
   idSection: { paddingHorizontal: 0, paddingVertical: 0, marginTop: 10, marginBottom: 10 },
   profileCardWrapper: {
     marginTop: -8,
@@ -299,6 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 25,
     alignItems: 'flex-start',
+    paddingRight: 2,
   },
   notifAvatar: {
     width: 50,
@@ -311,11 +337,29 @@ const styles = StyleSheet.create({
   notifBody: {
     flex: 1,
   },
+  notifTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
   notifName: {
     color: '#31429B',
     fontWeight: 'bold',
     fontSize: 14,
     lineHeight: 20,
+  },
+  notifTypePill: {
+    backgroundColor: '#EEF2FF',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  notifTypePillText: {
+    color: '#31429B',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   notifAction: {
     color: '#666',
@@ -323,36 +367,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 2,
   },
+  notifDetail: {
+    color: '#4B5563',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
   notifTime: {
     color: '#A0A0A0',
     fontSize: 12,
     marginBottom: 8,
   },
-  notifButtonsRow: {
-    flexDirection: 'row',
-  },
-  btnAccepted: {
-    backgroundColor: '#31429B',
-    paddingVertical: 4,
-    paddingHorizontal: 15,
-    borderRadius: 15,
-    marginRight: 10,
-  },
-  btnAcceptedText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  btnDelete: {
-    backgroundColor: '#D3D3D3',
-    paddingVertical: 4,
-    paddingHorizontal: 15,
-    borderRadius: 15,
-  },
-  btnDeleteText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+  notifDeleteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    marginLeft: 10,
+    marginTop: 2,
   },
   sideMenuRoot: {
     flex: 1,

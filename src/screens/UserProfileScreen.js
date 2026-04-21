@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -19,8 +19,11 @@ const UserProfileScreen = ({ navigation }) => {
   };
 
   const [userData, setUserData] = useState(null);
+  const [profilePosts, setProfilePosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isBioModalVisible, setIsBioModalVisible] = useState(false);
+  const [bioDraft, setBioDraft] = useState('');
 
 	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
@@ -52,10 +55,10 @@ const UserProfileScreen = ({ navigation }) => {
       : 'Class of',
     sectionTag: userData?.program || 'BSIT',
     connectionsCount: userData?.connections_count ?? 123,
-    postsCount: userData?.posts_count ?? 3,
+    postsCount: userData?.posts_count ?? 0,
     biographyText:
-      userData?.bio ||
-      'Class of 2023 | BS Information Technology | Currently a Software Engineer at Microsoft specializing in mobile development. During my stay at NU Lipa, I served as a student leader and fell in love with building tech that solves real-world problems. Passionate about Human-Computer Interaction and clean code. Always down for a coffee chat or a collab on a side project! ☕✨',
+      userData?.alumni_bio ||
+      'No biography added yet. Tap the edit button to add a biography and let people know more about you!',
   }), [userData]);
 
 	// DERIVED VALUE: Work experience card data
@@ -72,6 +75,91 @@ const UserProfileScreen = ({ navigation }) => {
       description: "Contributed to the development of the university's alumni portal.",
     };
   }, [userData]);
+
+  const repostsCount = useMemo(
+    () => profilePosts.filter((post) => post?.feed_type === 'repost').length,
+    [profilePosts]
+  );
+
+  const getPostAuthorName = (post) => {
+    const firstName = post?.alumni?.first_name ?? '';
+    const lastName = post?.alumni?.last_name ?? '';
+
+    return [firstName, lastName].filter(Boolean).join(' ').trim() || 'Alumni';
+  };
+
+  const getPostImageUri = (image) => image?.image_url ?? image?.image_path ?? '';
+
+  const renderProfilePostImages = (postImages = []) => {
+    if (!Array.isArray(postImages) || postImages.length === 0) {
+      return null;
+    }
+
+    const visibleImages = postImages.slice(0, 4);
+    const remainingCount = Math.max(postImages.length - 4, 0);
+    const isSingleImage = visibleImages.length === 1;
+
+    if (isSingleImage) {
+      const image = visibleImages[0];
+      const imageKey = image?.id ?? getPostImageUri(image);
+
+      return (
+        <View style={styles.profilePostImagesGrid}>
+          <View key={imageKey} style={[styles.profilePostImageTile, styles.profilePostImageTileSingle]}>
+            <Image
+              source={{ uri: getPostImageUri(image) }}
+              style={styles.profilePostImage}
+              resizeMode="cover"
+            />
+          </View>
+        </View>
+      );
+    }
+
+    const rows = [];
+
+    for (let index = 0; index < visibleImages.length; index += 2) {
+      rows.push(visibleImages.slice(index, index + 2));
+    }
+
+    return (
+      <View style={styles.profilePostImagesGrid}>
+        {rows.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.profilePostImagesRow}>
+            {row.map((image, columnIndex) => {
+              const absoluteIndex = (rowIndex * 2) + columnIndex;
+              const imageKey = image?.id ?? `${absoluteIndex}-${getPostImageUri(image)}`;
+              const showOverlay = absoluteIndex === 3 && remainingCount > 0;
+
+              return (
+                <View
+                  key={imageKey}
+                  style={[
+                    styles.profilePostImageTile,
+                    columnIndex === 0 ? styles.profilePostImageTileWithGap : null,
+                  ]}
+                >
+                  <Image
+                    source={{ uri: getPostImageUri(image) }}
+                    style={styles.profilePostImage}
+                    resizeMode="cover"
+                  />
+
+                  {showOverlay ? (
+                    <View style={styles.profilePostImageOverlay}>
+                      <Text style={styles.profilePostImageOverlayText}>+{remainingCount}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+
+            {row.length === 1 ? <View style={styles.profilePostImageTileSpacer} /> : null}
+          </View>
+        ))}
+      </View>
+    );
+  };
 
 	// SECTION: Load profile data
   useEffect(() => {
@@ -91,7 +179,12 @@ const UserProfileScreen = ({ navigation }) => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        const postsResponse = await api.get('/alumni/profile/posts', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setUserData(response.data?.alumni ?? null);
+        setProfilePosts(postsResponse.data?.posts ?? []);
       } catch (fetchError) {
         console.error('Failed to fetch profile:', fetchError);
         setErrorMessage('Unable to load profile right now.');
@@ -102,6 +195,54 @@ const UserProfileScreen = ({ navigation }) => {
 
     fetchProfile();
   }, []);
+
+	// HANDLER: Open biography editor
+  const openBioModal = () => {
+    setBioDraft(userData?.bio ?? '');
+    setIsBioModalVisible(true);
+  };
+
+	// HANDLER: Close biography editor
+  const closeBioModal = () => {
+    setIsBioModalVisible(false);
+  };
+
+	// HANDLER: Save biography changes
+  const saveBiography = async () => {
+    const nextBio = bioDraft.trim();
+    const previousBio = userData?.alumni_bio ?? '';
+
+    setUserData((currentUserData) => ({
+      ...(currentUserData ?? {}),
+      alumni_bio: nextBio || null,
+    }));
+    setIsBioModalVisible(false);
+
+    try {
+      const token = await getAuthToken();
+
+      if (!token) {
+        setErrorMessage('No active session found.');
+        return;
+      }
+
+      const response = await api.put('/alumni/profile', {
+        alumni_bio: nextBio || null,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUserData(response.data?.alumni ?? null);
+    } catch (saveError) {
+      console.error('Failed to save biography:', saveError);
+      setErrorMessage('Unable to save biography right now.');
+      setUserData((currentUserData) => ({
+        ...(currentUserData ?? {}),
+        alumni_bio: previousBio || null,
+      }));
+    } finally {
+    }
+  };
 
   // HANDLER: Open account settings
   const openAccountSettings = () => {
@@ -175,6 +316,10 @@ const UserProfileScreen = ({ navigation }) => {
                         <Text style={styles.statValue}>{profileSummary.postsCount}</Text>
                         <Text style={styles.statLabel}>Posts</Text>
                       </View>
+                      <View style={styles.statBlock}>
+                        <Text style={styles.statValue}>{repostsCount}</Text>
+                        <Text style={styles.statLabel}>Reposts</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -204,7 +349,7 @@ const UserProfileScreen = ({ navigation }) => {
                 <View style={styles.bioSectionCard}>
                   <View style={styles.sectionHeaderRow}>
                     <Text style={styles.sectionHeading}>Biography</Text>
-                    <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={openAccountSettings}>
+                    <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={openBioModal}>
                       <Ionicons name="create-outline" size={12} color="#404040" />
                       <Text style={styles.editPillText}>Edit</Text>
                     </TouchableOpacity>
@@ -251,14 +396,128 @@ const UserProfileScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.postsSectionBlock}>
-                <Text style={styles.sectionHeading}>Posts</Text>
+                <View style={styles.postsHeaderRow}>
+                  <Text style={styles.sectionHeading}>Posts</Text>
+                  <TouchableOpacity
+                    style={styles.createPostButton}
+                    activeOpacity={0.85}
+                    onPress={() => navigation.navigate('CreatePostScreen')}
+                  >
+                    <Ionicons name="add" size={14} color="#FFFFFF" />
+                    <Text style={styles.createPostButtonText}>Create</Text>
+                  </TouchableOpacity>
+                </View>
                 <View style={styles.postsCard}>
-                  <Text style={styles.emptyPostsText}>No posts yet.</Text>
+                  {profilePosts.length === 0 ? (
+                    <Text style={styles.emptyPostsText}>No posts yet.</Text>
+                  ) : (
+                    profilePosts.map((post) => {
+                      const isRepost = post.feed_type === 'repost';
+                      const originalCaption = post.original_post?.caption ?? '';
+                      const postImages = post.images ?? [];
+
+                      return (
+                        <View key={post.feed_id ?? `${post.feed_type}-${post.id}-${post.created_at}`} style={styles.profilePostItem}>
+                          <View style={styles.profilePostHeaderRow}>
+                            <View style={[
+                              styles.profilePostTypePill,
+                              isRepost ? styles.profileRepostPill : styles.profilePostPill,
+                            ]}>
+                              <Ionicons
+                                name={isRepost ? 'repeat' : 'document-text-outline'}
+                                size={12}
+                                color={isRepost ? '#15803D' : '#31429B'}
+                              />
+                              <Text style={[
+                                styles.profilePostTypeText,
+                                isRepost ? styles.profileRepostTypeText : null,
+                              ]}>
+                                {isRepost ? 'Repost' : 'Post'}
+                              </Text>
+                            </View>
+
+                            <Text style={styles.profilePostTime}>{new Date(post.created_at).toLocaleString()}</Text>
+                          </View>
+
+                          {post.caption ? <Text style={styles.profilePostCaption}>{post.caption}</Text> : null}
+
+                          {isRepost ? (
+                            <View style={styles.profileOriginalWrap}>
+                              <Text style={styles.profileOriginalLabel}>Original by {getPostAuthorName({ alumni: post.original_post?.alumni })}</Text>
+                              {originalCaption ? <Text style={styles.profileOriginalCaption}>{originalCaption}</Text> : null}
+                            </View>
+                          ) : null}
+
+                          {postImages.length > 0 ? renderProfilePostImages(postImages) : null}
+
+                          <View style={styles.profilePostMetricsRow}>
+                            <Text style={styles.profilePostMetricText}>{post.reaction_count ?? 0} reacts</Text>
+                            <Text style={styles.profilePostMetricText}>{post.comment_count ?? 0} comments</Text>
+                            <Text style={styles.profilePostMetricText}>{post.repost_count ?? 0} reposts</Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
                 </View>
               </View>
             </>
           )}
         </ScrollView>
+
+        <Modal
+          visible={isBioModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closeBioModal}
+        >
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Biography</Text>
+                <TouchableOpacity onPress={closeBioModal} style={styles.modalCloseButton} activeOpacity={0.8}>
+                  <Ionicons name="close" size={22} color="#31429B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalHelperText}>
+                Update your biography so people can learn more about you.
+              </Text>
+
+              <TextInput
+                value={bioDraft}
+                onChangeText={setBioDraft}
+                placeholder="Write your biography here..."
+                placeholderTextColor="#94A3B8"
+                multiline
+                textAlignVertical="top"
+                style={styles.bioInput}
+                maxLength={1000}
+              />
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalCancelButton]}
+                  activeOpacity={0.85}
+                  onPress={closeBioModal}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalActionButton, styles.modalSaveButton]}
+                  activeOpacity={0.85}
+                  onPress={saveBiography}
+                >
+                  <Text style={styles.modalSaveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </View>
     </SafeAreaView>
   );

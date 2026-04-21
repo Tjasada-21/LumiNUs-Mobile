@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { 
   View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, useWindowDimensions
 } from 'react-native';
@@ -38,6 +38,7 @@ const HomeScreen = ({ navigation }) => {
 	// SECTION: Screen state
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState([]);
+    const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [isIdFlipped, setIsIdFlipped] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
 
@@ -47,6 +48,7 @@ const HomeScreen = ({ navigation }) => {
     // Notifications panel animation (slide from right)
     const [isNotifVisible, setIsNotifVisible] = useState(false);
     const notifTranslateX = useRef(new Animated.Value(Dimensions.get('window').width)).current;
+    const pendingDismissalsRef = useRef(new Map());
 
   	// HANDLER: Open the notifications panel
     const openNotifications = () => {
@@ -68,6 +70,30 @@ const HomeScreen = ({ navigation }) => {
         useNativeDriver: true,
       }).start(() => setIsNotifVisible(false));
     };
+
+    const fetchNotifications = useCallback(async () => {
+      try {
+        setIsLoadingNotifications(true);
+
+        const token = await getAuthToken();
+
+        if (!token) {
+          setNotifications([]);
+          return;
+        }
+
+        const response = await api.get('/notifications', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setNotifications(response.data?.notifications ?? []);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        setNotifications([]);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    }, []);
 
   	// HANDLER: Open the side menu
     const openMenu = () => {
@@ -113,6 +139,10 @@ const HomeScreen = ({ navigation }) => {
 
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
 	// HANDLER: Open the NU website
   const openNUWebsite = async () => {
@@ -280,6 +310,96 @@ const HomeScreen = ({ navigation }) => {
     : 'LOADING...';
 
   const notifData = Array.isArray(notifications) ? notifications : [];
+  const notificationCount = notifData.length;
+
+  const getNotificationTypeLabel = (type) => {
+    if (type === 'reaction') {
+      return 'Reaction';
+    }
+
+    if (type === 'comment') {
+      return 'Comment';
+    }
+
+    if (type === 'repost') {
+      return 'Repost';
+    }
+
+    return 'Update';
+  };
+
+  const getNotificationActionText = (item) => {
+    if (item?.type === 'reaction') {
+      return 'reacted to your post.';
+    }
+
+    if (item?.type === 'comment') {
+      return 'commented on your post.';
+    }
+
+    if (item?.type === 'repost') {
+      return 'reposted your post.';
+    }
+
+    return 'interacted with your post.';
+  };
+
+  const removeNotification = useCallback((notificationKey) => {
+    let removedNotification = null;
+
+    setNotifications((currentNotifications) => {
+      const notificationIndex = currentNotifications.findIndex((item) => item?.id === notificationKey);
+
+      if (notificationIndex === -1) {
+        return currentNotifications;
+      }
+
+      removedNotification = {
+        item: currentNotifications[notificationIndex],
+        index: notificationIndex,
+      };
+
+      pendingDismissalsRef.current.set(notificationKey, removedNotification);
+
+      return currentNotifications.filter((item) => item?.id !== notificationKey);
+    });
+
+    (async () => {
+      try {
+        const token = await getAuthToken();
+
+        if (!token) {
+          throw new Error('No active session found.');
+        }
+
+        await api.delete(`/notifications/${encodeURIComponent(notificationKey)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        pendingDismissalsRef.current.delete(notificationKey);
+      } catch (error) {
+        console.error('Failed to dismiss notification:', error);
+
+        const backup = removedNotification ?? pendingDismissalsRef.current.get(notificationKey);
+
+        if (backup?.item) {
+          setNotifications((currentNotifications) => {
+            if (currentNotifications.some((item) => item?.id === notificationKey)) {
+              return currentNotifications;
+            }
+
+            const nextNotifications = [...currentNotifications];
+            const insertIndex = Math.min(Math.max(backup.index, 0), nextNotifications.length);
+            nextNotifications.splice(insertIndex, 0, backup.item);
+
+            return nextNotifications;
+          });
+        }
+
+        pendingDismissalsRef.current.delete(notificationKey);
+      }
+    })();
+  }, []);
 
 	// RENDER HELPER: Empty notifications state
   const renderEmptyNotifications = () => (
@@ -290,29 +410,39 @@ const HomeScreen = ({ navigation }) => {
 
 	// RENDER HELPER: Notification row
   const renderNotificationItem = ({ item }) => {
-    const name = String(item?.name ?? 'Unknown User');
-    const time = String(item?.time ?? '');
-    const avatarUri = item?.avatar
-      ? String(item.avatar)
+    const firstName = String(item?.actor?.first_name ?? 'Unknown');
+    const lastName = String(item?.actor?.last_name ?? 'User');
+    const name = `${firstName} ${lastName}`.trim();
+    const time = item?.created_at ? new Date(item.created_at).toLocaleString() : '';
+    const avatarUri = item?.actor?.alumni_photo
+      ? String(item.actor.alumni_photo)
       : 'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827';
+    const typeLabel = getNotificationTypeLabel(item?.type);
+    const actionText = getNotificationActionText(item);
 
     return (
       <View style={styles.notifCard}>
         <Image source={{ uri: avatarUri }} style={styles.notifAvatar} />
         <View style={styles.notifBody}>
-          <Text style={styles.notifName}>{name}</Text>
-          <Text style={styles.notifAction}>sent you a connection request.</Text>
-          {!!time && <Text style={styles.notifTime}>{time}</Text>}
-
-          <View style={styles.notifButtonsRow}>
-            <TouchableOpacity style={styles.btnAccepted}>
-              <Text style={styles.btnAcceptedText}>Accepted</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnDelete}>
-              <Text style={styles.btnDeleteText}>Delete</Text>
-            </TouchableOpacity>
+          <View style={styles.notifTopRow}>
+            <Text style={styles.notifName}>{name}</Text>
+            <View style={styles.notifTypePill}>
+              <Text style={styles.notifTypePillText}>{typeLabel}</Text>
+            </View>
           </View>
+          <Text style={styles.notifAction}>{actionText}</Text>
+          {item?.detail ? <Text style={styles.notifDetail}>{item.detail}</Text> : null}
+          {!!time && <Text style={styles.notifTime}>{time}</Text>}
         </View>
+        <TouchableOpacity
+          style={styles.notifDeleteButton}
+          activeOpacity={0.75}
+          onPress={() => removeNotification(item?.id)}
+          accessibilityRole="button"
+          accessibilityLabel="Remove notification"
+        >
+          <Ionicons name="close" size={18} color="#B91C1C" />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -348,7 +478,16 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.bellIcon} onPress={openNotifications}>
-                <Ionicons name="notifications" size={24} color="#00205B" />
+                <View style={styles.bellIconInner}>
+                  <Ionicons name="notifications" size={24} color="#00205B" />
+                  {notificationCount > 0 ? (
+                    <View style={styles.notificationBadge}>
+                      <Text style={styles.notificationBadgeText}>
+                        {notificationCount > 99 ? '99+' : notificationCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </TouchableOpacity>
             </View>
 
@@ -372,8 +511,6 @@ const HomeScreen = ({ navigation }) => {
                         source={{
                           uri: userData?.card_photo
                             ? userData.card_photo
-                            : userData?.alumni_photo
-                              ? userData.alumni_photo
                             : `https://ui-avatars.com/api/?name=${userData?.first_name}+${userData?.last_name}&background=31429B&color=fff`,
                         }}
                         style={[
@@ -574,6 +711,12 @@ const HomeScreen = ({ navigation }) => {
               <View style={styles.modalAccentLine} />
 
               {/* Notification List */}
+              {isLoadingNotifications ? (
+                <View style={styles.emptyNotifWrap}>
+                  <ActivityIndicator size="small" color="#31429B" />
+                  <Text style={styles.emptyNotifText}>Loading notifications...</Text>
+                </View>
+              ) : null}
               <FlatList
                 data={notifData}
                 keyExtractor={(item, index) => String(item?.id ?? index)}
