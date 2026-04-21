@@ -140,27 +140,29 @@ const ZoomableViewer = ({ images = [], initialIndex = 0, visible, onRequestClose
 
 							return (
 								<View key={imageKey} style={styles.viewerScrollItem}>
-									<Pressable
-										style={styles.viewerImagePressable}
-										onPress={handleImageTap}
-										onTouchStart={handleTouchStart}
-										onTouchMove={handleTouchMove}
-										onTouchEnd={handleTouchEnd}
-										onTouchCancel={handleTouchEnd}
-									>
-										<Animated.Image
-											source={{ uri: image.uri }}
-											style={[
-												styles.viewerImage,
-												{
-													transform: [{ scale }],
-													width: VIEWER_IMAGE_WIDTH,
-													height: VIEWER_IMAGE_HEIGHT,
-												},
-											]}
-											resizeMode="contain"
-										/>
-									</Pressable>
+									<View style={styles.viewerImageCard}>
+										<Pressable
+											style={styles.viewerImagePressable}
+											onPress={handleImageTap}
+											onTouchStart={handleTouchStart}
+											onTouchMove={handleTouchMove}
+											onTouchEnd={handleTouchEnd}
+											onTouchCancel={handleTouchEnd}
+										>
+											<Animated.Image
+												source={{ uri: image.uri }}
+												style={[
+													styles.viewerImage,
+													{
+														transform: [{ scale }],
+														width: VIEWER_IMAGE_WIDTH,
+														height: VIEWER_IMAGE_HEIGHT,
+													},
+												]}
+												resizeMode="contain"
+											/>
+										</Pressable>
+									</View>
 								</View>
 							);
 						})}

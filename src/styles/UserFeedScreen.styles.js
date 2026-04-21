@@ -1,4 +1,8 @@
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
+const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
 
 const styles = StyleSheet.create({
 	safeArea: {
@@ -537,6 +541,19 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		paddingVertical: 12,
 	},
+	viewerImageCard: {
+		width: VIEWER_IMAGE_WIDTH,
+		height: VIEWER_IMAGE_HEIGHT,
+		borderRadius: 24,
+		overflow: 'hidden',
+		backgroundColor: '#101828',
+		padding: 12,
+		shadowColor: '#111827',
+		shadowOpacity: 0.18,
+		shadowRadius: 18,
+		shadowOffset: { width: 0, height: 10 },
+		elevation: 6,
+	},
 	viewerSlide: {
 		width: '100%',
 		height: '100%',
@@ -544,6 +561,8 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 	},
 	viewerImagePressable: {
+		width: '100%',
+		height: '100%',
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
