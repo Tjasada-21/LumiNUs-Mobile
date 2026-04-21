@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons'; // Expo's built-in icons
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
 import styles from '../styles/LoginScreen.styles';
-import { setAuthCredentials } from '../services/authStorage';
+import { clearAuthCredentials, setAuthCredentials } from '../services/authStorage';
 import { showBrandedAlert } from '../services/brandedAlert';
 
 const LoginScreen = ({ navigation }) => {
@@ -30,7 +30,16 @@ const LoginScreen = ({ navigation }) => {
       }
 
       if (savedToken) {
-        navigation.replace('Home');
+        try {
+          await api.get('/user', {
+            headers: { Authorization: `Bearer ${savedToken}` },
+          });
+
+          navigation.replace('Home');
+        } catch (error) {
+          await clearAuthCredentials();
+          console.error('Stored session is no longer valid:', error);
+        }
       }
     };
 

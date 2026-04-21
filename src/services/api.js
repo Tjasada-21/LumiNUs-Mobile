@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './authStorage';
+import { clearAuthCredentials, getAuthToken } from './authStorage';
 
 // Replace with your computer's actual IPv4 address
 // Since you are using Docker/Sail, DO NOT add a port number.
@@ -23,5 +23,16 @@ api.interceptors.request.use(async (config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await clearAuthCredentials();
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 export default api;

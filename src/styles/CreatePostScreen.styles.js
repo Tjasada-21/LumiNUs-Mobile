@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
 	previewImage: {
 		width: '100%',
 		height: 220,
+		backgroundColor: '#F3F4F6',
 		borderRadius: 0,
 	},
 	previewVideoTile: {

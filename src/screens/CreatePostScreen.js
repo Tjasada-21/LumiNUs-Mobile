@@ -18,8 +18,9 @@ const CreatePostScreen = () => {
 	const [selectedVideoUris, setSelectedVideoUris] = useState([]);
 	const [isPickingPhoto, setIsPickingPhoto] = useState(false);
 	const [isPickingVideo, setIsPickingVideo] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const canPost = postText.trim().length > 0;
+	const canPost = postText.trim().length > 0 || selectedPhotoUris.length > 0;
 
 	useEffect(() => {
 		const fetchProfile = async () => {
@@ -112,6 +113,85 @@ const CreatePostScreen = () => {
 		setSelectedVideoUris((currentUris) => currentUris.filter((uri) => uri !== uriToRemove));
 	};
 
+	const getImageMimeType = (uri) => {
+		const extension = uri.split('.').pop()?.toLowerCase();
+
+		switch (extension) {
+			case 'jpg':
+			case 'jpeg':
+				return 'image/jpeg';
+			case 'png':
+				return 'image/png';
+			case 'heic':
+				return 'image/heic';
+			case 'webp':
+				return 'image/webp';
+			default:
+				return 'image/jpeg';
+		}
+	};
+
+	const buildImageFile = (uri, index) => ({
+		uri,
+		name: `post-image-${index + 1}.${uri.split('.').pop()?.toLowerCase() || 'jpg'}`,
+		type: getImageMimeType(uri),
+	});
+
+	const handleSubmitPost = async () => {
+		if (isSubmitting) {
+			return;
+		}
+
+		if (selectedVideoUris.length > 0) {
+			Alert.alert('Unsupported media', 'Video uploads are not supported yet. Remove the selected video(s) and try again.');
+			return;
+		}
+
+		if (!canPost) {
+			return;
+		}
+
+		try {
+			setIsSubmitting(true);
+
+			const token = await getAuthToken();
+			if (!token) {
+				Alert.alert('Sign in required', 'Please sign in again before creating a post.');
+				return;
+			}
+
+			const formData = new FormData();
+			const trimmedCaption = postText.trim();
+
+			if (trimmedCaption.length > 0) {
+				formData.append('caption', trimmedCaption);
+			}
+
+			selectedPhotoUris.forEach((uri, index) => {
+				formData.append('images[]', buildImageFile(uri, index));
+			});
+
+			await api.post('/posts', formData, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'multipart/form-data',
+				},
+			});
+
+			setPostText('');
+			setSelectedPhotoUris([]);
+			setSelectedVideoUris([]);
+			Alert.alert('Post created', 'Your post was added successfully.', [
+				{ text: 'OK', onPress: () => navigation.goBack() },
+			]);
+		} catch (error) {
+			console.error('Failed to create post:', error);
+			Alert.alert('Error', 'Unable to create your post right now. Please try again.');
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
 			<View style={styles.container}>
@@ -185,7 +265,7 @@ const CreatePostScreen = () => {
 							<View style={styles.previewImageWrap}>
 								{selectedPhotoUris.length === 1 ? (
 									<View style={styles.previewMediaItem}>
-										<Image source={{ uri: selectedPhotoUris[0] }} style={styles.previewImage} resizeMode="cover" />
+										<Image source={{ uri: selectedPhotoUris[0] }} style={styles.previewImage} resizeMode="contain" />
 										<Pressable style={styles.previewRemoveButton} onPress={() => handleRemovePhoto(selectedPhotoUris[0])}>
 											<Ionicons name="close" size={14} color="#FFFFFF" />
 										</Pressable>
@@ -194,7 +274,7 @@ const CreatePostScreen = () => {
 									<View style={styles.previewGrid}>
 										{selectedPhotoUris.map((uri) => (
 											<View key={uri} style={styles.previewGridItem}>
-												<Image source={{ uri }} style={styles.previewThumbnail} resizeMode="cover" />
+												<Image source={{ uri }} style={styles.previewThumbnail} resizeMode="contain" />
 												<Pressable style={styles.previewRemoveButton} onPress={() => handleRemovePhoto(uri)}>
 													<Ionicons name="close" size={14} color="#FFFFFF" />
 												</Pressable>
@@ -239,7 +319,7 @@ const CreatePostScreen = () => {
 								<Text style={styles.saveDraftText}>Save Draft</Text>
 							</Pressable>
 
-							<Pressable style={[styles.postButton, !canPost && styles.postButtonDisabled]} android_ripple={{ color: '#24346F' }} disabled={!canPost}>
+							<Pressable style={[styles.postButton, !canPost && styles.postButtonDisabled]} onPress={handleSubmitPost} android_ripple={{ color: '#24346F' }} disabled={!canPost || isSubmitting}>
 								<Text style={styles.postButtonText}>Post</Text>
 							</Pressable>
 						</View>
