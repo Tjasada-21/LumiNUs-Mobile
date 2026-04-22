@@ -311,6 +311,11 @@ const styles = StyleSheet.create({
 		lineHeight: 18,
 		color: '#334155',
 	},
+	repostedOriginalActionsRow: {
+		flexDirection: 'row',
+		justifyContent: 'flex-end',
+		marginTop: 8,
+	},
 	postReactionRow: {
 		flexDirection: 'row',
 		alignItems: 'center',

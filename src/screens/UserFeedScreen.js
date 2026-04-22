@@ -1186,13 +1186,13 @@ const UserFeedScreen = ({ navigation }) => {
 													</View>
 												</Pressable>
 
-												{!post.my_repost ? (
+												{!isRepostFeedItem ? (
 													<Pressable
-														style={styles.postRepostButton}
+														style={[styles.postRepostButton, post.my_repost ? styles.postRepostButtonActive : null]}
 														onPress={() => openRepostComposer(post)}
 													>
 														<View style={styles.postActionInline}>
-															<Ionicons name="share-social-outline" size={16} color="#2F855A" />
+															<Ionicons name="share-social-outline" size={16} color={post.my_repost ? '#15803D' : '#2F855A'} />
 															<Text style={styles.postActionCount}>{post.repost_count ?? 0}</Text>
 														</View>
 													</Pressable>

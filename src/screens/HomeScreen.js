@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
@@ -117,28 +118,43 @@ const HomeScreen = ({ navigation }) => {
     };
 
   	// SECTION: Load user data
-    useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // 1. Grab the VIP pass (token) from the phone's secure vault
-        const token = await getAuthToken();
-        
-        if (token) {
-          // 2. Show the token to Laravel and ask for the user's profile
-          const response = await api.get('/user', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          // 3. Save the database row into our React state
-          setUserData(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user profile:", error);
-      }
-    };
+  	useFocusEffect(
+  		useCallback(() => {
+        let isActive = true;
 
-    fetchUserData();
-  }, []);
+        const fetchUserData = async () => {
+          try {
+            // 1. Grab the VIP pass (token) from the phone's secure vault
+            const token = await getAuthToken();
+
+            if (!token || !isActive) {
+              return;
+            }
+
+            // 2. Show the token to Laravel and ask for the user's profile
+            const response = await api.get('/user', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!isActive) {
+              return;
+            }
+
+            // 3. Save the database row into our React state
+            setUserData(response.data);
+          } catch (error) {
+            console.error("Failed to fetch user profile:", error);
+          }
+        };
+
+        fetchUserData();
+
+        return () => {
+          isActive = false;
+        };
+
+  		}, [])
+  	);
 
   useEffect(() => {
     fetchNotifications();
@@ -417,7 +433,6 @@ const HomeScreen = ({ navigation }) => {
     const avatarUri = item?.actor?.alumni_photo
       ? String(item.actor.alumni_photo)
       : 'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827';
-    const typeLabel = getNotificationTypeLabel(item?.type);
     const actionText = getNotificationActionText(item);
 
     return (
@@ -426,9 +441,6 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.notifBody}>
           <View style={styles.notifTopRow}>
             <Text style={styles.notifName}>{name}</Text>
-            <View style={styles.notifTypePill}>
-              <Text style={styles.notifTypePillText}>{typeLabel}</Text>
-            </View>
           </View>
           <Text style={styles.notifAction}>{actionText}</Text>
           {item?.detail ? <Text style={styles.notifDetail}>{item.detail}</Text> : null}
@@ -1003,12 +1015,43 @@ const styles = StyleSheet.create({
   },
   notifBody: {
     flex: 1,
+    paddingRight: 12,
+    minWidth: 0,
+  },
+  notifTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  notifTypePill: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: '#EEF2FF',
+    alignSelf: 'flex-start',
+    flexShrink: 0,
+  },
+  notifTypePillText: {
+    color: '#31429B',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  notifDeleteButton: {
+    marginLeft: 8,
+    padding: 6,
+    borderRadius: 999,
+    backgroundColor: '#FEE2E2',
+    alignSelf: 'flex-start',
   },
   notifName: {
     color: '#31429B',
     fontWeight: 'bold',
     fontSize: 14,
     lineHeight: 20,
+    flexShrink: 1,
   },
   notifAction: {
     color: '#666',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions } from 'react-native';
 import SmartTextInput from '../components/SmartTextInput';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -50,47 +50,85 @@ const AccountSettingsScreen = ({ navigation }) => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [pickingImage, setPickingImage] = useState(false);
+  const [photoCooldownUntil, setPhotoCooldownUntil] = useState(0);
+  const [photoCooldownSeconds, setPhotoCooldownSeconds] = useState(0);
+
+  const fetchAccountData = async ({ showRefreshingState = false } = {}) => {
+    try {
+      if (showRefreshingState) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setErrorMessage('');
+
+      const userEmail = await getAuthEmail();
+
+      if (!userEmail) {
+        setErrorMessage('No account email is stored for this session.');
+        return;
+      }
+
+      const response = await api.get('/alumni/profile');
+      const data = response.data?.alumni ?? null;
+
+      setUserData(data);
+      setFormData({
+        first_name: data?.first_name || '',
+        middle_name: data?.middle_name || '',
+        last_name: data?.last_name || '',
+        phone_number: data?.phone_number || '',
+        email: data?.email || userEmail,
+        date_of_birth: data?.date_of_birth ? String(data.date_of_birth).slice(0, 10) : '',
+        sex: data?.sex || '',
+        alumni_photo: data?.alumni_photo || '',
+      });
+
+      const updatedAtMs = data?.updated_at ? new Date(data.updated_at).getTime() : 0;
+      const cooldownUntil = updatedAtMs ? updatedAtMs + 60000 : 0;
+      setPhotoCooldownUntil(cooldownUntil > Date.now() ? cooldownUntil : 0);
+    } catch (fetchError) {
+      console.error('Failed to fetch account settings:', fetchError);
+      setErrorMessage('Unable to load account details right now.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   // SECTION: Load account data
   useEffect(() => {
-    const fetchAccountData = async () => {
-      try {
-        setLoading(true);
-        setErrorMessage('');
+    fetchAccountData();
+  }, []);
 
-        const userEmail = await getAuthEmail();
+  useEffect(() => {
+    if (!photoCooldownUntil) {
+      setPhotoCooldownSeconds(0);
+      return undefined;
+    }
 
-        if (!userEmail) {
-          setErrorMessage('No account email is stored for this session.');
-          return;
-        }
+    const updateCooldown = () => {
+      const remainingSeconds = Math.max(0, Math.ceil((photoCooldownUntil - Date.now()) / 1000));
+      setPhotoCooldownSeconds(remainingSeconds);
 
-        const response = await api.get('/alumni/profile');
-        const data = response.data?.alumni ?? null;
-
-        setUserData(data);
-        setFormData({
-          first_name: data?.first_name || '',
-          middle_name: data?.middle_name || '',
-          last_name: data?.last_name || '',
-          phone_number: data?.phone_number || '',
-          email: data?.email || userEmail,
-          date_of_birth: data?.date_of_birth ? String(data.date_of_birth).slice(0, 10) : '',
-          sex: data?.sex || '',
-          alumni_photo: data?.alumni_photo || '',
-        });
-      } catch (fetchError) {
-        console.error('Failed to fetch account settings:', fetchError);
-        setErrorMessage('Unable to load account details right now.');
-      } finally {
-        setLoading(false);
+      if (remainingSeconds === 0) {
+        setPhotoCooldownUntil(0);
       }
     };
 
-    fetchAccountData();
-  }, []);
+    updateCooldown();
+    const intervalId = setInterval(updateCooldown, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [photoCooldownUntil]);
+
+  const handleRefresh = () => {
+    fetchAccountData({ showRefreshingState: true });
+  };
 
   // HANDLER: Update a single form field
   const updateField = (field, value) => {
@@ -121,6 +159,12 @@ const AccountSettingsScreen = ({ navigation }) => {
 
       const uploadedUrl = resp.data?.url;
       if (!uploadedUrl) throw new Error('No url returned from upload');
+      setFormData((current) => ({
+        ...current,
+        alumni_photo: uploadedUrl,
+      }));
+      setUserData((current) => (current ? { ...current, alumni_photo: uploadedUrl } : current));
+      setPhotoCooldownUntil(Date.now() + 60000);
       return uploadedUrl;
     } catch (err) {
       throw err;
@@ -245,6 +289,7 @@ const AccountSettingsScreen = ({ navigation }) => {
   const phoneStatusText = verificationStatus === 'verified' ? 'Verified' : 'Unverified';
   const emailActionText = verificationStatus === 'verified' ? 'Verified' : 'Verify Email';
   const formDisabled = loading || saving;
+  const photoChangeDisabled = pickingImage || formDisabled || photoCooldownSeconds > 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -252,7 +297,18 @@ const AccountSettingsScreen = ({ navigation }) => {
         <BrandHeader />
 
         {/* SECTION: Account form */}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#31429B"
+              colors={['#31429B']}
+            />
+          }
+        >
           {/* SECTION: Home shortcut */}
           <TouchableOpacity style={styles.homeButton} activeOpacity={0.8} onPress={() => navigation.navigate('Home')}>
             <Ionicons name="home-outline" size={24} color="#31429B" />
@@ -260,11 +316,21 @@ const AccountSettingsScreen = ({ navigation }) => {
 
           {/* SECTION: Profile photo */}
           <View style={styles.profileWrap}>
-            <Image source={{ uri: profileImageUri }} style={[styles.profileImage, { width: layout.profileSize, height: layout.profileSize, borderRadius: layout.profileSize / 2 }]} />
+            <Image
+              key={profileImageUri}
+              source={{ uri: profileImageUri }}
+              style={[styles.profileImage, { width: layout.profileSize, height: layout.profileSize, borderRadius: layout.profileSize / 2 }]}
+            />
             <TouchableOpacity
-              style={styles.editAvatarButton}
+              style={[styles.editAvatarButton, photoChangeDisabled ? { opacity: 0.55 } : null]}
               activeOpacity={0.8}
+              disabled={photoChangeDisabled}
               onPress={async () => {
+                if (photoCooldownSeconds > 0) {
+                  showBrandedAlert('Please wait', `You can change your profile photo again in ${photoCooldownSeconds} seconds.`);
+                  return;
+                }
+
                 try {
                   setPickingImage(true);
                   const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -276,22 +342,19 @@ const AccountSettingsScreen = ({ navigation }) => {
                   const result = await ImagePicker.launchImageLibraryAsync({
                     mediaTypes: ['images'],
                     allowsEditing: false, // disable crop-only UI so user can pick freely
-                    quality: 0.8,
+                    quality: 0.75,
                   });
 
                   const selectedUri = result.uri ?? result.assets?.[0]?.uri;
 
                   if (selectedUri) {
                     try {
-                      // upload immediately and use hosted URL as preview
                       const hostedUrl = await uploadImage(selectedUri);
                       updateField('alumni_photo', hostedUrl);
                       showBrandedAlert('Uploaded', 'Profile photo uploaded.');
                     } catch (uploadErr) {
                       console.error('Upload failed:', uploadErr);
-                      // fallback to local uri preview and inform user
-                      updateField('alumni_photo', selectedUri);
-                      showBrandedAlert('Upload failed', 'Image upload failed — using local preview. You can try saving again.');
+                      showBrandedAlert('Upload failed', 'Unable to upload the new photo. Please try again.');
                     }
                   }
                 } catch (err) {
@@ -308,6 +371,11 @@ const AccountSettingsScreen = ({ navigation }) => {
                 <Ionicons name="pencil" size={16} color="#31429B" />
               )}
             </TouchableOpacity>
+            {photoCooldownSeconds > 0 ? (
+              <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
+                You can change it again in {photoCooldownSeconds}s
+              </Text>
+            ) : null}
           </View>
 
           {/* SECTION: User information */}
@@ -420,7 +488,6 @@ const AccountSettingsScreen = ({ navigation }) => {
                       const options = [
                         { text: 'Male', onPress: () => updateField('sex', 'male') },
                         { text: 'Female', onPress: () => updateField('sex', 'female') },
-                        { text: 'Non-binary', onPress: () => updateField('sex', 'non-binary') },
                         { text: 'Prefer not to say', onPress: () => updateField('sex', '') },
                         { text: 'Cancel', style: 'cancel' },
                       ];
