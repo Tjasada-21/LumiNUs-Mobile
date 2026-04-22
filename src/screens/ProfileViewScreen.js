@@ -51,6 +51,14 @@ const ProfileViewScreen = ({ navigation, route }) => {
 		biographyText: userData?.bio || 'No biography available yet.',
 	}), [userData]);
 
+	const openNewMessage = () => {
+		navigation.navigate('NewMessage', {
+			userId,
+			userName: profileName,
+			userAvatarUri: profileImageUri,
+		});
+	};
+
 	const workExperience = useMemo(() => {
 		if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
 			return userData.work_experiences[0];
@@ -253,30 +261,37 @@ const ProfileViewScreen = ({ navigation, route }) => {
 													<Text style={styles.statLabel}>Reposts</Text>
 												</View>
 											</View>
-
-											<TouchableOpacity style={styles.addConnectionButton} activeOpacity={0.85}>
-												<Ionicons name="person-add-outline" size={14} color="#FFFFFF" />
-												<Text style={styles.addConnectionButtonText}>Add Connection</Text>
-											</TouchableOpacity>
 										</View>
+									</View>
+
+									<View style={styles.heroActionsRow}>
+										<TouchableOpacity style={styles.addConnectionButton} activeOpacity={0.85}>
+											<Ionicons name="person-add-outline" size={14} color="#FFFFFF" />
+											<Text style={styles.addConnectionButtonText}>Add Connection</Text>
+										</TouchableOpacity>
+
+										<TouchableOpacity style={styles.messageButton} activeOpacity={0.85} onPress={openNewMessage}>
+											<Ionicons name="chatbubble-ellipses-outline" size={12} color="#31429B" />
+											<Text style={styles.messageButtonText}>Message</Text>
+										</TouchableOpacity>
 									</View>
 								</View>
 
 								<View style={styles.aboutSectionWrap}>
-									<View style={styles.aboutSectionCard}>
-										<View style={styles.sectionHeaderRow}>
-											<Text style={styles.sectionHeading}>About Me</Text>
-										</View>
-										<View style={styles.aboutItem}>
-											<Ionicons name="briefcase" size={16} color="#404040" />
-											<Text style={styles.aboutText}>{profileSummary.headlineText}</Text>
-										</View>
-										<View style={styles.aboutItem}>
-											<Ionicons name="location-sharp" size={16} color="#404040" />
-											<Text style={styles.aboutText}>{profileSummary.locationText}</Text>
+										<View style={styles.aboutSectionCard}>
+											<View style={styles.sectionHeaderRow}>
+												<Text style={styles.sectionHeading}>About Me</Text>
+											</View>
+											<View style={styles.aboutItem}>
+												<Ionicons name="briefcase" size={16} color="#404040" />
+												<Text style={styles.aboutText}>{profileSummary.headlineText}</Text>
+											</View>
+											<View style={styles.aboutItem}>
+												<Ionicons name="location-sharp" size={16} color="#404040" />
+												<Text style={styles.aboutText}>{profileSummary.locationText}</Text>
+											</View>
 										</View>
 									</View>
-								</View>
 
 								<View style={styles.sectionBlock}>
 									<View style={styles.bioSectionCard}>

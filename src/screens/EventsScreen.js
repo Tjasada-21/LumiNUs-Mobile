@@ -1,18 +1,12 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Pressable, Animated, PanResponder, useWindowDimensions, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Pressable, Animated, PanResponder, useWindowDimensions, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BrandHeader from '../components/BrandHeader';
+import api from '../services/api';
 import styles from '../styles/EventsScreen.styles';
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const FEATURED_PLACEHOLDER_ITEMS = [
-	{ id: 1, searchTerms: ['campus', 'featured', 'spotlight'] },
-	{ id: 2, searchTerms: ['career', 'featured', 'spotlight'] },
-	{ id: 3, searchTerms: ['sports', 'featured', 'spotlight'] },
-	{ id: 4, searchTerms: ['community', 'featured', 'spotlight'] },
-	{ id: 5, searchTerms: ['student', 'featured', 'spotlight'] },
-];
 const COMING_SOON_PLACEHOLDER_ITEMS = [
 	{ id: 1, searchTerms: ['career', 'coming soon', 'registration'] },
 	{ id: 2, searchTerms: ['leadership', 'coming soon', 'registration'] },
@@ -22,6 +16,49 @@ const COMING_SOON_PLACEHOLDER_ITEMS = [
 	{ id: 6, searchTerms: ['community', 'coming soon', 'registration'] },
 ];
 const PRE_REGISTERED_EVENTS = [];
+
+const formatEventDateRange = (startDate, endDate) => {
+	if (!startDate) {
+		return 'Date to be announced';
+	}
+
+	const start = new Date(startDate);
+	const end = endDate ? new Date(endDate) : null;
+
+	if (Number.isNaN(start.getTime())) {
+		return 'Date to be announced';
+	}
+
+	const startLabel = start.toLocaleDateString(undefined, {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+	});
+
+	if (!end || Number.isNaN(end.getTime()) || end.getTime() === start.getTime()) {
+		return startLabel;
+	}
+
+	const endLabel = end.toLocaleDateString(undefined, {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+	});
+
+	return `${startLabel} - ${endLabel}`;
+};
+
+const getEventLocationLabel = (event) => {
+	if (event?.venue?.name) {
+		return event.venue.name;
+	}
+
+	if (event?.platform) {
+		return event.platform;
+	}
+
+	return 'NU Lipa';
+};
 
 const getMonthDays = (year, monthIndex) => {
 	const firstDay = new Date(year, monthIndex, 1);
@@ -51,6 +88,9 @@ const EventsScreen = () => {
 	const [registrationsVisible, setRegistrationsVisible] = React.useState(false);
 	const [currentDate, setCurrentDate] = React.useState(new Date());
 	const [searchQuery, setSearchQuery] = React.useState('');
+	const [events, setEvents] = React.useState([]);
+	const [eventsLoading, setEventsLoading] = React.useState(true);
+	const [eventsError, setEventsError] = React.useState('');
 	const slideAnimation = React.useRef(new Animated.Value(0)).current;
 	const { width: screenWidth } = useWindowDimensions();
 	const calendarWidth = Math.min(screenWidth - 40, 360);
@@ -63,6 +103,18 @@ const EventsScreen = () => {
 	const monthDays = getMonthDays(currentYear, currentMonth);
 	const normalizedQuery = searchQuery.trim().toLowerCase();
 	const isSearching = normalizedQuery.length > 0;
+	const visibleEvents = events.filter((event) => {
+		if (!normalizedQuery) {
+			return true;
+		}
+
+		return [
+			event.title,
+			event.description,
+			event.venue?.name,
+			event.platform,
+		].some((value) => String(value ?? '').toLowerCase().includes(normalizedQuery));
+	});
 	const matchesSearch = (terms) => {
 		if (!normalizedQuery) {
 			return true;
@@ -70,7 +122,7 @@ const EventsScreen = () => {
 
 		return terms.some((term) => term.toLowerCase().includes(normalizedQuery));
 	};
-	const visibleFeaturedItems = FEATURED_PLACEHOLDER_ITEMS.filter((item) => matchesSearch(item.searchTerms));
+	const visibleFeaturedItems = visibleEvents.slice(0, 5);
 	const visibleComingSoonItems = COMING_SOON_PLACEHOLDER_ITEMS.filter((item) => matchesSearch(item.searchTerms));
 	const hasPreRegisteredEvents = PRE_REGISTERED_EVENTS.length > 0;
 
@@ -93,6 +145,42 @@ const EventsScreen = () => {
 	const closeRegistrations = () => {
 		setRegistrationsVisible(false);
 	};
+
+	React.useEffect(() => {
+		let isMounted = true;
+
+		const fetchEvents = async () => {
+			try {
+				setEventsLoading(true);
+				setEventsError('');
+
+				const response = await api.get('/events');
+
+				if (!isMounted) {
+					return;
+				}
+
+				setEvents(response.data?.events ?? []);
+			} catch (fetchError) {
+				console.error('Failed to fetch events:', fetchError);
+
+				if (isMounted) {
+					setEventsError('Unable to load events right now.');
+					setEvents([]);
+				}
+			} finally {
+				if (isMounted) {
+					setEventsLoading(false);
+				}
+			}
+		};
+
+		fetchEvents();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	// HANDLER: Animate month transitions
 	const animateMonthChange = (direction) => {
@@ -186,16 +274,46 @@ const EventsScreen = () => {
 
 					{/* SECTION: Featured events */}
 					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalCardsRow}>
-						{visibleFeaturedItems.map((item) => (
-										<View key={`featured-placeholder-${item.id}`} style={styles.featuredCardPlaceholder}>
-								<View style={styles.cardBadgeRow}>
-									<View style={styles.cardBadge} />
-									<View style={styles.cardBadgeShort} />
-								</View>
-								<View style={styles.cardIllustration} />
-								<View style={styles.cardButtonPill} />
+						{eventsLoading ? (
+							<View style={styles.featuredEventLoadingCard}>
+								<ActivityIndicator size="small" color="#31429B" />
+								<Text style={styles.featuredEventLoadingText}>Loading events...</Text>
 							</View>
-						))}
+						) : visibleFeaturedItems.length > 0 ? (
+							visibleFeaturedItems.map((event) => {
+								const imageSource = event.cover_image_url
+									? { uri: event.cover_image_url }
+									: require('../../assets/icons/Group.png');
+
+								return (
+									<View key={`featured-event-${event.id}`} style={styles.featuredEventCard}>
+										<Image source={imageSource} style={styles.featuredEventImage} resizeMode={event.cover_image_url ? 'cover' : 'contain'} />
+										<View style={styles.featuredEventBody}>
+											<View style={styles.cardBadgeRow}>
+												<View style={styles.cardBadge} />
+												<View style={styles.cardBadgeShort} />
+											</View>
+											<Text numberOfLines={1} style={styles.featuredEventTitle}>{event.title}</Text>
+											<Text numberOfLines={2} style={styles.featuredEventDescription}>{event.description}</Text>
+											<View style={styles.featuredEventMetaRow}>
+												<Text numberOfLines={1} style={styles.featuredEventMetaText}>{formatEventDateRange(event.start_date, event.end_date)}</Text>
+												<Text numberOfLines={1} style={styles.featuredEventMetaText}>{getEventLocationLabel(event)}</Text>
+											</View>
+											<View style={styles.cardButtonPill}>
+												<Text style={styles.cardButtonPillText}>View Event</Text>
+											</View>
+										</View>
+									</View>
+								);
+							})
+						) : (
+							<View style={styles.featuredEventEmptyCard}>
+								<Text style={styles.featuredEventEmptyTitle}>No events available.</Text>
+								<Text style={styles.featuredEventEmptyText}>
+									{eventsError || 'Check back soon for upcoming activities.'}
+								</Text>
+							</View>
+						)}
 					</ScrollView>
 
 					<Text style={[styles.sectionTitle, styles.comingSoonTitle]}>Coming Soon at NU Lipa!</Text>

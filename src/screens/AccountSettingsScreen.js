@@ -354,7 +354,13 @@ const AccountSettingsScreen = ({ navigation }) => {
                       showBrandedAlert('Uploaded', 'Profile photo uploaded.');
                     } catch (uploadErr) {
                       console.error('Upload failed:', uploadErr);
-                      showBrandedAlert('Upload failed', 'Unable to upload the new photo. Please try again.');
+                      const serverData = uploadErr.response?.data;
+                      const isCooldown = uploadErr.response?.status === 429;
+                      const friendlyMessage = isCooldown
+                        ? 'Too many attempts. Please try again later.'
+                        : serverData?.message || 'Unable to upload the new photo. Please try again.';
+
+                      showBrandedAlert('Upload failed', friendlyMessage);
                     }
                   }
                 } catch (err) {
