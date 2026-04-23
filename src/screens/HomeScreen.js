@@ -341,6 +341,10 @@ const HomeScreen = ({ navigation }) => {
       return 'Repost';
     }
 
+    if (type === 'follow') {
+      return 'Follow';
+    }
+
     return 'Update';
   };
 
@@ -355,6 +359,10 @@ const HomeScreen = ({ navigation }) => {
 
     if (item?.type === 'repost') {
       return 'reposted your post.';
+    }
+
+    if (item?.type === 'follow') {
+      return 'sent you a follow request.';
     }
 
     return 'interacted with your post.';
@@ -417,6 +425,36 @@ const HomeScreen = ({ navigation }) => {
     })();
   }, []);
 
+  const handleFollowRequestAction = useCallback(async (notification, action) => {
+    if (!notification?.source_id) {
+      return;
+    }
+
+    try {
+      const token = await getAuthToken();
+
+      if (!token) {
+        throw new Error('No active session found.');
+      }
+
+      const requestId = encodeURIComponent(String(notification.source_id));
+
+      if (action === 'accept') {
+        await api.post(`/followers/${requestId}/accept`, {}, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        await api.delete(`/followers/${requestId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
+      setNotifications((currentNotifications) => currentNotifications.filter((item) => item?.id !== notification.id));
+    } catch (error) {
+      console.error('Failed to update follow request:', error);
+    }
+  }, []);
+
 	// RENDER HELPER: Empty notifications state
   const renderEmptyNotifications = () => (
     <View style={styles.emptyNotifWrap}>
@@ -444,14 +482,32 @@ const HomeScreen = ({ navigation }) => {
           </View>
           <Text style={styles.notifAction}>{actionText}</Text>
           {item?.detail ? <Text style={styles.notifDetail}>{item.detail}</Text> : null}
+          {item?.type === 'follow' ? (
+            <View style={styles.notifFollowActions}>
+              <TouchableOpacity
+                style={[styles.notifFollowButton, styles.notifFollowAcceptButton]}
+                activeOpacity={0.85}
+                onPress={() => handleFollowRequestAction(item, 'accept')}
+              >
+                <Text style={[styles.notifFollowButtonText, styles.notifFollowAcceptButtonText]}>Accept</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.notifFollowButton, styles.notifFollowDeclineButton]}
+                activeOpacity={0.85}
+                onPress={() => handleFollowRequestAction(item, 'delete')}
+              >
+                <Text style={[styles.notifFollowButtonText, styles.notifFollowDeclineButtonText]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           {!!time && <Text style={styles.notifTime}>{time}</Text>}
         </View>
         <TouchableOpacity
           style={styles.notifDeleteButton}
           activeOpacity={0.75}
-          onPress={() => removeNotification(item?.id)}
+          onPress={() => (item?.type === 'follow' ? handleFollowRequestAction(item, 'delete') : removeNotification(item?.id))}
           accessibilityRole="button"
-          accessibilityLabel="Remove notification"
+          accessibilityLabel={item?.type === 'follow' ? 'Delete follow request' : 'Remove notification'}
         >
           <Ionicons name="close" size={18} color="#B91C1C" />
         </TouchableOpacity>

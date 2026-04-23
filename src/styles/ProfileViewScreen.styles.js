@@ -107,6 +107,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
   },
+  addConnectionButtonDisabled: {
+    backgroundColor: '#6B7280',
+  },
   addConnectionButtonText: {
     color: '#FFFFFF',
     fontSize: 11,

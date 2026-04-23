@@ -157,13 +157,14 @@ const styles = StyleSheet.create({
 		color: '#31429B',
 	},
 	featuredEventDescription: {
-		marginTop: 6,
+		marginTop: 4,
 		fontSize: 12,
 		lineHeight: 16,
 		color: '#4B5563',
 	},
 	featuredEventMetaRow: {
-		marginTop: 10,
+		top: 3,
+		marginBottom: 10,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',

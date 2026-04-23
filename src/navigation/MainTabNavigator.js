@@ -9,6 +9,7 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import FeedScreen from '../screens/UserFeedScreen';
 import ViewYearbookScreen from '../screens/ViewYearbookScreen';
 import EventsScreen from '../screens/EventsScreen';
+import ConnectionsScreen from '../screens/ConnectionsScreen';
 import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 import ProfileViewScreen from '../screens/ProfileViewScreen';
@@ -117,6 +118,14 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ProfileView"
         component={ProfileViewScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+      <Tab.Screen
+        name="ConnectionsScreen"
+        component={ConnectionsScreen}
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },

@@ -46,6 +46,10 @@ const UserProfileScreen = ({ navigation }) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName)}&background=1F2F6E&color=fff&size=256`;
   }, [profileName, userData]);
 
+  const openConnectionsScreen = () => {
+    navigation.navigate('ConnectionsScreen');
+  };
+
 	// DERIVED VALUE: Profile summary values
   const profileSummary = useMemo(() => ({
     headlineText: userData?.headline || 'Software Engineer at Microsoft',
@@ -54,7 +58,7 @@ const UserProfileScreen = ({ navigation }) => {
       ? `Class of ${String(userData.year_graduated).match(/\d{4}/)?.[0] ?? String(userData.year_graduated).slice(0, 4)}`
       : 'Class of',
     sectionTag: userData?.program || 'BSIT',
-    connectionsCount: userData?.connections_count ?? 123,
+    connectionsCount: userData?.connections_count ?? 0,
     postsCount: userData?.posts_count ?? 0,
     biographyText:
       userData?.alumni_bio ||
@@ -308,10 +312,10 @@ const UserProfileScreen = ({ navigation }) => {
                     </View>
 
                     <View style={styles.statsRow}>
-                      <View style={styles.statBlock}>
+                      <TouchableOpacity style={styles.statBlock} activeOpacity={0.85} onPress={openConnectionsScreen}>
                         <Text style={styles.statValue}>{profileSummary.connectionsCount}</Text>
                         <Text style={styles.statLabel}>Connections</Text>
-                      </View>
+                      </TouchableOpacity>
                       <View style={styles.statBlock}>
                         <Text style={styles.statValue}>{profileSummary.postsCount}</Text>
                         <Text style={styles.statLabel}>Posts</Text>

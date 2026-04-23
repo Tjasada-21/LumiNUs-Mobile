@@ -6,6 +6,8 @@ import {
 	TouchableOpacity,
 	ScrollView,
 	useWindowDimensions,
+	FlatList,
+	ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +37,8 @@ const ChatScreen = ({ navigation }) => {
 
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
+	const [contacts, setContacts] = useState([]);
+	const [contactsLoading, setContactsLoading] = useState(false);
 
 	// HANDLER: Open the search screen
 	const openSearchMessage = () => {
@@ -82,6 +86,33 @@ const ChatScreen = ({ navigation }) => {
 		fetchUserData();
 	}, []);
 
+	useEffect(() => {
+		const fetchContacts = async () => {
+			try {
+				setContactsLoading(true);
+				const token = await getAuthToken();
+
+				if (!token) {
+					setContacts([]);
+					return;
+				}
+
+				const response = await api.get('/contacts', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
+				setContacts(response.data?.contacts ?? []);
+			} catch (error) {
+				console.error('Failed to fetch chat contacts:', error);
+				setContacts([]);
+			} finally {
+				setContactsLoading(false);
+			}
+		};
+
+		fetchContacts();
+	}, []);
+
 	// DERIVED VALUE: Display name
 	const displayName = useMemo(() => {
 		if (!userData) {
@@ -97,6 +128,28 @@ const ChatScreen = ({ navigation }) => {
 		}
 		return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=31429B&color=fff`;
 	}, [displayName, userData]);
+
+	const renderContactItem = ({ item }) => {
+		const contactName = `${item?.first_name ?? ''} ${item?.last_name ?? ''}`.trim() || 'Alumni';
+		const contactAvatar = item?.alumni_photo
+			? item.alumni_photo
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName)}&background=31429B&color=fff`;
+
+		return (
+			<TouchableOpacity
+				style={styles.contactCard}
+				activeOpacity={0.85}
+				onPress={() => navigation.navigate('NewMessage', { userId: item.id, userName: contactName, userAvatarUri: contactAvatar })}
+			>
+				<Image source={{ uri: contactAvatar }} style={styles.contactAvatar} />
+				<View style={styles.contactTextWrap}>
+					<Text style={styles.contactName} numberOfLines={1}>{contactName}</Text>
+					<Text style={styles.contactMeta}>Connected</Text>
+				</View>
+				<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+			</TouchableOpacity>
+		);
+	};
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -147,9 +200,26 @@ const ChatScreen = ({ navigation }) => {
 						})}
 					</View>
 
-					<ScrollView style={styles.listArea} contentContainerStyle={styles.listContent}>
-						{/* Intentionally empty: chat data will come from backend integration. */}
-					</ScrollView>
+					<View style={styles.listArea}>
+						{contactsLoading ? (
+							<View style={styles.loadingWrap}>
+								<ActivityIndicator color="#31429B" />
+							</View>
+						) : contacts.length > 0 ? (
+							<FlatList
+								data={contacts}
+								renderItem={renderContactItem}
+								keyExtractor={(item) => String(item.connection_id ?? item.id)}
+								showsVerticalScrollIndicator={false}
+								contentContainerStyle={styles.listContent}
+							/>
+						) : (
+							<View style={styles.emptyWrap}>
+								<Text style={styles.emptyTitle}>No contacts yet.</Text>
+								<Text style={styles.emptyText}>Accepted connections will appear here as chat contacts.</Text>
+							</View>
+						)}
+					</View>
 				</View>
 			</View>
 		</SafeAreaView>

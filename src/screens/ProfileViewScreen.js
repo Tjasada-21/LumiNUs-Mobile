@@ -6,6 +6,7 @@ import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/ProfileViewScreen.styles';
 import { getAuthToken } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const ProfileViewScreen = ({ navigation, route }) => {
 	const userId = route?.params?.userId;
@@ -21,6 +22,7 @@ const ProfileViewScreen = ({ navigation, route }) => {
 	const [profilePosts, setProfilePosts] = useState([]);
 	const [profileLoading, setProfileLoading] = useState(true);
 	const [postsLoading, setPostsLoading] = useState(true);
+	const [followLoading, setFollowLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
 
 	const profileName = useMemo(() => {
@@ -47,9 +49,13 @@ const ProfileViewScreen = ({ navigation, route }) => {
 			: 'Class of',
 		sectionTag: userData?.program || 'BSIT',
 		connectionsCount: userData?.connections_count ?? 0,
+		connectionStatus: userData?.connection_status || 'none',
 		postsCount: userData?.posts_count ?? 0,
 		biographyText: userData?.bio || 'No biography available yet.',
 	}), [userData]);
+
+	const isConnected = profileSummary.connectionStatus === 'connected';
+	const isPendingConnection = profileSummary.connectionStatus === 'pending';
 
 	const openNewMessage = () => {
 		navigation.navigate('NewMessage', {
@@ -57,6 +63,43 @@ const ProfileViewScreen = ({ navigation, route }) => {
 			userName: profileName,
 			userAvatarUri: profileImageUri,
 		});
+	};
+
+	const openConnectionsScreen = () => {
+		navigation.navigate('ConnectionsScreen');
+	};
+
+	const handleAddConnection = async () => {
+		if (!userId || followLoading) {
+			return;
+		}
+
+		try {
+			setFollowLoading(true);
+
+			const token = await getAuthToken();
+
+			if (!token) {
+				showBrandedAlert('Connection unavailable', 'No active session found.');
+				return;
+			}
+
+			const response = await api.post(
+				`/alumni/${userId}/follow`,
+				{},
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
+
+			setUserData((current) => (current ? { ...current, connection_status: 'pending' } : current));
+
+			showBrandedAlert('Connection updated', response.data?.message || 'Connection added successfully.');
+		} catch (followError) {
+			console.error('Failed to add connection:', followError);
+			const serverMessage = followError.response?.data?.message || 'Unable to add this connection right now.';
+			showBrandedAlert('Connection failed', serverMessage);
+		} finally {
+			setFollowLoading(false);
+		}
 	};
 
 	const workExperience = useMemo(() => {
@@ -248,10 +291,10 @@ const ProfileViewScreen = ({ navigation, route }) => {
 											</View>
 
 											<View style={styles.statsRow}>
-												<View style={styles.statBlock}>
+												<TouchableOpacity style={styles.statBlock} activeOpacity={0.85} onPress={openConnectionsScreen}>
 													<Text style={styles.statValue}>{profileSummary.connectionsCount}</Text>
 													<Text style={styles.statLabel}>Connections</Text>
-												</View>
+												</TouchableOpacity>
 												<View style={styles.statBlock}>
 													<Text style={styles.statValue}>{profileSummary.postsCount}</Text>
 													<Text style={styles.statLabel}>Posts</Text>
@@ -265,9 +308,25 @@ const ProfileViewScreen = ({ navigation, route }) => {
 									</View>
 
 									<View style={styles.heroActionsRow}>
-										<TouchableOpacity style={styles.addConnectionButton} activeOpacity={0.85}>
+										<TouchableOpacity
+											style={[
+												styles.addConnectionButton,
+												(isConnected || isPendingConnection) && styles.addConnectionButtonDisabled,
+											]}
+											activeOpacity={0.85}
+											onPress={isConnected || isPendingConnection ? undefined : handleAddConnection}
+											disabled={followLoading || isConnected || isPendingConnection}
+										>
 											<Ionicons name="person-add-outline" size={14} color="#FFFFFF" />
-											<Text style={styles.addConnectionButtonText}>Add Connection</Text>
+											<Text style={styles.addConnectionButtonText}>
+												{followLoading
+													? 'Adding...'
+													: isConnected
+														? 'Connected'
+														: isPendingConnection
+															? 'Connection Pending'
+															: 'Add Connection'}
+											</Text>
 										</TouchableOpacity>
 
 										<TouchableOpacity style={styles.messageButton} activeOpacity={0.85} onPress={openNewMessage}>

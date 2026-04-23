@@ -136,6 +136,65 @@ const styles = StyleSheet.create({
 		paddingTop: 12,
 		paddingBottom: 20,
 	},
+	loadingWrap: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingTop: 24,
+	},
+	emptyWrap: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingHorizontal: 22,
+		paddingTop: 24,
+	},
+	emptyTitle: {
+		color: '#31429B',
+		fontSize: 18,
+		fontWeight: '800',
+		marginBottom: 6,
+	},
+	emptyText: {
+		color: '#6B7280',
+		fontSize: 13,
+		lineHeight: 18,
+		textAlign: 'center',
+	},
+	contactCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#FFFFFF',
+		borderRadius: 16,
+		padding: 12,
+		marginBottom: 12,
+		elevation: 2,
+		shadowColor: '#000',
+		shadowOpacity: 0.04,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 4 },
+	},
+	contactAvatar: {
+		width: 46,
+		height: 46,
+		borderRadius: 23,
+		marginRight: 12,
+		borderWidth: 1,
+		borderColor: '#E5E7EB',
+	},
+	contactTextWrap: {
+		flex: 1,
+	},
+	contactName: {
+		color: '#31429B',
+		fontSize: 15,
+		fontWeight: '800',
+	},
+	contactMeta: {
+		color: '#6B7280',
+		fontSize: 12,
+		marginTop: 2,
+	},
 });
 
 export default styles;

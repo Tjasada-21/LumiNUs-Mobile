@@ -388,6 +388,37 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginTop: 2,
   },
+  notifFollowActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  notifFollowButton: {
+    minWidth: 78,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifFollowAcceptButton: {
+    backgroundColor: '#31429B',
+  },
+  notifFollowDeclineButton: {
+    backgroundColor: '#FEE2E2',
+  },
+  notifFollowButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  notifFollowAcceptButtonText: {
+    color: '#FFFFFF',
+  },
+  notifFollowDeclineButtonText: {
+    color: '#B91C1C',
+  },
   sideMenuRoot: {
     flex: 1,
     flexDirection: 'row',

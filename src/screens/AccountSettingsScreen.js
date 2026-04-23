@@ -289,7 +289,7 @@ const AccountSettingsScreen = ({ navigation }) => {
   const phoneStatusText = verificationStatus === 'verified' ? 'Verified' : 'Unverified';
   const emailActionText = verificationStatus === 'verified' ? 'Verified' : 'Verify Email';
   const formDisabled = loading || saving;
-  const photoChangeDisabled = pickingImage || formDisabled || photoCooldownSeconds > 0;
+  const photoChangeDisabled = pickingImage || formDisabled;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -322,12 +322,12 @@ const AccountSettingsScreen = ({ navigation }) => {
               style={[styles.profileImage, { width: layout.profileSize, height: layout.profileSize, borderRadius: layout.profileSize / 2 }]}
             />
             <TouchableOpacity
-              style={[styles.editAvatarButton, photoChangeDisabled ? { opacity: 0.55 } : null]}
+              style={[styles.editAvatarButton, (photoChangeDisabled || photoCooldownSeconds > 0) ? { opacity: 0.55 } : null]}
               activeOpacity={0.8}
               disabled={photoChangeDisabled}
               onPress={async () => {
                 if (photoCooldownSeconds > 0) {
-                  showBrandedAlert('Please wait', `You can change your profile photo again in ${photoCooldownSeconds} seconds.`);
+                  showBrandedAlert('Photo cooldown active', `You can change your profile photo again in ${photoCooldownSeconds} seconds.`);
                   return;
                 }
 
@@ -377,11 +377,6 @@ const AccountSettingsScreen = ({ navigation }) => {
                 <Ionicons name="pencil" size={16} color="#31429B" />
               )}
             </TouchableOpacity>
-            {photoCooldownSeconds > 0 ? (
-              <Text style={{ marginTop: 8, fontSize: 12, color: '#6B7280', textAlign: 'center' }}>
-                You can change it again in {photoCooldownSeconds}s
-              </Text>
-            ) : null}
           </View>
 
           {/* SECTION: User information */}
