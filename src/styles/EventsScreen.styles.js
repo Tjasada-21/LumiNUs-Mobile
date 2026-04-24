@@ -139,6 +139,10 @@ const styles = StyleSheet.create({
 		elevation: 5,
 		overflow: 'hidden',
 	},
+	featuredEventCardPressed: {
+		transform: [{ scale: 0.985 }],
+		opacity: 0.92,
+	},
 	featuredEventImage: {
 		width: '100%',
 		height: 140,

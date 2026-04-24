@@ -329,6 +329,10 @@ const HomeScreen = ({ navigation }) => {
   const notificationCount = notifData.length;
 
   const getNotificationTypeLabel = (type) => {
+    if (type === 'announcement') {
+      return 'Announcement';
+    }
+
     if (type === 'reaction') {
       return 'Reaction';
     }
@@ -349,6 +353,10 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const getNotificationActionText = (item) => {
+    if (item?.type === 'announcement') {
+      return 'posted an announcement.';
+    }
+
     if (item?.type === 'reaction') {
       return 'reacted to your post.';
     }
@@ -366,6 +374,46 @@ const HomeScreen = ({ navigation }) => {
     }
 
     return 'interacted with your post.';
+  };
+
+  const formatNotificationTime = (value) => {
+    if (!value) {
+      return '';
+    }
+
+    const parsedDate = new Date(value);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return '';
+    }
+
+    const elapsedMs = Date.now() - parsedDate.getTime();
+    const elapsedMinutes = Math.max(1, Math.floor(elapsedMs / (1000 * 60)));
+
+    if (elapsedMinutes < 60) {
+      return `${elapsedMinutes}m ago`;
+    }
+
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+
+    if (elapsedHours < 24) {
+      return `${elapsedHours}h ago`;
+    }
+
+    const elapsedDays = Math.floor(elapsedHours / 24);
+
+    if (elapsedDays < 30) {
+      return `${elapsedDays} day${elapsedDays === 1 ? '' : 's'} ago`;
+    }
+
+    const elapsedMonths = Math.floor(elapsedDays / 30);
+
+    if (elapsedMonths < 12) {
+      return `${elapsedMonths} month${elapsedMonths === 1 ? '' : 's'} ago`;
+    }
+
+    const elapsedYears = Math.floor(elapsedDays / 365);
+    return `${elapsedYears} year${elapsedYears === 1 ? '' : 's'} ago`;
   };
 
   const removeNotification = useCallback((notificationKey) => {
@@ -466,22 +514,49 @@ const HomeScreen = ({ navigation }) => {
   const renderNotificationItem = ({ item }) => {
     const firstName = String(item?.actor?.first_name ?? 'Unknown');
     const lastName = String(item?.actor?.last_name ?? 'User');
-    const name = `${firstName} ${lastName}`.trim();
-    const time = item?.created_at ? new Date(item.created_at).toLocaleString() : '';
-    const avatarUri = item?.actor?.alumni_photo
-      ? String(item.actor.alumni_photo)
-      : 'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827';
+    const name = item?.type === 'announcement' ? 'NU LIPA' : `${firstName} ${lastName}`.trim();
+    const time = formatNotificationTime(item?.created_at);
+    const avatarUri = item?.type === 'announcement'
+      ? null
+      : item?.actor?.alumni_photo
+        ? String(item.actor.alumni_photo)
+        : 'https://ui-avatars.com/api/?name=Alumni&background=E5E7EB&color=111827';
     const actionText = getNotificationActionText(item);
+    const titleText = item?.type === 'announcement'
+      ? String(item?.announcement_title ?? 'Announcement')
+      : '';
 
     return (
       <View style={styles.notifCard}>
-        <Image source={{ uri: avatarUri }} style={styles.notifAvatar} />
+        {item?.type === 'announcement' ? (
+          <Image
+            source={require('../../assets/images/nu-lipa-logo-portrait-white-version-21.png')}
+            style={styles.notifAvatar}
+            resizeMode="contain"
+          />
+        ) : (
+          <Image source={{ uri: avatarUri }} style={styles.notifAvatar} />
+        )}
         <View style={styles.notifBody}>
           <View style={styles.notifTopRow}>
             <Text style={styles.notifName}>{name}</Text>
+            {item?.type === 'announcement' ? (
+              <View style={styles.notifTypePill}>
+                <Text style={styles.notifTypePillText}>{getNotificationTypeLabel(item.type)}</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.notifAction}>{actionText}</Text>
-          {item?.detail ? <Text style={styles.notifDetail}>{item.detail}</Text> : null}
+          {titleText ? <Text style={styles.notifDetail}>{titleText}</Text> : null}
+          {item?.detail ? (
+            <Text
+              style={styles.notifDetail}
+              numberOfLines={item?.type === 'announcement' ? 2 : undefined}
+              ellipsizeMode={item?.type === 'announcement' ? 'tail' : undefined}
+            >
+              {item.detail}
+            </Text>
+          ) : null}
           {item?.type === 'follow' ? (
             <View style={styles.notifFollowActions}>
               <TouchableOpacity

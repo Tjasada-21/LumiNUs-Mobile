@@ -1,8 +1,6 @@
 import { Dimensions, StyleSheet } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
-const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
 
 const styles = StyleSheet.create({
 	safeArea: {
@@ -238,6 +236,13 @@ const styles = StyleSheet.create({
 		backgroundColor: '#E5E7EB',
 		marginRight: 10,
 	},
+	announcementAvatar: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		backgroundColor: '#FFFFFF',
+		marginRight: 10,
+	},
 	postHeaderTextWrap: {
 		flex: 1,
 		paddingRight: 8,
@@ -270,6 +275,35 @@ const styles = StyleSheet.create({
 		lineHeight: 22,
 		color: '#1F2937',
 		marginBottom: 12,
+	},
+	captionBlock: {
+		marginBottom: 12,
+	},
+	captionMeasureWrap: {
+		position: 'absolute',
+		opacity: 0,
+		left: 0,
+		right: 0,
+		zIndex: -1,
+	},
+	captionMeasureText: {
+		position: 'relative',
+	},
+	readMoreButton: {
+		alignSelf: 'flex-start',
+		marginTop: 4,
+	},
+	readMoreText: {
+		fontSize: 13,
+		fontWeight: '800',
+		color: '#31429B',
+	},
+	announcementTitle: {
+		fontSize: 16,
+		lineHeight: 22,
+		fontWeight: '800',
+		color: '#111827',
+		marginBottom: 4,
 	},
 	repostedOriginalCard: {
 		borderRadius: 14,
@@ -425,7 +459,7 @@ const styles = StyleSheet.create({
 	},
 	postThreeLeftTile: {
 		flex: 1.45,
-		borderRadius: 12,
+		borderRadius: 5,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 		alignSelf: 'flex-start',
@@ -436,11 +470,24 @@ const styles = StyleSheet.create({
 		alignSelf: 'flex-start',
 	},
 	postThreeRightTile: {
-		borderRadius: 12,
+		borderRadius: 5,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 		width: '100%',
 		alignSelf: 'flex-start',
+	},
+	postFourGrid: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		justifyContent: 'space-between',
+		gap: 8,
+	},
+	postFourGridTile: {
+		width: '48.5%',
+		aspectRatio: 1,
+		borderRadius: 5,
+		overflow: 'hidden',
+		backgroundColor: '#F3F4F6',
 	},
 	postFourCollage: {
 		flexDirection: 'row',
@@ -450,7 +497,7 @@ const styles = StyleSheet.create({
 	},
 	postFourLeadTile: {
 		flex: 1.45,
-		borderRadius: 12,
+		borderRadius: 8,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 		alignSelf: 'flex-start',
@@ -462,7 +509,7 @@ const styles = StyleSheet.create({
 	},
 	postFourSideTile: {
 		width: '100%',
-		borderRadius: 12,
+		borderRadius: 8,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 		alignSelf: 'flex-start',
@@ -476,7 +523,7 @@ const styles = StyleSheet.create({
 	postFivePlusTile: {
 		width: '48.5%',
 		aspectRatio: 1,
-		borderRadius: 12,
+		borderRadius: 8,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 	},
@@ -500,7 +547,7 @@ const styles = StyleSheet.create({
 		textShadowRadius: 4,
 	},
 	postSingleImageWrap: {
-		borderRadius: 12,
+		borderRadius: 8,
 		overflow: 'hidden',
 		backgroundColor: '#F3F4F6',
 		width: '100%',
@@ -517,47 +564,40 @@ const styles = StyleSheet.create({
 	},
 	viewerBackdrop: {
 		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.92)',
-		alignItems: 'center',
-		justifyContent: 'center',
+		backgroundColor: '#000000',
+		alignItems: 'stretch',
+		justifyContent: 'flex-start',
 	},
 	viewerContent: {
-		width: '95%',
-		height: '95%',
-		borderRadius: 18,
-		overflow: 'hidden',
-		backgroundColor: 'rgba(7, 11, 24, 0.96)',
-		borderWidth: 1,
-		borderColor: 'rgba(255, 255, 255, 0.14)',
-		alignItems: 'center',
-		justifyContent: 'center',
+		flex: 1,
+		backgroundColor: '#000000',
+		position: 'relative',
 	},
 	viewerPager: {
-		width: '100%',
-		height: '100%',
+		flex: 1,
 	},
 	viewerScrollContent: {
-		paddingTop: 72,
-		paddingBottom: 56,
+		flexGrow: 1,
 	},
 	viewerScrollItem: {
-		width: '100%',
+		width: SCREEN_WIDTH,
+		height: SCREEN_HEIGHT,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingVertical: 12,
+		paddingVertical: 0,
 	},
 	viewerImageCard: {
-		width: VIEWER_IMAGE_WIDTH,
-		height: VIEWER_IMAGE_HEIGHT,
-		borderRadius: 24,
+		width: '100%',
+		height: '100%',
+		borderRadius: 0,
 		overflow: 'hidden',
-		backgroundColor: '#101828',
-		padding: 12,
-		shadowColor: '#111827',
-		shadowOpacity: 0.18,
-		shadowRadius: 18,
-		shadowOffset: { width: 0, height: 10 },
-		elevation: 6,
+		backgroundColor: '#000000',
+		padding: 0,
+		shadowColor: 'transparent',
+		shadowOpacity: 0,
+		shadowRadius: 0,
+		shadowOffset: { width: 0, height: 0 },
+		elevation: 0,
 	},
 	viewerSlide: {
 		width: '100%',
@@ -573,6 +613,106 @@ const styles = StyleSheet.create({
 	},
 	viewerImage: {
 		backgroundColor: 'transparent',
+		alignSelf: 'center',
+	},
+	viewerTopBar: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		paddingTop: 48,
+		paddingHorizontal: 16,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	viewerTopButton: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: 'transparent',
+	},
+	viewerFooter: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		bottom: 0,
+		paddingHorizontal: 16,
+		paddingTop: 18,
+		paddingBottom: 20,
+		backgroundColor: 'rgba(0, 0, 0, 0.70)',
+	},
+	viewerAuthorCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 14,
+	},
+	viewerAuthorPressable: {
+		marginRight: 12,
+	},
+	viewerAuthorAvatar: {
+		width: 52,
+		height: 52,
+		borderRadius: 26,
+		backgroundColor: '#1F2937',
+		borderWidth: 2,
+		borderColor: '#2F80ED',
+	},
+	viewerAuthorTextWrap: {
+		flex: 1,
+	},
+	viewerAuthorName: {
+		fontSize: 20,
+		lineHeight: 24,
+		fontWeight: '500',
+		color: '#FFFFFF',
+	},
+	viewerAuthorMetaRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+		marginTop: 4,
+	},
+	viewerAuthorMeta: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: 'rgba(255, 255, 255, 0.82)',
+	},
+	viewerAuthorMetaSeparator: {
+		fontSize: 11,
+		fontWeight: '800',
+		color: 'rgba(255, 255, 255, 0.70)',
+	},
+	viewerActionsRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-around',
+		paddingTop: 8,
+		paddingBottom: 10,
+	},
+	viewerActionButton: {
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 6,
+		minWidth: 72,
+	},
+	viewerActionLabel: {
+		fontSize: 13,
+		fontWeight: '600',
+		color: '#FFFFFF',
+	},
+	viewerCountsRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingTop: 2,
+	},
+	viewerCountText: {
+		fontSize: 11,
+		fontWeight: '700',
+		color: 'rgba(255, 255, 255, 0.70)',
 	},
 	viewerDotsRow: {
 		position: 'absolute',
@@ -592,17 +732,6 @@ const styles = StyleSheet.create({
 		width: 18,
 		borderRadius: 5,
 		backgroundColor: '#FFFFFF',
-	},
-	viewerCloseButton: {
-		position: 'absolute',
-		top: 52,
-		right: 18,
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: 'rgba(255, 255, 255, 0.18)',
-		alignItems: 'center',
-		justifyContent: 'center',
 	},
 	repostModalBackdrop: {
 		flex: 1,

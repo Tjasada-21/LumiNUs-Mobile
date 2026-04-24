@@ -15,7 +15,7 @@ const LOCAL_IP = '192.168.254.102';
 // });
 
 const api = axios.create({
-  baseURL: `http://${LOCAL_IP}:8000/api`,
+  baseURL: `http://${LOCAL_IP}/api`,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

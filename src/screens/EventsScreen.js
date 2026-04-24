@@ -82,7 +82,7 @@ const getMonthDays = (year, monthIndex) => {
 	return cells;
 };
 
-const EventsScreen = () => {
+const EventsScreen = ({ navigation }) => {
 	// SECTION: Screen state
 	const [calendarVisible, setCalendarVisible] = React.useState(false);
 	const [registrationsVisible, setRegistrationsVisible] = React.useState(false);
@@ -134,6 +134,23 @@ const EventsScreen = () => {
 	// HANDLER: Open the registrations modal
 	const openRegistrations = () => {
 		setRegistrationsVisible(true);
+	};
+
+	const openEvent = (event) => {
+		const parentNavigator = navigation.getParent?.();
+		const rootNavigator = parentNavigator?.getParent?.();
+
+		if (rootNavigator?.navigate) {
+			rootNavigator.navigate('ViewEventsScreen', { event });
+			return;
+		}
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('ViewEventsScreen', { event });
+			return;
+		}
+
+		navigation.navigate('ViewEventsScreen', { event });
 	};
 
 	// HANDLER: Close the calendar modal
@@ -286,7 +303,11 @@ const EventsScreen = () => {
 									: require('../../assets/icons/Group.png');
 
 								return (
-									<View key={`featured-event-${event.id}`} style={styles.featuredEventCard}>
+									<Pressable
+										key={`featured-event-${event.id}`}
+										style={({ pressed }) => [styles.featuredEventCard, pressed ? styles.featuredEventCardPressed : null]}
+										onPress={() => openEvent(event)}
+									>
 										<Image source={imageSource} style={styles.featuredEventImage} resizeMode={event.cover_image_url ? 'cover' : 'contain'} />
 										<View style={styles.featuredEventBody}>
 											<View style={styles.cardBadgeRow}>
@@ -299,11 +320,11 @@ const EventsScreen = () => {
 												<Text numberOfLines={1} style={styles.featuredEventMetaText}>{formatEventDateRange(event.start_date, event.end_date)}</Text>
 												<Text numberOfLines={1} style={styles.featuredEventMetaText}>{getEventLocationLabel(event)}</Text>
 											</View>
-											<View style={styles.cardButtonPill}>
+											<Pressable style={styles.cardButtonPill} onPress={() => openEvent(event)}>
 												<Text style={styles.cardButtonPillText}>View Event</Text>
-											</View>
+											</Pressable>
 										</View>
-									</View>
+									</Pressable>
 								);
 							})
 						) : (

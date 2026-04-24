@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, Easing, Image, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, Easing, Image, Modal, Pressable, RefreshControl, ScrollView, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,6 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_ZOOM_SCALE = 2.5;
 const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
 const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
-const VIEWER_ITEM_HEIGHT = VIEWER_IMAGE_HEIGHT + 24;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -28,7 +27,25 @@ const getTouchDistance = (touches) => {
 	return Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
 };
 
-const ZoomableViewer = ({ images = [], initialIndex = 0, visible, onRequestClose }) => {
+const ZoomableViewer = ({
+	images = [],
+	initialIndex = 0,
+	visible,
+	post = null,
+	authorName = '',
+	postAvatarUri = '',
+	timeLabel = '',
+	reactionCount = 0,
+	commentCount = 0,
+	repostCount = 0,
+	isReacted = false,
+	onRequestClose,
+	onAuthorPress,
+	onReactionPress,
+	onCommentPress,
+	onRepostPress,
+	onMenuPress,
+}) => {
 	const pagerRef = useRef(null);
 	const scale = useRef(new Animated.Value(1)).current;
 	const zoomedInRef = useRef(false);
@@ -49,7 +66,8 @@ const ZoomableViewer = ({ images = [], initialIndex = 0, visible, onRequestClose
 
 		requestAnimationFrame(() => {
 			pagerRef.current?.scrollTo({
-				y: clampedInitialIndex * VIEWER_ITEM_HEIGHT,
+				x: clampedInitialIndex * SCREEN_WIDTH,
+				y: 0,
 				animated: false,
 			});
 		});
@@ -125,13 +143,16 @@ const ZoomableViewer = ({ images = [], initialIndex = 0, visible, onRequestClose
 
 	return (
 		<Modal transparent visible={visible} animationType="fade" onRequestClose={onRequestClose}>
+			<StatusBar barStyle="light-content" backgroundColor="#000000" translucent />
 			<View style={styles.viewerBackdrop}>
 				<Pressable style={StyleSheet.absoluteFillObject} onPress={onRequestClose} />
 
 				<View style={styles.viewerContent}>
 					<ScrollView
 						ref={pagerRef}
-						showsVerticalScrollIndicator={false}
+						horizontal
+						pagingEnabled
+						showsHorizontalScrollIndicator={false}
 						style={styles.viewerPager}
 						contentContainerStyle={styles.viewerScrollContent}
 					>
@@ -168,9 +189,63 @@ const ZoomableViewer = ({ images = [], initialIndex = 0, visible, onRequestClose
 						})}
 					</ScrollView>
 
-					<Pressable style={styles.viewerCloseButton} onPress={onRequestClose}>
-						<Ionicons name="close" size={22} color="#FFFFFF" />
-					</Pressable>
+					{post ? (
+						<View style={styles.viewerFooter} pointerEvents="box-none">
+							<View style={styles.viewerAuthorCard}>
+								<Pressable onPress={onAuthorPress} style={styles.viewerAuthorPressable} hitSlop={8}>
+									<Image source={{ uri: postAvatarUri }} style={styles.viewerAuthorAvatar} />
+								</Pressable>
+								<View style={styles.viewerAuthorTextWrap}>
+									<Pressable onPress={onAuthorPress} hitSlop={8}>
+										<Text style={styles.viewerAuthorName}>{authorName}</Text>
+									</Pressable>
+									<View style={styles.viewerAuthorMetaRow}>
+										<Text style={styles.viewerAuthorMeta}>{timeLabel}</Text>
+										<Text style={styles.viewerAuthorMetaSeparator}>•</Text>
+										<Ionicons name="earth-outline" size={12} color="#FFFFFF" />
+										<Text style={styles.viewerAuthorMeta}>Public</Text>
+									</View>
+								</View>
+							</View>
+
+							{post.feed_type !== 'announcement' ? (
+								<>
+									<View style={styles.viewerActionsRow}>
+										<Pressable style={styles.viewerActionButton} onPress={onReactionPress}>
+											<Ionicons name={isReacted ? 'heart' : 'heart-outline'} size={18} color={isReacted ? '#EF4444' : '#FFFFFF'} />
+											<Text style={styles.viewerActionLabel}>Like</Text>
+										</Pressable>
+
+										<Pressable style={styles.viewerActionButton} onPress={onCommentPress}>
+											<Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
+											<Text style={styles.viewerActionLabel}>Comment</Text>
+										</Pressable>
+
+										<Pressable style={styles.viewerActionButton} onPress={onRepostPress}>
+											<Ionicons name="share-social-outline" size={18} color="#FFFFFF" />
+											<Text style={styles.viewerActionLabel}>Share</Text>
+										</Pressable>
+									</View>
+
+									<View style={styles.viewerCountsRow}>
+										<Text style={styles.viewerCountText}>{reactionCount} reactions</Text>
+										<Text style={styles.viewerCountText}>{commentCount} comments</Text>
+										<Text style={styles.viewerCountText}>{repostCount} shares</Text>
+									</View>
+								</>
+							) : null}
+						</View>
+					) : null}
+
+					<View style={styles.viewerTopBar} pointerEvents="box-none">
+						<Pressable style={styles.viewerTopButton} onPress={onRequestClose} hitSlop={10}>
+							<Ionicons name="close" size={26} color="#FFFFFF" />
+						</Pressable>
+
+						<Pressable style={styles.viewerTopButton} onPress={onMenuPress} hitSlop={10}>
+							<Ionicons name="ellipsis-vertical" size={22} color="#FFFFFF" />
+						</Pressable>
+					</View>
 				</View>
 			</View>
 		</Modal>
@@ -187,6 +262,7 @@ const UserFeedScreen = ({ navigation }) => {
 	const [viewerVisible, setViewerVisible] = useState(false);
 	const [viewerImages, setViewerImages] = useState([]);
 	const [viewerIndex, setViewerIndex] = useState(0);
+	const [viewerPost, setViewerPost] = useState(null);
 	const [feedError, setFeedError] = useState('');
 	const [reactionPulsePostId, setReactionPulsePostId] = useState(null);
 	const [commentsVisible, setCommentsVisible] = useState(false);
@@ -197,6 +273,8 @@ const UserFeedScreen = ({ navigation }) => {
 	const [commentsLoading, setCommentsLoading] = useState(false);
 	const [commentsError, setCommentsError] = useState('');
 	const [expandedCommentParents, setExpandedCommentParents] = useState({});
+	const [expandedCaptions, setExpandedCaptions] = useState({});
+	const [captionOverflowMap, setCaptionOverflowMap] = useState({});
 	const [repostComposerVisible, setRepostComposerVisible] = useState(false);
 	const [activeRepostPost, setActiveRepostPost] = useState(null);
 	const [repostCaptionDraft, setRepostCaptionDraft] = useState('');
@@ -343,22 +421,33 @@ const UserFeedScreen = ({ navigation }) => {
 	}, [userData]);
 
 	const renderPostAuthorName = (post) => {
-		const firstName = post?.alumni?.first_name ?? '';
-		const lastName = post?.alumni?.last_name ?? '';
+		const source = post?.author ?? post?.alumni ?? {};
+		const firstName = source.first_name ?? '';
+		const middleName = source.middle_name ?? '';
+		const lastName = source.last_name ?? '';
 
-		return [firstName, lastName].filter(Boolean).join(' ').trim() || 'Alumni';
+		return [firstName, middleName, lastName].filter(Boolean).join(' ').trim() || 'Alumni';
 	};
 
 	const renderPostAvatarUri = (post) => {
-		if (post?.alumni?.alumni_photo) {
-			return post.alumni.alumni_photo;
+		const source = post?.author ?? post?.alumni ?? {};
+
+		if (source.alumni_photo) {
+			return source.alumni_photo;
 		}
 
 		const displayName = renderPostAuthorName(post);
 		return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=31429B&color=fff`;
 	};
 
-	const getFeedItemKey = (post) => post.feed_id ?? `post-${post.id}`;
+	const getFeedItemKey = (post) => {
+		if (post?.feed_id) {
+			return post.feed_id;
+		}
+
+		const feedType = post?.feed_type ?? 'post';
+		return `${feedType}-${post.id}`;
+	};
 
 	const getRelativeTimeLabel = (dateValue) => {
 		if (!dateValue) {
@@ -395,6 +484,62 @@ const UserFeedScreen = ({ navigation }) => {
 		return `${elapsedSeconds}s`;
 	};
 
+	const isCaptionExpanded = useCallback((feedItemKey) => Boolean(expandedCaptions[feedItemKey]), [expandedCaptions]);
+
+	const markCaptionOverflow = useCallback((feedItemKey, lineCount) => {
+		setCaptionOverflowMap((currentMap) => {
+			if (currentMap[feedItemKey] === lineCount) {
+				return currentMap;
+			}
+
+			if (lineCount <= 3) {
+				const nextMap = { ...currentMap };
+				delete nextMap[feedItemKey];
+				return nextMap;
+			}
+
+			return {
+				...currentMap,
+				[feedItemKey]: lineCount,
+			};
+		});
+	}, []);
+
+	const renderExpandableCaption = (feedItemKey, caption, captionStyle) => {
+		if (!caption) {
+			return null;
+		}
+
+		const CAPTION_COLLAPSED_LINES = 3;
+		const isExpanded = isCaptionExpanded(feedItemKey);
+		const hasOverflow = (captionOverflowMap[feedItemKey] ?? 0) > CAPTION_COLLAPSED_LINES;
+		const shouldShowToggle = hasOverflow;
+
+		return (
+			<View style={styles.captionBlock}>
+				<View style={styles.captionMeasureWrap} pointerEvents="none">
+					<Text style={[captionStyle, styles.captionMeasureText]} onTextLayout={(event) => markCaptionOverflow(feedItemKey, event.nativeEvent.lines?.length ?? 0)}>
+						{caption}
+					</Text>
+				</View>
+				<Text style={captionStyle} numberOfLines={isExpanded ? undefined : CAPTION_COLLAPSED_LINES}>
+					{caption}
+				</Text>
+				{shouldShowToggle ? (
+					<Pressable
+						onPress={() => setExpandedCaptions((currentMap) => ({
+							...currentMap,
+							[feedItemKey]: !isExpanded,
+						}))}
+						style={styles.readMoreButton}
+					>
+						<Text style={styles.readMoreText}>{isExpanded ? 'Show less' : 'Read more'}</Text>
+					</Pressable>
+				) : null}
+			</View>
+		);
+	};
+
 	const renderPostImageUri = (image) => image?.image_url ?? image?.image_path ?? '';
 
 	const getPostImageKey = (postId, image, imageIndex) => image.id ?? `${postId}-${imageIndex}`;
@@ -425,7 +570,7 @@ const UserFeedScreen = ({ navigation }) => {
 			<Image
 				source={{ uri: renderPostImageUri(image) }}
 				style={[styles.postMediaImage, imageStyle]}
-				resizeMode="contain"
+				resizeMode="cover"
 				onLoad={(event) => {
 					const { width, height } = event.nativeEvent.source;
 					updatePostImageRatio(imageKey, width, height);
@@ -446,10 +591,16 @@ const UserFeedScreen = ({ navigation }) => {
 		);
 	};
 
-	const openImageViewer = (postImages, imageIndex) => {
+	const openImageViewer = (post, postImages, imageIndex) => {
+		setViewerPost(post);
 		setViewerImages(postImages.map((image) => ({ uri: renderPostImageUri(image) })));
 		setViewerIndex(imageIndex);
 		setViewerVisible(true);
+	};
+
+	const closeImageViewer = () => {
+		setViewerVisible(false);
+		setViewerPost(null);
 	};
 
 	const handlePostComment = useCallback((post) => {
@@ -927,20 +1078,20 @@ const UserFeedScreen = ({ navigation }) => {
 		handlePostRepost(targetPost, captionToSubmit);
 	};
 
-	const renderPressableImage = (postId, postImages, image, imageIndex, imageStyle) => (
-		<Pressable style={styles.postImagePressable} onPress={() => openImageViewer(postImages, imageIndex)}>
-			{renderPostImage(postId, image, imageIndex, imageStyle)}
+	const renderPressableImage = (post, postImages, image, imageIndex, imageStyle) => (
+		<Pressable style={styles.postImagePressable} onPress={() => openImageViewer(post, postImages, imageIndex)}>
+			{renderPostImage(post?.id ?? imageIndex, image, imageIndex, imageStyle)}
 		</Pressable>
 	);
 
-	const renderPostImageLayout = (postId, postImages) => {
+	const renderPostImageLayout = (post, postId, postImages) => {
 		if (postImages.length === 1) {
 			const imageKey = getPostImageKey(postId, postImages[0], 0);
 			const singleRatio = postImageRatios[imageKey] ?? 1.2;
 
 			return (
 				<View style={[styles.postSingleImageWrap, { aspectRatio: singleRatio }]}>
-					{renderPressableImage(postId, postImages, postImages[0], 0, styles.postSingleImage)}
+					{renderPressableImage(post, postImages, postImages[0], 0, styles.postSingleImage)}
 				</View>
 			);
 		}
@@ -954,7 +1105,7 @@ const UserFeedScreen = ({ navigation }) => {
 							{ aspectRatio: postImageRatios[getPostImageKey(postId, postImages[0], 0)] ?? 1.05 },
 						]}
 					>
-						{renderPressableImage(postId, postImages, postImages[0], 0, styles.postCollageImage)}
+						{renderPressableImage(post, postImages, postImages[0], 0, styles.postCollageImage)}
 					</View>
 					<View
 						style={[
@@ -962,7 +1113,7 @@ const UserFeedScreen = ({ navigation }) => {
 							{ aspectRatio: postImageRatios[getPostImageKey(postId, postImages[1], 1)] ?? 0.95 },
 						]}
 					>
-						{renderPressableImage(postId, postImages, postImages[1], 1, styles.postCollageImage)}
+						{renderPressableImage(post, postImages, postImages[1], 1, styles.postCollageImage)}
 					</View>
 				</View>
 			);
@@ -981,7 +1132,7 @@ const UserFeedScreen = ({ navigation }) => {
 							{ aspectRatio: postImageRatios[leftImageKey] ?? 0.92 },
 						]}
 					>
-						{renderPressableImage(postId, postImages, postImages[0], 0, styles.postCollageImage)}
+						{renderPressableImage(post, postImages, postImages[0], 0, styles.postCollageImage)}
 					</View>
 					<View style={styles.postThreeRightColumn}>
 						<View
@@ -990,7 +1141,7 @@ const UserFeedScreen = ({ navigation }) => {
 								{ aspectRatio: postImageRatios[rightTopImageKey] ?? 1.05 },
 							]}
 						>
-							{renderPressableImage(postId, postImages, postImages[1], 1, styles.postCollageImage)}
+							{renderPressableImage(post, postImages, postImages[1], 1, styles.postCollageImage)}
 						</View>
 						<View
 							style={[
@@ -998,7 +1149,7 @@ const UserFeedScreen = ({ navigation }) => {
 								{ aspectRatio: postImageRatios[rightBottomImageKey] ?? 1.05 },
 							]}
 						>
-							{renderPressableImage(postId, postImages, postImages[2], 2, styles.postCollageImage)}
+							{renderPressableImage(post, postImages, postImages[2], 2, styles.postCollageImage)}
 						</View>
 					</View>
 				</View>
@@ -1006,37 +1157,17 @@ const UserFeedScreen = ({ navigation }) => {
 		}
 
 		if (postImages.length === 4) {
-			const leadImageKey = getPostImageKey(postId, postImages[0], 0);
 			return (
-				<View style={styles.postFourCollage}>
-					<View
-						style={[
-							styles.postFourLeadTile,
-							{ aspectRatio: postImageRatios[leadImageKey] ?? 1 },
-						]}
-					>
-						{renderPressableImage(postId, postImages, postImages[0], 0, styles.postCollageImage)}
-					</View>
-					<View style={styles.postFourSideColumn}>
-						{postImages.slice(1, 4).map((image, imageIndex) => {
-							const actualIndex = imageIndex + 1;
-							const tileKey = getPostImageKey(postId, image, actualIndex);
-							const isLastVisibleTile = actualIndex === 3;
+				<View style={styles.postFourGrid}>
+					{postImages.slice(0, 4).map((image, imageIndex) => {
+						const tileKey = getPostImageKey(postId, image, imageIndex);
 
-							return (
-								<View
-									key={tileKey}
-									style={[
-										styles.postFourSideTile,
-										{ aspectRatio: postImageRatios[tileKey] ?? 1.02 },
-									]}
-								>
-									{renderPressableImage(postId, postImages, image, actualIndex, styles.postCollageImage)}
-									{isLastVisibleTile ? renderOverlayCount(0) : null}
-								</View>
-							);
-						})}
-					</View>
+						return (
+							<View key={tileKey} style={styles.postFourGridTile}>
+								{renderPressableImage(post, postImages, image, imageIndex, styles.postCollageImage)}
+							</View>
+						);
+					})}
 				</View>
 			);
 		}
@@ -1051,8 +1182,8 @@ const UserFeedScreen = ({ navigation }) => {
 
 					return (
 						<View key={tileKey} style={styles.postFivePlusTile}>
-							{renderPressableImage(postId, postImages, image, imageIndex, styles.postCollageImage)}
-							{isLastVisibleTile ? renderOverlayCount(remainingCount, () => openImageViewer(postImages, imageIndex)) : null}
+							{renderPressableImage(post, postImages, image, imageIndex, styles.postCollageImage)}
+							{isLastVisibleTile ? renderOverlayCount(remainingCount, () => openImageViewer(post, postImages, imageIndex)) : null}
 						</View>
 					);
 				})}
@@ -1204,42 +1335,66 @@ const UserFeedScreen = ({ navigation }) => {
 								const avatarUri = renderPostAvatarUri(post);
 								const postImages = post.images ?? [];
 								const isRepostFeedItem = post.feed_type === 'repost';
+								const isAnnouncementFeedItem = post.feed_type === 'announcement';
 								const originalPost = post.original_post ?? null;
 								const originalAuthorName = renderPostAuthorName({ alumni: originalPost?.alumni });
 								const originalAvatarUri = renderPostAvatarUri({ alumni: originalPost?.alumni });
 
 								return (
 									<View key={getFeedItemKey(post)} style={styles.postCard}>
-										<View style={styles.postHeader}>
-											<Image source={{ uri: avatarUri }} style={styles.postAvatar} />
-											<View style={styles.postHeaderTextWrap}>
-												<Pressable
-													onPress={() => {
+										{isAnnouncementFeedItem ? (
+											<View style={styles.postHeader}>
+												<Image
+													source={require('../../assets/images/nu-lipa-logo-portrait-white-version-21.png')}
+													style={styles.announcementAvatar}
+													resizeMode="contain"
+												/>
+												<View style={styles.postHeaderTextWrap}>
+													<Text style={styles.postAuthorName}>NU LIPA</Text>
+													<View style={styles.postMetaRow}>
+														<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
+														<Text style={styles.postMetaSeparator}>•</Text>
+														<Text style={styles.postMeta}>Admin</Text>
+													</View>
+												</View>
+											</View>
+										) : (
+											<View style={styles.postHeader}>
+												<Image source={{ uri: avatarUri }} style={styles.postAvatar} />
+												<View style={styles.postHeaderTextWrap}>
+													<Pressable
+														onPress={() => {
 														if (post.alumni?.id === userData?.id) {
 															navigation.navigate('Profile');
 														} else {
 															navigation.navigate('ProfileView', { userId: post.alumni?.id });
 														}
 													}}
-												>
-													<Text style={styles.postAuthorName}>{authorName}</Text>
-												</Pressable>
-												<View style={styles.postMetaRow}>
-													<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
-													<Text style={styles.postMetaSeparator}>•</Text>
-													<Ionicons name="earth-outline" size={10} color="#7A7A7A" />
-													<Text style={styles.postMeta}>Public</Text>
-													{isRepostFeedItem ? (
-														<>
-															<Text style={styles.postMetaSeparator}>•</Text>
-															<Text style={styles.postMeta}>Reposted</Text>
-														</>
-													) : null}
+													>
+														<Text style={styles.postAuthorName}>{authorName}</Text>
+													</Pressable>
+													<View style={styles.postMetaRow}>
+														<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
+														<Text style={styles.postMetaSeparator}>•</Text>
+														<Ionicons name="earth-outline" size={10} color="#7A7A7A" />
+														<Text style={styles.postMeta}>Public</Text>
+														{isRepostFeedItem ? (
+															<>
+																<Text style={styles.postMetaSeparator}>•</Text>
+																<Text style={styles.postMeta}>Reposted</Text>
+															</>
+														) : null}
+													</View>
 												</View>
 											</View>
-										</View>
+										)}
 
-										{post.caption ? <Text style={styles.postCaption}>{post.caption}</Text> : null}
+										{isAnnouncementFeedItem ? (
+											<>
+												{post.announcement_title ? <Text style={styles.announcementTitle}>{post.announcement_title}</Text> : null}
+												{renderExpandableCaption(getFeedItemKey(post), post.announcement_description, styles.postCaption)}
+											</>
+										) : renderExpandableCaption(getFeedItemKey(post), post.caption, styles.postCaption)}
 
 										{isRepostFeedItem && originalPost ? (
 											<View style={styles.repostedOriginalCard}>
@@ -1272,44 +1427,65 @@ const UserFeedScreen = ({ navigation }) => {
 											</View>
 										) : null}
 
-										{postImages.length > 0 ? renderPostImageLayout(post.id, postImages) : null}
+										{postImages.length > 0 ? renderPostImageLayout(post, post.id, postImages) : null}
 
 										<View style={styles.postReactionRow}>
-												<Pressable
+											<Pressable
+												style={[
+													styles.postReactionButton,
+													post.my_reaction ? styles.postReactionButtonActive : null,
+												]}
+												onPress={isAnnouncementFeedItem ? () => {
+													showThemedAlert({
+														title: 'NU LIPA',
+														message: 'Reaction actions for announcements are not available yet.',
+													});
+												} : () => handlePostReaction(post)}
+											>
+												<Animated.View
 													style={[
-														styles.postReactionButton,
-														post.my_reaction ? styles.postReactionButtonActive : null,
+														styles.postActionInline,
+														reactionPulsePostId === post.id ? { transform: [{ scale: reactionPulseScale }] } : null,
 													]}
-													onPress={() => handlePostReaction(post)}
 												>
-													<Animated.View style={styles.postActionInline}>
-														<Ionicons
-															name={post.my_reaction ? 'thumbs-up' : 'thumbs-up-outline'}
-															size={16}
-															color={post.my_reaction ? '#D92D20' : '#31429B'}
-														/>
-														<Text style={styles.postActionCount}>{post.reaction_count ?? 0}</Text>
-													</Animated.View>
-												</Pressable>
+													<Ionicons
+														name={post.my_reaction ? 'heart' : 'heart-outline'}
+														size={16}
+														color={post.my_reaction ? '#EF4444' : '#31429B'}
+													/>
+													<Text style={styles.postActionCount}>{post.reaction_count ?? 0}</Text>
+												</Animated.View>
+											</Pressable>
 
-												<Pressable style={styles.postCommentButton} onPress={() => handlePostComment(post)}>
-													<View style={styles.postActionInline}>
-														<Ionicons name="chatbubble-outline" size={16} color="#56607A" />
-														<Text style={styles.postActionCount}>{post.comment_count ?? 0}</Text>
-													</View>
-												</Pressable>
+											<Pressable
+												style={styles.postCommentButton}
+												onPress={isAnnouncementFeedItem ? () => {
+													showThemedAlert({
+														title: 'NU LIPA',
+														message: 'Commenting on announcements is not available yet.',
+													});
+												} : () => handlePostComment(post)}
+											>
+												<View style={styles.postActionInline}>
+													<Ionicons name="chatbubble-outline" size={16} color="#56607A" />
+													<Text style={styles.postActionCount}>{post.comment_count ?? 0}</Text>
+												</View>
+											</Pressable>
 
-												{!isRepostFeedItem ? (
-													<Pressable
-														style={[styles.postRepostButton, post.my_repost ? styles.postRepostButtonActive : null]}
-														onPress={() => openRepostComposer(post)}
-													>
-														<View style={styles.postActionInline}>
-															<Ionicons name="share-social-outline" size={16} color={post.my_repost ? '#15803D' : '#2F855A'} />
-															<Text style={styles.postActionCount}>{post.repost_count ?? 0}</Text>
-														</View>
-													</Pressable>
-												) : null}
+											<Pressable
+												style={[styles.postRepostButton, post.my_repost ? styles.postRepostButtonActive : null]}
+												onPress={isAnnouncementFeedItem ? () => {
+													showThemedAlert({
+														title: 'NU LIPA',
+														message: 'Reposting announcements is not available yet.',
+													});
+												} : () => openRepostComposer(post)}
+											>
+												<View style={styles.postActionInline}>
+													<Ionicons name="share-social-outline" size={16} color={post.my_repost ? '#15803D' : '#2F855A'} />
+													<Text style={styles.postActionCount}>{post.repost_count ?? 0}</Text>
+												</View>
+											</Pressable>
 										</View>
 									</View>
 								);
@@ -1325,7 +1501,36 @@ const UserFeedScreen = ({ navigation }) => {
 					images={viewerImages}
 					initialIndex={viewerIndex}
 					visible={viewerVisible}
-					onRequestClose={() => setViewerVisible(false)}
+					post={viewerPost}
+					authorName={viewerPost ? renderPostAuthorName(viewerPost) : ''}
+					postAvatarUri={viewerPost ? renderPostAvatarUri(viewerPost) : ''}
+					timeLabel={viewerPost ? getRelativeTimeLabel(viewerPost.created_at) : ''}
+					reactionCount={viewerPost?.reaction_count ?? 0}
+					commentCount={viewerPost?.comment_count ?? 0}
+					repostCount={viewerPost?.repost_count ?? 0}
+					isReacted={Boolean(viewerPost?.my_reaction)}
+					onRequestClose={closeImageViewer}
+					onAuthorPress={() => {
+						if (!viewerPost?.alumni?.id) {
+							return;
+						}
+
+						if (viewerPost.alumni.id === userData?.id) {
+							navigation.navigate('Profile');
+						} else {
+							navigation.navigate('ProfileView', { userId: viewerPost.alumni.id });
+						}
+					}}
+					onReactionPress={() => (viewerPost ? handlePostReaction(viewerPost) : null)}
+					onCommentPress={() => (viewerPost ? handlePostComment(viewerPost) : null)}
+					onRepostPress={() => (viewerPost ? openRepostComposer(viewerPost) : null)}
+					onMenuPress={() => {
+						showThemedAlert({
+							title: 'Image options',
+							message: 'More image actions are not available yet.',
+							actions: [{ text: 'OK' }],
+						});
+					}}
 				/>
 
 				<Modal
