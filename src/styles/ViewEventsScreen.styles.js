@@ -229,6 +229,10 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: '#31429B',
 	},
+	registerButtonDestructive: {
+		backgroundColor: '#D92D20',
+		borderColor: '#D92D20',
+	},
 	registerButtonDisabled: {
 		opacity: 0.45,
 	},

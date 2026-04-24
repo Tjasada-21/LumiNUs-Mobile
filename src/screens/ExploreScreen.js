@@ -39,7 +39,7 @@ const SECTION_DATA = [
     title: 'Campus Engagement',
     items: [
       {
-        label: 'Registration',
+        label: 'Registrations',
         icon: require('../../assets/images/registration-icon-in-blue-1.png'),
         action: 'goToEventRegistration',
       },
@@ -64,7 +64,7 @@ const SECTION_DATA = [
         action: 'goToFeed',
       },
       {
-        label: 'Perks and\nDiscounts',
+        label: 'Perks and\nDiscounts',  
         icon: require('../../assets/images/view-perks-icon-in-blue-1.png'),
         action: 'goToPerks',
       },
@@ -105,8 +105,12 @@ const ExploreScreen = ({ navigation }) => {
     }
 
     if (item.action === 'goToEventRegistration') {
-      if (typeof navigation.navigate === 'function') {
-        navigation.navigate('EventRegistration');
+      const parentNavigator = navigation.getParent?.();
+
+      if (parentNavigator?.navigate) {
+        parentNavigator.navigate('RegisteredEventsScreen');
+      } else if (typeof navigation.navigate === 'function') {
+        navigation.navigate('RegisteredEventsScreen');
       }
       return;
     }

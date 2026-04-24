@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
 		marginBottom: 14,
 	},
 	registrationTitle: {
-		fontSize: 18,
+		fontSize: 16,
 		lineHeight: 22,
 		fontWeight: '800',
 		color: '#31429B',
@@ -426,6 +426,9 @@ const styles = StyleSheet.create({
 		backgroundColor: '#F8FAFC',
 		marginBottom: 10,
 	},
+	registrationItemPressed: {
+		opacity: 0.84,
+	},
 	registrationIconWrap: {
 		width: 38,
 		height: 38,
@@ -481,16 +484,41 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
+	calendarDayBubbleEvent: {
+		backgroundColor: '#EEF2FF',
+		borderWidth: 1,
+		borderColor: '#C7D2FE',
+	},
 	calendarDayBubbleToday: {
 		backgroundColor: '#F2C919',
+	},
+	calendarDayBubbleTodayEvent: {
+		borderColor: '#F2C919',
 	},
 	calendarDayText: {
 		fontSize: 13,
 		fontWeight: '700',
 		color: '#111827',
 	},
+	calendarDayTextEvent: {
+		color: '#31429B',
+	},
 	calendarDayTextToday: {
 		color: '#31429B',
+	},
+	calendarDayTextTodayEvent: {
+		color: '#31429B',
+	},
+	calendarEventDot: {
+		position: 'absolute',
+		bottom: 3,
+		width: 5,
+		height: 5,
+		borderRadius: 2.5,
+		backgroundColor: '#31429B',
+	},
+	calendarEventDotToday: {
+		backgroundColor: '#31429B',
 	},
 });
 

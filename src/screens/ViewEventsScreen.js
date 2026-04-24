@@ -6,6 +6,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import BrandHeader from '../components/BrandHeader';
 import api from '../services/api';
+import { showBrandedAlert } from '../services/brandedAlert';
 import styles from '../styles/ViewEventsScreen.styles';
 
 const formatDateRange = (startDate, endDate) => {
@@ -52,7 +53,7 @@ const ViewEventsScreen = () => {
 			return;
 		}
 
-		navigation.navigate('EventsScreen');
+		navigation.navigate('Home', { screen: 'EventsScreen' });
 	};
 
 	const eventTitle = String(event?.title ?? 'Event Details');
@@ -65,7 +66,7 @@ const ViewEventsScreen = () => {
 	const platform = String(event?.platform ?? 'Not set');
 	const platformUrl = String(event?.platform_url ?? '').trim();
 	const maxCapacity = event?.max_capacity ?? 'Not set';
-	const eventImageUri = event?.cover_image_url ?? null;
+	const eventImageUri = event?.cover_image_url ?? event?.images?.[0]?.image_url ?? null;
 	const venueName = String(event?.venue?.name ?? 'Venue not set');
 	const venueAddress = String(event?.venue?.address ?? 'Address not available');
 	const venueLatitude = Number.parseFloat(event?.venue?.latitude);
@@ -79,6 +80,7 @@ const ViewEventsScreen = () => {
 		: null;
 	const isAlreadyRegistered = Boolean(event?.id && registeredEventIds.includes(Number(event.id)));
 	const canRegister = !registrationsLoading && !isAlreadyRegistered;
+	const canRemoveRegistration = !registrationsLoading && isAlreadyRegistered;
 
 	React.useEffect(() => {
 		let isMounted = true;
@@ -114,6 +116,26 @@ const ViewEventsScreen = () => {
 		};
 	}, [event?.id]);
 
+	const refreshRegistrationState = async () => {
+		if (!event?.id) {
+			return;
+		}
+
+		try {
+			setRegistrationsLoading(true);
+			const response = await api.get('/event-registrations');
+			const registrationIds = (response.data?.registrations ?? [])
+				.map((registration) => Number(registration?.event_id))
+				.filter((registrationId) => Number.isFinite(registrationId));
+
+			setRegisteredEventIds(registrationIds);
+		} catch (error) {
+			console.error('Failed to refresh event registrations:', error);
+		} finally {
+			setRegistrationsLoading(false);
+		}
+	};
+
 	const handlePlatformPress = async () => {
 		if (!platformUrl) {
 			return;
@@ -136,6 +158,35 @@ const ViewEventsScreen = () => {
 		}
 
 		navigation.navigate('EventRegistration', { event });
+	};
+
+	const handleRemoveRegistrationPress = () => {
+		if (!canRemoveRegistration || !event?.id) {
+			return;
+		}
+
+		showBrandedAlert(
+			'Remove registration?',
+			'This will delete your registration for this event.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Remove',
+					style: 'destructive',
+					onPress: async () => {
+						try {
+							await api.delete(`/events/${event.id}/registrations`);
+							await refreshRegistrationState();
+							navigation.navigate('Home', { screen: 'EventsScreen' });
+						} catch (error) {
+							const message = error.response?.data?.message ?? 'Unable to remove your registration right now.';
+							showBrandedAlert('Removal failed', message, [{ text: 'OK' }], { variant: 'error' });
+						}
+					},
+				},
+			],
+			{ variant: 'error' }
+		);
 	};
 
 	return (
@@ -245,14 +296,18 @@ const ViewEventsScreen = () => {
 
                         <View style={styles.registerButtonContainer}>
 							<Pressable
-								style={[styles.registerButton, !canRegister && styles.registerButtonDisabled]}
-								onPress={handleRegisterPress}
+								style={[
+									styles.registerButton,
+									isAlreadyRegistered ? styles.registerButtonDestructive : null,
+									!isAlreadyRegistered && !canRegister ? styles.registerButtonDisabled : null,
+								]}
+								onPress={isAlreadyRegistered ? handleRemoveRegistrationPress : handleRegisterPress}
 								accessibilityRole="button"
-								disabled={!canRegister}
-								accessibilityState={{ disabled: !canRegister }}
+								disabled={registrationsLoading || (!isAlreadyRegistered && !canRegister)}
+								accessibilityState={{ disabled: registrationsLoading || (!isAlreadyRegistered && !canRegister) }}
 							>
 								<Text style={styles.registerButtonText}>
-									{isAlreadyRegistered ? 'Already Registered' : registrationsLoading ? 'Checking...' : 'Register'}
+									{isAlreadyRegistered ? 'Remove Registration' : registrationsLoading ? 'Checking...' : 'Register'}
 								</Text>
 							</Pressable>
 								</View>

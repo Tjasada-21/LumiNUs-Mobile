@@ -13,6 +13,7 @@ import ConnectionsScreen from '../screens/ConnectionsScreen';
 import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 import ProfileViewScreen from '../screens/ProfileViewScreen';
+import RegisteredEventsScreen from '../screens/RegisteredEventsScreen';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -126,6 +127,14 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ConnectionsScreen"
         component={ConnectionsScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+      <Tab.Screen
+        name="RegisteredEventsScreen"
+        component={RegisteredEventsScreen}
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },

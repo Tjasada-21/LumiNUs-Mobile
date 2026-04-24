@@ -269,6 +269,7 @@ const UserFeedScreen = ({ navigation }) => {
 	const [activeCommentPost, setActiveCommentPost] = useState(null);
 	const [replyingToComment, setReplyingToComment] = useState(null);
 	const [commentDraft, setCommentDraft] = useState('');
+	const [commentInputHeight, setCommentInputHeight] = useState(46);
 	const [comments, setComments] = useState([]);
 	const [commentsLoading, setCommentsLoading] = useState(false);
 	const [commentsError, setCommentsError] = useState('');
@@ -622,7 +623,13 @@ const UserFeedScreen = ({ navigation }) => {
 		setActiveCommentPost(null);
 		setReplyingToComment(null);
 		setCommentDraft('');
+		setCommentInputHeight(46);
 		setExpandedCommentParents({});
+	};
+
+	const handleCommentInputContentSizeChange = (event) => {
+		const nextHeight = event?.nativeEvent?.contentSize?.height ?? 46;
+		setCommentInputHeight(Math.max(46, Math.min(nextHeight, 84)));
 	};
 
 	const handleSubmitComment = () => {
@@ -660,6 +667,7 @@ const UserFeedScreen = ({ navigation }) => {
 		}));
 		setReplyingToComment(null);
 		setCommentDraft('');
+		setCommentInputHeight(46);
 
 		api.post(`/posts/${activeCommentPost.id}/comments`, {
 			comment: trimmedComment,
@@ -1677,7 +1685,7 @@ const UserFeedScreen = ({ navigation }) => {
 								</ScrollView>
 							</View>
 
-							<SafeAreaView edges={['bottom']} style={styles.commentComposerSafeArea}>
+							<View style={styles.commentComposerSafeArea}>
 								<View style={styles.commentComposer}>
 									<View style={styles.commentComposerContent}>
 										{replyingToComment ? (
@@ -1695,10 +1703,13 @@ const UserFeedScreen = ({ navigation }) => {
 											<TextInput
 												value={commentDraft}
 												onChangeText={setCommentDraft}
+												onContentSizeChange={handleCommentInputContentSizeChange}
 												placeholder={replyingToComment ? 'Write a reply...' : 'Write a comment...'}
 												placeholderTextColor="#8A94A6"
-												style={styles.commentInput}
+												style={[styles.commentInput, { height: commentInputHeight }]}
 												multiline
+												scrollEnabled={false}
+												textAlignVertical="top"
 											/>
 
 											<Pressable
@@ -1714,7 +1725,7 @@ const UserFeedScreen = ({ navigation }) => {
 										</View>
 									</View>
 								</View>
-							</SafeAreaView>
+							</View>
 						</View>
 					</View>
 				</Modal>

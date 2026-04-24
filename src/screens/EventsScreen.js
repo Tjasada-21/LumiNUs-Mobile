@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Pressable, Animated, PanResponder, useWindowDimensions, Image, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Pressable, Animated, PanResponder, useWindowDimensions, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BrandHeader from '../components/BrandHeader';
 import api from '../services/api';
@@ -15,7 +16,6 @@ const COMING_SOON_PLACEHOLDER_ITEMS = [
 	{ id: 5, searchTerms: ['sports', 'coming soon', 'registration'] },
 	{ id: 6, searchTerms: ['community', 'coming soon', 'registration'] },
 ];
-const PRE_REGISTERED_EVENTS = [];
 
 const formatEventDateRange = (startDate, endDate) => {
 	if (!startDate) {
@@ -60,6 +60,56 @@ const getEventLocationLabel = (event) => {
 	return 'NU Lipa';
 };
 
+const getRegisteredEventLocationLabel = (registration) => {
+	if (registration?.event?.venue?.name) {
+		return registration.event.venue.name;
+	}
+
+	if (registration?.event?.platform) {
+		return registration.event.platform;
+	}
+
+	return 'NU Lipa';
+};
+
+const formatRegisteredEventDate = (registration) => {
+	return formatEventDateRange(registration?.event?.start_date, registration?.event?.end_date);
+};
+
+const buildEventDayCountMap = (eventList, year, monthIndex) => {
+	const dayCountMap = new Map();
+	const monthStart = new Date(year, monthIndex, 1);
+	const monthEnd = new Date(year, monthIndex + 1, 0);
+
+	eventList.forEach((event) => {
+		const startDate = new Date(event?.start_date);
+		const endDate = event?.end_date ? new Date(event.end_date) : null;
+
+		if (Number.isNaN(startDate.getTime())) {
+			return;
+		}
+
+		const rangeStart = startDate < monthStart ? monthStart : startDate;
+		const rawRangeEnd = endDate && !Number.isNaN(endDate.getTime()) ? endDate : startDate;
+		const rangeEnd = rawRangeEnd > monthEnd ? monthEnd : rawRangeEnd;
+
+		if (rangeEnd < monthStart || rangeStart > monthEnd) {
+			return;
+		}
+
+		const cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+		const finalDate = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+
+		while (cursor <= finalDate) {
+			const day = cursor.getDate();
+			dayCountMap.set(day, (dayCountMap.get(day) ?? 0) + 1);
+			cursor.setDate(cursor.getDate() + 1);
+		}
+	});
+
+	return dayCountMap;
+};
+
 const getMonthDays = (year, monthIndex) => {
 	const firstDay = new Date(year, monthIndex, 1);
 	const lastDay = new Date(year, monthIndex + 1, 0);
@@ -90,7 +140,12 @@ const EventsScreen = ({ navigation }) => {
 	const [searchQuery, setSearchQuery] = React.useState('');
 	const [events, setEvents] = React.useState([]);
 	const [eventsLoading, setEventsLoading] = React.useState(true);
+	const [isRefreshingEvents, setIsRefreshingEvents] = React.useState(false);
 	const [eventsError, setEventsError] = React.useState('');
+	const [registeredEvents, setRegisteredEvents] = React.useState([]);
+	const [registeredEventsLoading, setRegisteredEventsLoading] = React.useState(false);
+	const [registeredEventsError, setRegisteredEventsError] = React.useState('');
+	const isMountedRef = React.useRef(true);
 	const slideAnimation = React.useRef(new Animated.Value(0)).current;
 	const { width: screenWidth } = useWindowDimensions();
 	const calendarWidth = Math.min(screenWidth - 40, 360);
@@ -101,6 +156,7 @@ const EventsScreen = ({ navigation }) => {
 	const currentMonth = currentDate.getMonth();
 	const monthLabel = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 	const monthDays = getMonthDays(currentYear, currentMonth);
+	const eventDayCountMap = React.useMemo(() => buildEventDayCountMap(events, currentYear, currentMonth), [events, currentYear, currentMonth]);
 	const normalizedQuery = searchQuery.trim().toLowerCase();
 	const isSearching = normalizedQuery.length > 0;
 	const visibleEvents = events.filter((event) => {
@@ -124,7 +180,13 @@ const EventsScreen = ({ navigation }) => {
 	};
 	const visibleFeaturedItems = visibleEvents.slice(0, 5);
 	const visibleComingSoonItems = COMING_SOON_PLACEHOLDER_ITEMS.filter((item) => matchesSearch(item.searchTerms));
-	const hasPreRegisteredEvents = PRE_REGISTERED_EVENTS.length > 0;
+	const hasPreRegisteredEvents = registeredEvents.length > 0;
+
+	React.useEffect(() => {
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
 	// HANDLER: Open the calendar modal
 	const openCalendar = () => {
@@ -135,6 +197,71 @@ const EventsScreen = ({ navigation }) => {
 	const openRegistrations = () => {
 		setRegistrationsVisible(true);
 	};
+
+	const fetchEvents = React.useCallback(async ({ showRefreshingState = false } = {}) => {
+		try {
+			if (showRefreshingState) {
+				setIsRefreshingEvents(true);
+			} else {
+				setEventsLoading(true);
+			}
+
+			setEventsError('');
+
+			const response = await api.get('/events');
+
+			if (!isMountedRef.current) {
+				return;
+			}
+
+			setEvents(response.data?.events ?? []);
+		} catch (fetchError) {
+			console.error('Failed to fetch events:', fetchError);
+
+			if (isMountedRef.current) {
+				setEventsError('Unable to load events right now.');
+				setEvents([]);
+			}
+		} finally {
+			if (isMountedRef.current) {
+				setEventsLoading(false);
+				setIsRefreshingEvents(false);
+			}
+		}
+	}, []);
+
+	const fetchRegistrations = React.useCallback(async () => {
+		try {
+			setRegisteredEventsLoading(true);
+			setRegisteredEventsError('');
+
+			const response = await api.get('/event-registrations');
+
+			if (!isMountedRef.current) {
+				return;
+			}
+
+			setRegisteredEvents(response.data?.registrations ?? []);
+		} catch (error) {
+			console.error('Failed to load event registrations:', error);
+
+			if (isMountedRef.current) {
+				setRegisteredEventsError('Unable to load your registered events right now.');
+				setRegisteredEvents([]);
+			}
+		} finally {
+			if (isMountedRef.current) {
+				setRegisteredEventsLoading(false);
+			}
+		}
+	}, []);
+
+	const handleRefreshEvents = React.useCallback(async () => {
+		await Promise.all([
+			fetchEvents({ showRefreshingState: true }),
+			fetchRegistrations(),
+		]);
+	}, [fetchEvents, fetchRegistrations]);
 
 	const openEvent = (event) => {
 		const parentNavigator = navigation.getParent?.();
@@ -153,6 +280,37 @@ const EventsScreen = ({ navigation }) => {
 		navigation.navigate('ViewEventsScreen', { event });
 	};
 
+	const openRegisteredEvent = (registration) => {
+		const registeredEvent = registration?.event;
+		const fullEventFromList = events.find((event) => Number(event?.id) === Number(registeredEvent?.id)) ?? null;
+		const eventToOpen = fullEventFromList ?? registeredEvent;
+		const normalizedRegisteredEvent = registeredEvent
+			? {
+				...eventToOpen,
+				cover_image_url: eventToOpen?.cover_image_url ?? eventToOpen?.images?.[0]?.image_url ?? null,
+			}
+			: null;
+
+		if (!normalizedRegisteredEvent?.id) {
+			return;
+		}
+
+		const parentNavigator = navigation.getParent?.();
+		const rootNavigator = parentNavigator?.getParent?.();
+
+		if (rootNavigator?.navigate) {
+			rootNavigator.navigate('ViewEventsScreen', { event: normalizedRegisteredEvent });
+			return;
+		}
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('ViewEventsScreen', { event: normalizedRegisteredEvent });
+			return;
+		}
+
+		navigation.navigate('ViewEventsScreen', { event: normalizedRegisteredEvent });
+	};
+
 	// HANDLER: Close the calendar modal
 	const closeCalendar = () => {
 		setCalendarVisible(false);
@@ -164,40 +322,14 @@ const EventsScreen = ({ navigation }) => {
 	};
 
 	React.useEffect(() => {
-		let isMounted = true;
-
-		const fetchEvents = async () => {
-			try {
-				setEventsLoading(true);
-				setEventsError('');
-
-				const response = await api.get('/events');
-
-				if (!isMounted) {
-					return;
-				}
-
-				setEvents(response.data?.events ?? []);
-			} catch (fetchError) {
-				console.error('Failed to fetch events:', fetchError);
-
-				if (isMounted) {
-					setEventsError('Unable to load events right now.');
-					setEvents([]);
-				}
-			} finally {
-				if (isMounted) {
-					setEventsLoading(false);
-				}
-			}
-		};
-
 		fetchEvents();
+	}, [fetchEvents]);
 
-		return () => {
-			isMounted = false;
-		};
-	}, []);
+	useFocusEffect(
+		React.useCallback(() => {
+			fetchRegistrations();
+		}, [fetchRegistrations])
+	);
 
 	// HANDLER: Animate month transitions
 	const animateMonthChange = (direction) => {
@@ -263,7 +395,18 @@ const EventsScreen = ({ navigation }) => {
 				<BrandHeader />
 
 				{/* SECTION: Search and actions */}
-				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+				<ScrollView
+					showsVerticalScrollIndicator={false}
+					contentContainerStyle={styles.scrollContent}
+					refreshControl={
+						<RefreshControl
+							refreshing={isRefreshingEvents}
+							onRefresh={handleRefreshEvents}
+							tintColor="#31429B"
+							colors={['#31429B']}
+						/>
+					}
+				>
 					<View style={styles.searchRow}>
 						<View style={styles.searchFieldWrap}>
 							<Ionicons name="search" size={22} color="#7A7A7A" style={styles.searchIcon} />
@@ -377,12 +520,31 @@ const EventsScreen = ({ navigation }) => {
 													new Date().getFullYear() === currentYear &&
 													new Date().getMonth() === currentMonth &&
 													new Date().getDate() === day;
+												const eventCount = day ? eventDayCountMap.get(day) ?? 0 : 0;
+												const hasEvent = eventCount > 0;
 
 												return (
 													<View key={`${monthLabel}-${index}`} style={[styles.calendarDayCell, !day && styles.calendarDayCellEmpty]}>
 														{day ? (
-															<View style={[styles.calendarDayBubble, isToday && styles.calendarDayBubbleToday]}>
-																<Text style={[styles.calendarDayText, isToday && styles.calendarDayTextToday]}>{day}</Text>
+															<View
+																style={[
+																	styles.calendarDayBubble,
+																	isToday && styles.calendarDayBubbleToday,
+																	hasEvent && styles.calendarDayBubbleEvent,
+																	isToday && hasEvent && styles.calendarDayBubbleTodayEvent,
+																]}
+															>
+																<Text
+																	style={[
+																		styles.calendarDayText,
+																		isToday && styles.calendarDayTextToday,
+																		hasEvent && styles.calendarDayTextEvent,
+																		isToday && hasEvent && styles.calendarDayTextTodayEvent,
+																	]}
+																>
+																	{day}
+																</Text>
+																{hasEvent ? <View style={[styles.calendarEventDot, isToday && styles.calendarEventDotToday]} /> : null}
 															</View>
 														) : null}
 													</View>
@@ -407,18 +569,30 @@ const EventsScreen = ({ navigation }) => {
 									</TouchableOpacity>
 								</View>
 
-								{hasPreRegisteredEvents ? (
+								{registeredEventsLoading ? (
+									<View style={styles.registrationEmptyState}>
+										<ActivityIndicator size="small" color="#31429B" />
+										<Text style={styles.registrationEmptyText}>Loading your registered events...</Text>
+									</View>
+								) : hasPreRegisteredEvents ? (
 									<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.registrationList}>
-										{PRE_REGISTERED_EVENTS.map((event) => (
-											<View key={`registered-event-${event.id}`} style={styles.registrationItem}>
+										{registeredEvents.map((registration) => (
+											<Pressable
+												key={`registered-event-${registration.id}`}
+												style={({ pressed }) => [styles.registrationItem, pressed ? styles.registrationItemPressed : null]}
+												onPress={() => openRegisteredEvent(registration)}
+												accessibilityRole="button"
+											>
 												<View style={styles.registrationIconWrap}>
 													<Ionicons name="bookmark" size={18} color="#31429B" />
 												</View>
 												<View style={styles.registrationTextWrap}>
-													<Text style={styles.registrationItemTitle}>{event.title}</Text>
-													<Text style={styles.registrationItemMeta}>{event.date} • {event.location}</Text>
+													<Text style={styles.registrationItemTitle}>{registration.event?.title ?? 'Registered Event'}</Text>
+													<Text style={styles.registrationItemMeta}>
+														{formatRegisteredEventDate(registration)} • {getRegisteredEventLocationLabel(registration)}
+													</Text>
 												</View>
-											</View>
+											</Pressable>
 										))}
 									</ScrollView>
 								) : (
@@ -430,7 +604,9 @@ const EventsScreen = ({ navigation }) => {
 												resizeMode="contain"
 											/>
 										</View>
-										<Text style={styles.registrationEmptyText}>You have no pre-registered events yet.</Text>
+										<Text style={styles.registrationEmptyText}>
+											{registeredEventsError || 'You have no pre-registered events yet.'}
+										</Text>
 										<TouchableOpacity style={styles.registrationOkayButton} activeOpacity={0.85} onPress={closeRegistrations}>
 											<Text style={styles.registrationOkayButtonText}>Okay</Text>
 										</TouchableOpacity>

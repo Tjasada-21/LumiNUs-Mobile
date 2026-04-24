@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, ImageBackground, Image, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ImageBackground, Image, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import BrandHeader from '../components/BrandHeader';
 import api from '../services/api';
+import { showBrandedAlert } from '../services/brandedAlert';
+import { getAuthEmail } from '../services/authStorage';
 import styles from '../styles/EventRegistrationScreen.styles';
 
 const formatDateLabel = (startDate, endDate) => {
@@ -60,23 +62,43 @@ const EventRegistrationScreen = () => {
 	const privacyNotice =
 		' I understand and agree that by filling out and submitting this form, I am allowing NU Lipa to collect, process, use, share and disclose my personal information and responses for alumni databasing as reference for alumni activities, employment opportunities, graduate employability and planning future education needs; and to store it as long as necessary for the fulfillment of the stated purpose and in accordance with applicable laws, including the Data Privacy Act of 2012 and its implementing Rules and Regulations, and the National University Privacy Policy.';
 
-	const contactFields = [
-		{
-			key: 'email',
-			label: 'Personal Email Address',
-			description: 'We will be contacting you using this email.',
-			placeholder: 'Enter your response here.',
-			keyboardType: 'email-address',
-			autoCapitalize: 'none',
-		},
-		{
-			key: 'phone',
-			label: 'Mobile Number/Phone Number',
-			description: 'We will be contacting you using this number.',
-			placeholder: 'Enter your response here.',
-			keyboardType: 'phone-pad',
-		},
-	];
+	const goToEventsScreen = () => {
+		navigation.navigate('Home', { screen: 'EventsScreen' });
+	};
+
+	React.useEffect(() => {
+		let isMounted = true;
+
+		const loadContactDetails = async () => {
+			try {
+				const userEmail = await getAuthEmail();
+
+				if (!userEmail) {
+					return;
+				}
+
+				const response = await api.get('/alumni/profile');
+				const profile = response.data?.alumni ?? null;
+
+				if (!isMounted) {
+					return;
+				}
+
+				setContactInfo({
+					email: profile?.email || userEmail,
+					phone: profile?.phone_number || '',
+				});
+			} catch (error) {
+				console.error('Failed to load registration contact details:', error);
+			}
+		};
+
+		loadContactDetails();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	const handleBackPress = () => {
 		if (navigation.canGoBack()) {
@@ -84,7 +106,7 @@ const EventRegistrationScreen = () => {
 			return;
 		}
 
-		navigation.navigate('EventsScreen');
+		goToEventsScreen();
 	};
 
 	const handlePrivacyChoicePress = (choice) => {
@@ -102,16 +124,9 @@ const EventRegistrationScreen = () => {
 		contactInfo.phone.trim().length > 0;
 	const canSubmit = isFormComplete && !isSubmitting;
 
-	const handleContactInfoChange = (fieldKey, value) => {
-		setContactInfo((currentValue) => ({
-			...currentValue,
-			[fieldKey]: value,
-		}));
-	};
-
 	const handleRegisterSubmit = async () => {
 		if (!event?.id) {
-			Alert.alert('Event unavailable', 'Please go back and choose an event first.');
+			showBrandedAlert('Event unavailable', 'Please go back and choose an event first.', [{ text: 'OK' }], { variant: 'error' });
 			return;
 		}
 
@@ -129,15 +144,15 @@ const EventRegistrationScreen = () => {
 				phone: contactInfo.phone.trim(),
 			});
 
-			Alert.alert('Registration saved', 'Your event registration has been submitted successfully.', [
+			showBrandedAlert('Registration saved', 'Your event registration has been submitted successfully.', [
 				{
 					text: 'OK',
-					onPress: () => navigation.navigate('EventsScreen'),
+					onPress: goToEventsScreen,
 				},
-			]);
+			], { variant: 'success' });
 		} catch (error) {
 			const message = error.response?.data?.message ?? 'Unable to submit your registration right now.';
-			Alert.alert('Registration failed', message);
+			showBrandedAlert('Registration failed', message, [{ text: 'OK' }], { variant: 'error' });
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -222,27 +237,7 @@ const EventRegistrationScreen = () => {
 								</View>
 							</View>
 
-							<Text style={styles.sectionLabel}>Section 2: Contact Information</Text>
-
-							{contactFields.map((field) => (
-								<View key={field.label} style={styles.inputCard}>
-									<Text style={styles.inputLabel}>{field.label}</Text>
-									<Text style={styles.inputDescription}>{field.description}</Text>
-									<TextInput
-										style={styles.inputField}
-										value={contactInfo[field.key]}
-										onChangeText={(value) => handleContactInfoChange(field.key, value)}
-										placeholder={field.placeholder}
-										placeholderTextColor="#A8A8A8"
-										editable
-										keyboardType={field.keyboardType}
-										autoCapitalize={field.autoCapitalize ?? 'sentences'}
-										autoCorrect={false}
-									/>
-								</View>
-							))}
-
-							<Text style={styles.sectionLabel}>Section 3: Attendance Confirmation</Text>
+							<Text style={styles.sectionLabel}>Section 2: Attendance Confirmation</Text>
 
 							<View style={styles.confirmationCard}>
 								<Text style={styles.confirmationText}>
