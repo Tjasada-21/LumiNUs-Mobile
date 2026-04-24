@@ -5,13 +5,22 @@ import { clearAuthCredentials, getAuthToken } from './authStorage';
 // Since you are using Docker/Sail, DO NOT add a port number.
 const LOCAL_IP = '192.168.254.102'; 
 
+// const api = axios.create({
+//   // 👑 Paste the Ngrok link here. MAKE SURE you keep the /api at the very end!
+//   baseURL: 'https://rosy-stash-aneurism.ngrok-free.dev/api',
+//   headers: {
+//     'Content-Type': 'application/json',
+//     'Accept': 'application/json',
+//   },
+// });
+
 const api = axios.create({
-  baseURL: `http://${LOCAL_IP}/api`,
+  baseURL: `http://${LOCAL_IP}:8000/api`,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-});
+}); 
 
 api.interceptors.request.use(async (config) => {
   const token = await getAuthToken();

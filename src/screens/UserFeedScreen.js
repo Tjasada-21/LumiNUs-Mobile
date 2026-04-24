@@ -191,10 +191,12 @@ const UserFeedScreen = ({ navigation }) => {
 	const [reactionPulsePostId, setReactionPulsePostId] = useState(null);
 	const [commentsVisible, setCommentsVisible] = useState(false);
 	const [activeCommentPost, setActiveCommentPost] = useState(null);
+	const [replyingToComment, setReplyingToComment] = useState(null);
 	const [commentDraft, setCommentDraft] = useState('');
 	const [comments, setComments] = useState([]);
 	const [commentsLoading, setCommentsLoading] = useState(false);
 	const [commentsError, setCommentsError] = useState('');
+	const [expandedCommentParents, setExpandedCommentParents] = useState({});
 	const [repostComposerVisible, setRepostComposerVisible] = useState(false);
 	const [activeRepostPost, setActiveRepostPost] = useState(null);
 	const [repostCaptionDraft, setRepostCaptionDraft] = useState('');
@@ -452,16 +454,24 @@ const UserFeedScreen = ({ navigation }) => {
 
 	const handlePostComment = useCallback((post) => {
 		setActiveCommentPost(post);
+		setReplyingToComment(null);
 		setCommentDraft('');
 		setComments([]);
 		setCommentsError('');
+		setExpandedCommentParents({});
 		setCommentsVisible(true);
+	}, []);
+
+	const handleReplyToComment = useCallback((comment) => {
+		setReplyingToComment(comment);
 	}, []);
 
 	const closeCommentsModal = () => {
 		setCommentsVisible(false);
 		setActiveCommentPost(null);
+		setReplyingToComment(null);
 		setCommentDraft('');
+		setExpandedCommentParents({});
 	};
 
 	const handleSubmitComment = () => {
@@ -475,6 +485,7 @@ const UserFeedScreen = ({ navigation }) => {
 		const pendingComment = {
 			id: pendingCommentId,
 			comment: trimmedComment,
+			parent_id: replyingToComment?.id ?? null,
 			created_at: new Date().toISOString(),
 			is_pending: true,
 			alumni: {
@@ -496,9 +507,13 @@ const UserFeedScreen = ({ navigation }) => {
 				comment_count: (currentPost.comment_count ?? 0) + 1,
 			};
 		}));
+		setReplyingToComment(null);
 		setCommentDraft('');
 
-		api.post(`/posts/${activeCommentPost.id}/comments`, { comment: trimmedComment })
+		api.post(`/posts/${activeCommentPost.id}/comments`, {
+			comment: trimmedComment,
+			parent_id: pendingComment.parent_id,
+		})
 			.then((response) => {
 				const savedComment = response.data?.comment;
 
@@ -578,6 +593,115 @@ const UserFeedScreen = ({ navigation }) => {
 			isMounted = false;
 		};
 	}, [activeCommentPost, commentsVisible]);
+
+	const renderCommentItem = (comment, depth = 0) => {
+		const isReply = depth > 0;
+		const likeCount = comment?.like_count ?? comment?.reaction_count ?? comment?.likes_count ?? null;
+
+		return (
+			<View key={comment.id} style={[styles.commentItem, isReply ? styles.commentItemReply : null]}>
+				<Image source={{ uri: renderCommentAvatarUri(comment) }} style={styles.commentAvatar} />
+				<View style={styles.commentContentColumn}>
+					<Text style={styles.commentAuthorName}>{renderCommentAuthorName(comment)}</Text>
+					<Text style={styles.commentText}>{comment.comment ?? comment.body ?? comment.text ?? ''}</Text>
+					<View style={styles.commentMetaRow}>
+						<Text style={styles.commentTimestamp}>{getRelativeTimeLabel(comment.created_at)}</Text>
+						<Pressable style={styles.commentReplyButton} onPress={() => handleReplyToComment(comment)}>
+							<Text style={styles.commentReplyButtonText}>Reply</Text>
+						</Pressable>
+					</View>
+				</View>
+				{likeCount !== null ? (
+					<View style={styles.commentActionColumn}>
+						<Ionicons name="heart-outline" size={16} color="#9AA3B2" />
+						<Text style={styles.commentLikeCount}>{likeCount}</Text>
+					</View>
+				) : null}
+			</View>
+		);
+	};
+
+	const toggleCommentReplies = (commentId) => {
+		setExpandedCommentParents((currentState) => ({
+			...currentState,
+			[commentId]: !currentState[commentId],
+		}));
+	};
+
+	const threadedComments = useMemo(() => {
+		const repliesByParentId = new Map();
+		const topLevelComments = [];
+
+		comments.forEach((comment) => {
+			if (comment?.parent_id) {
+				const parentReplies = repliesByParentId.get(comment.parent_id) ?? [];
+				parentReplies.push(comment);
+				repliesByParentId.set(comment.parent_id, parentReplies);
+				return;
+			}
+
+			topLevelComments.push(comment);
+		});
+
+		return topLevelComments.map((comment) => ({
+			comment,
+			replies: repliesByParentId.get(comment.id) ?? [],
+		}));
+	}, [comments]);
+
+	const renderThreadedComment = (thread) => {
+		const { comment, replies } = thread;
+		const hasReplies = replies.length > 0;
+		const isExpanded = Boolean(expandedCommentParents[comment.id]);
+
+		return (
+			<View key={comment.id} style={styles.commentThread}>
+				{renderCommentItem(comment, 0)}
+
+				{hasReplies && !isExpanded ? (
+					<Pressable style={styles.viewRepliesRow} onPress={() => toggleCommentReplies(comment.id)}>
+						<View style={styles.viewRepliesLine} />
+						<Text style={styles.viewRepliesText}>View {replies.length} replies</Text>
+						<Ionicons name="chevron-down" size={13} color="#94A3B8" />
+					</Pressable>
+				) : null}
+
+				{hasReplies && isExpanded ? (
+					<View style={styles.commentRepliesList}>
+						{replies.map((reply, replyIndex) => {
+							const isLastReply = replyIndex === replies.length - 1;
+
+							return (
+								<View key={reply.id} style={[styles.commentReplyWrap, isLastReply ? styles.commentReplyWrapLast : null]}>
+									<View style={styles.commentReplyLineColumn}>
+										<View style={styles.commentReplyLine} />
+									</View>
+									<View style={styles.commentReplyContent}>
+										<View style={styles.commentReplyHeaderRow}>
+											<Text style={styles.commentReplyAuthorName}>{renderCommentAuthorName(reply)}</Text>
+										</View>
+										<Text style={styles.commentReplyText}>{reply.comment ?? reply.body ?? reply.text ?? ''}</Text>
+										<View style={styles.commentReplyMetaRow}>
+											<Text style={styles.commentTimestamp}>{getRelativeTimeLabel(reply.created_at)}</Text>
+											<Pressable style={styles.commentReplyButton} onPress={() => handleReplyToComment(reply)}>
+												<Text style={styles.commentReplyButtonText}>Reply</Text>
+											</Pressable>
+										</View>
+									</View>
+								</View>
+							);
+						})}
+
+						<Pressable style={styles.hideRepliesRow} onPress={() => toggleCommentReplies(comment.id)}>
+							<View style={styles.viewRepliesLine} />
+							<Text style={styles.hideRepliesText}>Hide replies</Text>
+							<Ionicons name="chevron-up" size={13} color="#31429B" />
+						</Pressable>
+					</View>
+				) : null}
+			</View>
+		);
+	};
 
 	const renderCommentAuthorName = (comment) => {
 		const firstName = comment?.alumni?.first_name ?? '';
@@ -1317,73 +1441,86 @@ const UserFeedScreen = ({ navigation }) => {
 
 						<View style={styles.commentsSheet}>
 							<View style={styles.commentsHeaderRow}>
-								<View style={{ flex: 1, paddingRight: 12 }}>
-									<Text style={styles.commentsTitle}>Comments</Text>
-									<Text style={styles.commentsSubtitle} numberOfLines={1}>
-										{activeCommentPost ? renderPostAuthorName(activeCommentPost) : 'Selected post'}
+								<View style={styles.commentsHeaderCenter}>
+									<Text style={styles.commentsTitle}>
+										{activeCommentPost?.comment_count ?? comments.length} comments
 									</Text>
+									<Pressable style={styles.commentsHeaderFilter}>
+										<Ionicons name="options-outline" size={16} color="#111827" />
+									</Pressable>
 								</View>
 
 								<Pressable style={styles.commentsCloseButton} onPress={closeCommentsModal}>
-									<Ionicons name="close" size={20} color="#24346F" />
+									<Ionicons name="close" size={20} color="#111827" />
 								</Pressable>
 							</View>
 
-							<View style={styles.commentsList}>
-								{commentsLoading ? (
-									<View style={styles.commentsEmptyState}>
-										<ActivityIndicator size="small" color="#31429B" />
-										<Text style={styles.commentsEmptyText}>Loading comments...</Text>
-									</View>
-								) : commentsError ? (
-									<View style={styles.commentsEmptyState}>
-										<Ionicons name="alert-circle-outline" size={26} color="#B42318" />
-										<Text style={styles.commentsEmptyText}>{commentsError}</Text>
-									</View>
-								) : comments.length === 0 ? (
-									<View style={styles.commentsEmptyState}>
-										<Ionicons name="chatbubble-ellipses-outline" size={26} color="#8A94A6" />
-										<Text style={styles.commentsEmptyText}>No comments loaded yet.</Text>
-									</View>
-								) : (
-									comments.map((comment) => (
-										<View key={comment.id} style={styles.commentItem}>
-											<Image source={{ uri: renderCommentAvatarUri(comment) }} style={styles.commentAvatar} />
-											<View style={styles.commentBubble}>
-												<View style={styles.commentBubbleHeader}>
-													<Text style={styles.commentAuthorName}>{renderCommentAuthorName(comment)}</Text>
-													<Text style={styles.commentTimestamp}>{new Date(comment.created_at).toLocaleString()}</Text>
-												</View>
-												<Text style={styles.commentText}>{comment.comment}</Text>
-											</View>
+							<View style={styles.commentsBody}>
+								<ScrollView
+									style={styles.commentsList}
+									contentContainerStyle={styles.commentsListContent}
+									showsVerticalScrollIndicator={false}
+									nestedScrollEnabled
+								>
+									{commentsLoading ? (
+										<View style={styles.commentsEmptyState}>
+											<ActivityIndicator size="small" color="#31429B" />
+											<Text style={styles.commentsEmptyText}>Loading comments...</Text>
 										</View>
-									))
-								)}
+									) : commentsError ? (
+										<View style={styles.commentsEmptyState}>
+											<Ionicons name="alert-circle-outline" size={26} color="#B42318" />
+											<Text style={styles.commentsEmptyText}>{commentsError}</Text>
+										</View>
+									) : comments.length === 0 ? (
+										<View style={styles.commentsEmptyState}>
+											<Ionicons name="chatbubble-ellipses-outline" size={26} color="#8A94A6" />
+											<Text style={styles.commentsEmptyText}>No comments loaded yet.</Text>
+										</View>
+									) : (
+										threadedComments.map((thread) => renderThreadedComment(thread))
+									)}
+								</ScrollView>
 							</View>
 
-							<View style={styles.commentComposer}>
-								<View style={styles.commentInputWrap}>
-									<TextInput
-										value={commentDraft}
-										onChangeText={setCommentDraft}
-										placeholder="Write a comment..."
-										placeholderTextColor="#8A94A6"
-										style={styles.commentInput}
-										multiline
-									/>
+							<SafeAreaView edges={['bottom']} style={styles.commentComposerSafeArea}>
+								<View style={styles.commentComposer}>
+									<View style={styles.commentComposerContent}>
+										{replyingToComment ? (
+											<View style={styles.commentReplyContext}>
+												<Text style={styles.commentReplyContextText} numberOfLines={1}>
+													Replying to {renderCommentAuthorName(replyingToComment)}
+												</Text>
+												<Pressable style={styles.commentReplyContextCancel} onPress={() => setReplyingToComment(null)}>
+													<Ionicons name="close" size={14} color="#31429B" />
+												</Pressable>
+											</View>
+										) : null}
 
-									<Pressable
-										style={[
-											styles.commentSendButtonInside,
-											!commentDraft.trim() ? styles.commentSendButtonDisabled : null,
-										]}
-										onPress={handleSubmitComment}
-										disabled={!commentDraft.trim()}
-									>
-										<Ionicons name="send" size={16} color="#FFFFFF" />
-									</Pressable>
+										<View style={styles.commentInputWrap}>
+											<TextInput
+												value={commentDraft}
+												onChangeText={setCommentDraft}
+												placeholder={replyingToComment ? 'Write a reply...' : 'Write a comment...'}
+												placeholderTextColor="#8A94A6"
+												style={styles.commentInput}
+												multiline
+											/>
+
+											<Pressable
+												style={[
+													styles.commentSendButtonInside,
+													!commentDraft.trim() ? styles.commentSendButtonDisabled : null,
+												]}
+												onPress={handleSubmitComment}
+												disabled={!commentDraft.trim()}
+											>
+												<Ionicons name="send" size={16} color="#FFFFFF" />
+											</Pressable>
+										</View>
+									</View>
 								</View>
-							</View>
+							</SafeAreaView>
 						</View>
 					</View>
 				</Modal>
