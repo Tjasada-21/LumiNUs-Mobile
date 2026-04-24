@@ -594,33 +594,6 @@ const UserFeedScreen = ({ navigation }) => {
 		};
 	}, [activeCommentPost, commentsVisible]);
 
-	const renderCommentItem = (comment, depth = 0) => {
-		const isReply = depth > 0;
-		const likeCount = comment?.like_count ?? comment?.reaction_count ?? comment?.likes_count ?? null;
-
-		return (
-			<View key={comment.id} style={[styles.commentItem, isReply ? styles.commentItemReply : null]}>
-				<Image source={{ uri: renderCommentAvatarUri(comment) }} style={styles.commentAvatar} />
-				<View style={styles.commentContentColumn}>
-					<Text style={styles.commentAuthorName}>{renderCommentAuthorName(comment)}</Text>
-					<Text style={styles.commentText}>{comment.comment ?? comment.body ?? comment.text ?? ''}</Text>
-					<View style={styles.commentMetaRow}>
-						<Text style={styles.commentTimestamp}>{getRelativeTimeLabel(comment.created_at)}</Text>
-						<Pressable style={styles.commentReplyButton} onPress={() => handleReplyToComment(comment)}>
-							<Text style={styles.commentReplyButtonText}>Reply</Text>
-						</Pressable>
-					</View>
-				</View>
-				{likeCount !== null ? (
-					<View style={styles.commentActionColumn}>
-						<Ionicons name="heart-outline" size={16} color="#9AA3B2" />
-						<Text style={styles.commentLikeCount}>{likeCount}</Text>
-					</View>
-				) : null}
-			</View>
-		);
-	};
-
 	const toggleCommentReplies = (commentId) => {
 		setExpandedCommentParents((currentState) => ({
 			...currentState,
@@ -628,7 +601,7 @@ const UserFeedScreen = ({ navigation }) => {
 		}));
 	};
 
-	const threadedComments = useMemo(() => {
+	const commentTree = useMemo(() => {
 		const repliesByParentId = new Map();
 		const topLevelComments = [];
 
@@ -643,22 +616,58 @@ const UserFeedScreen = ({ navigation }) => {
 			topLevelComments.push(comment);
 		});
 
+		const buildChildren = (parentComment) => (repliesByParentId.get(parentComment.id) ?? []).map((childComment) => ({
+			comment: childComment,
+			replies: buildChildren(childComment),
+		}));
+
 		return topLevelComments.map((comment) => ({
 			comment,
-			replies: repliesByParentId.get(comment.id) ?? [],
+			replies: buildChildren(comment),
 		}));
 	}, [comments]);
 
-	const renderThreadedComment = (thread) => {
+	const renderCommentNode = (thread, depth = 0, parentComment = null) => {
 		const { comment, replies } = thread;
 		const hasReplies = replies.length > 0;
 		const isExpanded = Boolean(expandedCommentParents[comment.id]);
+		const likeCount = comment?.like_count ?? comment?.reaction_count ?? comment?.likes_count ?? null;
+		const isReply = depth > 0;
+		const canToggleReplies = depth === 0;
+		const repliesListStyle = canToggleReplies ? styles.commentRepliesList : styles.commentNestedRepliesList;
 
 		return (
 			<View key={comment.id} style={styles.commentThread}>
-				{renderCommentItem(comment, 0)}
+				<View style={[styles.commentItem, isReply ? styles.commentItemReply : null]}>
+					<Image source={{ uri: renderCommentAvatarUri(comment) }} style={styles.commentAvatar} />
+					<View style={styles.commentContentColumn}>
+						<View style={styles.commentReplyHeaderRow}>
+							<Text style={styles.commentAuthorName}>
+								{isReply ? (comment?.alumni?.first_name ?? 'Alumni') : renderCommentAuthorName(comment)}
+							</Text>
+							{isReply && parentComment ? (
+								<Text style={styles.commentReplyingToHandle} numberOfLines={1}>
+										▸ {parentComment?.alumni?.first_name ?? 'Alumni'}
+								</Text>
+							) : null}
+						</View>
+						<Text style={styles.commentText}>{comment.comment ?? comment.body ?? comment.text ?? ''}</Text>
+						<View style={styles.commentMetaRow}>
+							<Text style={styles.commentTimestamp}>{getRelativeTimeLabel(comment.created_at)}</Text>
+							<Pressable style={styles.commentReplyButton} onPress={() => handleReplyToComment(comment)}>
+								<Text style={styles.commentReplyButtonText}>Reply</Text>
+							</Pressable>
+						</View>
+					</View>
+					{likeCount !== null ? (
+						<View style={styles.commentActionColumn}>
+							<Ionicons name="heart-outline" size={16} color="#9AA3B2" />
+							<Text style={styles.commentLikeCount}>{likeCount}</Text>
+						</View>
+					) : null}
+				</View>
 
-				{hasReplies && !isExpanded ? (
+				{canToggleReplies && hasReplies && !isExpanded ? (
 					<Pressable style={styles.viewRepliesRow} onPress={() => toggleCommentReplies(comment.id)}>
 						<View style={styles.viewRepliesLine} />
 						<Text style={styles.viewRepliesText}>View {replies.length} replies</Text>
@@ -666,37 +675,17 @@ const UserFeedScreen = ({ navigation }) => {
 					</Pressable>
 				) : null}
 
-				{hasReplies && isExpanded ? (
-					<View style={styles.commentRepliesList}>
-						{replies.map((reply, replyIndex) => {
-							const isLastReply = replyIndex === replies.length - 1;
+				{hasReplies && (canToggleReplies ? isExpanded : true) ? (
+					<View style={repliesListStyle}>
+						{replies.map((reply) => renderCommentNode(reply, depth + 1, comment))}
 
-							return (
-								<View key={reply.id} style={[styles.commentReplyWrap, isLastReply ? styles.commentReplyWrapLast : null]}>
-									<View style={styles.commentReplyLineColumn}>
-										<View style={styles.commentReplyLine} />
-									</View>
-									<View style={styles.commentReplyContent}>
-										<View style={styles.commentReplyHeaderRow}>
-											<Text style={styles.commentReplyAuthorName}>{renderCommentAuthorName(reply)}</Text>
-										</View>
-										<Text style={styles.commentReplyText}>{reply.comment ?? reply.body ?? reply.text ?? ''}</Text>
-										<View style={styles.commentReplyMetaRow}>
-											<Text style={styles.commentTimestamp}>{getRelativeTimeLabel(reply.created_at)}</Text>
-											<Pressable style={styles.commentReplyButton} onPress={() => handleReplyToComment(reply)}>
-												<Text style={styles.commentReplyButtonText}>Reply</Text>
-											</Pressable>
-										</View>
-									</View>
-								</View>
-							);
-						})}
-
-						<Pressable style={styles.hideRepliesRow} onPress={() => toggleCommentReplies(comment.id)}>
-							<View style={styles.viewRepliesLine} />
-							<Text style={styles.hideRepliesText}>Hide replies</Text>
-							<Ionicons name="chevron-up" size={13} color="#31429B" />
-						</Pressable>
+						{canToggleReplies ? (
+							<Pressable style={styles.hideRepliesRow} onPress={() => toggleCommentReplies(comment.id)}>
+								<View style={styles.viewRepliesLine} />
+								<Text style={styles.hideRepliesText}>Hide replies</Text>
+								<Ionicons name="chevron-up" size={13} color="#31429B" />
+							</Pressable>
+						) : null}
 					</View>
 				) : null}
 			</View>
@@ -1478,7 +1467,7 @@ const UserFeedScreen = ({ navigation }) => {
 											<Text style={styles.commentsEmptyText}>No comments loaded yet.</Text>
 										</View>
 									) : (
-										threadedComments.map((thread) => renderThreadedComment(thread))
+									commentTree.map((thread) => renderCommentNode(thread))
 									)}
 								</ScrollView>
 							</View>
