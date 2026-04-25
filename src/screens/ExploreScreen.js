@@ -143,11 +143,16 @@ const ExploreScreen = ({ navigation }) => {
     }
 
     if (item.action === 'goToAlumniId') {
-      if (typeof navigation.jumpTo === 'function') {
-        navigation.jumpTo('HomeTab');
+      const parentNavigator = navigation.getParent?.();
+
+      if (parentNavigator?.navigate) {
+        parentNavigator.navigate('HomeTab');
         return;
       }
-      navigation.navigate('HomeTab');
+
+      if (typeof navigation.navigate === 'function') {
+        navigation.navigate('HomeTab');
+      }
       return;
     }
 

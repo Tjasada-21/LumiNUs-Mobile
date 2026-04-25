@@ -1,62 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Image, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Pressable, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/SearchMessageScreen.styles';
-
-const SUGGESTED_PEOPLE = [
-	{
-		id: 1,
-		name: 'Gutierrez, Louie Andrew',
-		avatarUri: 'https://i.pravatar.cc/150?img=12',
-	},
-	{
-		id: 2,
-		name: 'Caponpon, Jade Ahrens',
-		avatarUri: 'https://i.pravatar.cc/150?img=32',
-	},
-	{
-		id: 3,
-		name: 'Asada, Timothy John',
-		avatarUri: 'https://i.pravatar.cc/150?img=15',
-	},
-	{
-		id: 4,
-		name: 'Claus, Johannes Emmanuel',
-		avatarUri: 'https://i.pravatar.cc/150?img=61',
-	},
-	{
-		id: 5,
-		name: 'Hernandez, Gian Accel',
-		avatarUri: 'https://i.pravatar.cc/150?img=24',
-	},
-	{
-		id: 6,
-		name: 'De Guzman, Dexter',
-		avatarUri: 'https://i.pravatar.cc/150?img=18',
-	},
-	{
-		id: 7,
-		name: 'Balmes, Christian Miguel',
-		avatarUri: 'https://i.pravatar.cc/150?img=27',
-	},
-	{
-		id: 8,
-		name: 'Magsino, Christian',
-		avatarUri: 'https://i.pravatar.cc/150?img=45',
-	},
-	{
-		id: 9,
-		name: 'Fernando, Julianne Kaye',
-		avatarUri: 'https://i.pravatar.cc/150?img=47',
-	},
-	{
-		id: 10,
-		name: 'Manalo, Marian Justine',
-		avatarUri: 'https://i.pravatar.cc/150?img=65',
-	},
-];
+import { getAuthToken } from '../services/authStorage';
 
 const SearchMessageScreen = ({ navigation }) => {
 	// SECTION: Layout values
@@ -66,32 +15,221 @@ const SearchMessageScreen = ({ navigation }) => {
 	const avatarSize = isCompactWidth ? 40 : 42;
 
 	const [query, setQuery] = useState('');
+	const [connections, setConnections] = useState([]);
+	const [suggestedPeople, setSuggestedPeople] = useState([]);
+	const [searchResults, setSearchResults] = useState([]);
+	const [connectionsLoading, setConnectionsLoading] = useState(false);
+	const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+	const [searchLoading, setSearchLoading] = useState(false);
+	const [connectionsError, setConnectionsError] = useState('');
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const fetchConnections = async () => {
+			try {
+				setConnectionsLoading(true);
+				setConnectionsError('');
+
+				const token = await getAuthToken();
+
+				if (!token) {
+					if (isMounted) {
+						setConnectionsError('No active session found.');
+					}
+					return;
+				}
+
+				const response = await api.get('/contacts', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
+				if (!isMounted) {
+					return;
+				}
+
+				setConnections(response.data?.contacts ?? []);
+			} catch (fetchError) {
+				console.error('Failed to fetch connections:', fetchError);
+				if (isMounted) {
+					setConnectionsError('Unable to load connections right now.');
+				}
+			} finally {
+				if (isMounted) {
+					setConnectionsLoading(false);
+				}
+			}
+		};
+
+		fetchConnections();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const fetchSuggestedPeople = async () => {
+			try {
+				setSuggestionsLoading(true);
+
+				const token = await getAuthToken();
+
+				if (!token) {
+					return;
+				}
+
+				const response = await api.get('/alumni/search', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
+				if (!isMounted) {
+					return;
+				}
+
+				const connectedIds = new Set(connections.map((connection) => Number(connection?.id)).filter(Number.isFinite));
+				setSuggestedPeople((response.data?.results ?? []).filter((person) => {
+					const personId = Number(person?.id);
+					const connectionStatus = String(person?.connection_status ?? 'none').toLowerCase();
+					return Number.isFinite(personId)
+						&& !connectedIds.has(personId)
+						&& connectionStatus !== 'connected'
+						&& connectionStatus !== 'pending';
+				}));
+			} catch (error) {
+				console.error('Failed to fetch suggested people:', error);
+				if (isMounted) {
+					setSuggestedPeople([]);
+				}
+			} finally {
+				if (isMounted) {
+					setSuggestionsLoading(false);
+				}
+			}
+		};
+
+		if (connections.length > 0 || !connectionsLoading) {
+			fetchSuggestedPeople();
+		}
+
+		return () => {
+			isMounted = false;
+		};
+	}, [connections, connectionsLoading]);
+
+	useEffect(() => {
+		let isMounted = true;
+		const normalizedQuery = query.trim();
+
+		if (normalizedQuery.length < 2) {
+			setSearchResults([]);
+			setSearchLoading(false);
+			return () => {
+				isMounted = false;
+			};
+		}
+
+		const searchTimeout = setTimeout(async () => {
+			try {
+				setSearchLoading(true);
+
+				const token = await getAuthToken();
+
+				if (!token) {
+					return;
+				}
+
+				const response = await api.get('/alumni/search', {
+					headers: { Authorization: `Bearer ${token}` },
+					params: { q: normalizedQuery },
+				});
+
+				if (!isMounted) {
+					return;
+				}
+
+				const connectedIds = new Set(connections.map((connection) => Number(connection?.id)).filter(Number.isFinite));
+				setSearchResults((response.data?.results ?? []).filter((person) => {
+					const personId = Number(person?.id);
+					const connectionStatus = String(person?.connection_status ?? 'none').toLowerCase();
+					return Number.isFinite(personId)
+						&& !connectedIds.has(personId)
+						&& connectionStatus !== 'connected'
+						&& connectionStatus !== 'pending';
+				}));
+			} catch (error) {
+				console.error('Failed to search alumni:', error);
+				if (isMounted) {
+					setSearchResults([]);
+				}
+			} finally {
+				if (isMounted) {
+					setSearchLoading(false);
+				}
+			}
+		}, 250);
+
+		return () => {
+			isMounted = false;
+			clearTimeout(searchTimeout);
+		};
+	}, [connections, query]);
 
 	// DERIVED VALUE: Filtered people list
 	const filteredPeople = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
 
 		if (!normalizedQuery) {
-			return SUGGESTED_PEOPLE;
+			return suggestedPeople;
 		}
 
-		return SUGGESTED_PEOPLE.filter((person) => {
-			return person.name.toLowerCase().includes(normalizedQuery);
+		if (normalizedQuery.length < 2) {
+			return [];
+		}
+
+		return searchResults.filter((person) => {
+			const personName = `${person?.first_name ?? ''} ${person?.last_name ?? ''}`.trim().toLowerCase();
+			return personName.includes(normalizedQuery);
 		});
-	}, [query]);
+	}, [query, searchResults, suggestedPeople]);
 
 	// RENDER HELPER: Suggested person row
 	const renderSuggestedPerson = ({ item }) => (
 		<Pressable style={styles.resultRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
 			<Image
-				source={{ uri: item.avatarUri }}
+				source={{
+					uri: item?.alumni_photo
+						? item.alumni_photo
+						: `https://ui-avatars.com/api/?name=${encodeURIComponent(`${item?.first_name ?? ''} ${item?.last_name ?? ''}`.trim() || 'Alumni')}&background=31429B&color=fff`,
+				}}
 				style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
 			/>
 			<Text style={styles.resultName} numberOfLines={1}>
-				{item.name}
+				{`${item?.first_name ?? ''} ${item?.last_name ?? ''}`.trim() || 'Alumni'}
 			</Text>
 		</Pressable>
 	);
+
+	const renderConnectionRow = ({ item }) => {
+		const connectionName = `${item?.first_name ?? ''} ${item?.last_name ?? ''}`.trim() || 'Alumni';
+		const connectionAvatar = item?.alumni_photo
+			? item.alumni_photo
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(connectionName)}&background=31429B&color=fff`;
+
+		return (
+			<Pressable style={styles.resultRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
+				<Image
+					source={{ uri: connectionAvatar }}
+					style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+				/>
+				<Text style={styles.resultName} numberOfLines={1}>
+					{connectionName}
+				</Text>
+			</Pressable>
+		);
+	};
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -123,12 +261,36 @@ const SearchMessageScreen = ({ navigation }) => {
 								/>
 							</View>
 
+							<Text style={styles.sectionLabel}>Connections</Text>
+
+							{connectionsLoading ? (
+								<ActivityIndicator color="#31429B" style={{ marginBottom: 10 }} />
+							) : connections.length > 0 ? (
+								<View style={styles.connectionsList}>
+									<FlatList
+										data={connections}
+										renderItem={renderConnectionRow}
+										keyExtractor={(item) => String(item.connection_id ?? item.id)}
+										scrollEnabled={false}
+										contentContainerStyle={styles.connectionsInlineList}
+									/>
+								</View>
+							) : null}
+
 							<Text style={styles.sectionLabel}>Suggested</Text>
+
+							{searchLoading ? (
+								<ActivityIndicator color="#31429B" style={{ marginTop: 6, marginBottom: 10 }} />
+							) : null}
 						</View>
 					)}
 					ListEmptyComponent={(
 						<View style={styles.emptyWrap}>
-							<Text style={styles.emptyText}>No matching names or groups found.</Text>
+							{suggestionsLoading || searchLoading ? (
+								<ActivityIndicator color="#31429B" />
+							) : (
+								<Text style={styles.emptyText}>{connectionsError || 'No matching names or groups found.'}</Text>
+							)}
 						</View>
 					)}
 					contentContainerStyle={[

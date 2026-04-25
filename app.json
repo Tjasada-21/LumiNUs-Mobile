@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/LumiNUs_Load.jpg",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FFFFFF",
-    "newArchEnabled": true,
+    "backgroundColor": "#31429B",
+
     "splash": {
       "image": "./assets/images/LumiNUs_Load.jpg",
       "resizeMode": "cover",
@@ -17,11 +17,12 @@
       "supportsTablet": true
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/LumiNUs_Load.jpg",
-        "backgroundColor": "#FFFFFF"
+        "backgroundColor": "#31429B"
       },
-      "edgeToEdgeEnabled": false
+
     },
     "web": {
       "favicon": "./assets/favicon.png"

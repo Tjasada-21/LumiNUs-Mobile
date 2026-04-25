@@ -13,6 +13,7 @@ import CreatePostScreen from '../screens/CreatePostScreen';
 import ViewEventsScreen from '../screens/ViewEventsScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import SearchMessageScreen from '../screens/SearchMessageScreen';
+import ConvoScreen from '../screens/ConvoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,7 @@ const AppNavigator = () => {
       <Stack.Screen name="EventRegistration" component={EventRegistrationScreen} />
       <Stack.Screen name="ForgetPassword" component={ForgetPasswordScreen} />
       <Stack.Screen name="NewMessage" component={NewMessageScreen} />
+      <Stack.Screen name="ConvoScreen" component={ConvoScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="SearchMessage" component={SearchMessageScreen} />
       <Stack.Screen name="CreatePostScreen" component={CreatePostScreen} />

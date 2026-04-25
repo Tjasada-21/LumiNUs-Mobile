@@ -32,9 +32,10 @@ const ZoomableViewer = ({
 	initialIndex = 0,
 	visible,
 	post = null,
-	authorName = '',
+	viewerAuthorName = '',
 	postAvatarUri = '',
 	timeLabel = '',
+	postVisibilityLabel = 'Public',
 	reactionCount = 0,
 	commentCount = 0,
 	repostCount = 0,
@@ -197,13 +198,13 @@ const ZoomableViewer = ({
 								</Pressable>
 								<View style={styles.viewerAuthorTextWrap}>
 									<Pressable onPress={onAuthorPress} hitSlop={8}>
-										<Text style={styles.viewerAuthorName}>{authorName}</Text>
+										<Text style={styles.viewerAuthorName}>{viewerAuthorName}</Text>
 									</Pressable>
 									<View style={styles.viewerAuthorMetaRow}>
 										<Text style={styles.viewerAuthorMeta}>{timeLabel}</Text>
 										<Text style={styles.viewerAuthorMetaSeparator}>•</Text>
 										<Ionicons name="earth-outline" size={12} color="#FFFFFF" />
-										<Text style={styles.viewerAuthorMeta}>Public</Text>
+										<Text style={styles.viewerAuthorMeta}>{postVisibilityLabel}</Text>
 									</View>
 								</View>
 							</View>
@@ -279,6 +280,10 @@ const UserFeedScreen = ({ navigation }) => {
 	const [repostComposerVisible, setRepostComposerVisible] = useState(false);
 	const [activeRepostPost, setActiveRepostPost] = useState(null);
 	const [repostCaptionDraft, setRepostCaptionDraft] = useState('');
+	const [postActionsVisible, setPostActionsVisible] = useState(false);
+	const [activePostActionPost, setActivePostActionPost] = useState(null);
+	const [isPostActionSaving, setIsPostActionSaving] = useState(false);
+	const [isDeletingPost, setIsDeletingPost] = useState(false);
 	const [themedAlertState, setThemedAlertState] = useState({
 		visible: false,
 		title: '',
@@ -439,6 +444,228 @@ const UserFeedScreen = ({ navigation }) => {
 
 		const displayName = renderPostAuthorName(post);
 		return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=31429B&color=fff`;
+	};
+
+	const getPostVisibilityLabel = (post) => {
+		if (post?.is_draft) {
+			return 'Draft';
+		}
+
+		const visibility = String(post?.visibility ?? 'public').toLowerCase();
+
+		if (visibility === 'friends') {
+			return 'Friends';
+		}
+
+		if (visibility === 'private') {
+			return 'Private';
+		}
+
+		return 'Public';
+	};
+
+	const canManagePost = useCallback((post) => Boolean(
+		userData?.id
+		&& post?.feed_type === 'post'
+		&& post?.alumni?.id
+		&& post.alumni.id === userData.id
+	), [userData?.id]);
+
+	const openPostActions = useCallback((post) => {
+		if (!canManagePost(post)) {
+			return;
+		}
+
+		setActivePostActionPost(post);
+		setPostActionsVisible(true);
+	}, [canManagePost]);
+
+	const closePostActions = useCallback(() => {
+		if (isPostActionSaving) {
+			return;
+		}
+
+		setPostActionsVisible(false);
+		setActivePostActionPost(null);
+	}, [isPostActionSaving]);
+
+	const syncPostInFeed = useCallback((updatedPost) => {
+		if (!updatedPost?.id) {
+			return;
+		}
+
+		setPosts((currentPosts) => currentPosts.map((currentPost) => {
+			if (currentPost.feed_type !== 'post' || currentPost.id !== updatedPost.id) {
+				return currentPost;
+			}
+
+			return {
+				...currentPost,
+				caption: updatedPost.caption ?? currentPost.caption,
+				visibility: updatedPost.visibility ?? currentPost.visibility,
+				is_draft: typeof updatedPost.is_draft === 'boolean' ? updatedPost.is_draft : currentPost.is_draft,
+				images: Array.isArray(updatedPost.images) && updatedPost.images.length > 0 ? updatedPost.images : currentPost.images,
+			};
+		}));
+
+		setViewerPost((currentViewerPost) => {
+			if (!currentViewerPost || currentViewerPost.feed_type !== 'post' || currentViewerPost.id !== updatedPost.id) {
+				return currentViewerPost;
+			}
+
+			return {
+				...currentViewerPost,
+				caption: updatedPost.caption ?? currentViewerPost.caption,
+				visibility: updatedPost.visibility ?? currentViewerPost.visibility,
+				is_draft: typeof updatedPost.is_draft === 'boolean' ? updatedPost.is_draft : currentViewerPost.is_draft,
+				images: Array.isArray(updatedPost.images) && updatedPost.images.length > 0 ? updatedPost.images : currentViewerPost.images,
+			};
+		});
+	}, []);
+
+	const removePostFromFeed = useCallback((postId) => {
+		setPosts((currentPosts) => currentPosts.filter((currentPost) => !(currentPost.feed_type === 'post' && currentPost.id === postId)));
+
+		setViewerPost((currentViewerPost) => {
+			if (!currentViewerPost || currentViewerPost.feed_type !== 'post' || currentViewerPost.id !== postId) {
+				return currentViewerPost;
+			}
+
+			return null;
+		});
+
+		if (viewerPost?.feed_type === 'post' && viewerPost?.id === postId) {
+			setViewerVisible(false);
+			setViewerImages([]);
+			setViewerIndex(0);
+		}
+	}, [viewerPost]);
+
+	const updateActivePost = useCallback(async (payload, successTitle, successMessage) => {
+		if (!activePostActionPost?.id || isPostActionSaving) {
+			return;
+		}
+
+		try {
+			setIsPostActionSaving(true);
+
+			const token = await getAuthToken();
+
+			if (!token) {
+				showThemedAlert({
+					title: 'Sign in required',
+					message: 'Please sign in again before changing a post.',
+				});
+				return;
+			}
+
+			const response = await api.patch(
+				`/posts/${activePostActionPost.id}`,
+				payload,
+				{ headers: { Authorization: `Bearer ${token}` } }
+			);
+
+			syncPostInFeed(response.data?.post ?? payload);
+			setPostActionsVisible(false);
+			setActivePostActionPost(null);
+			showThemedAlert({
+				title: successTitle,
+				message: successMessage,
+			});
+		} catch (error) {
+			console.error('Failed to update post:', error);
+			showThemedAlert({
+				title: 'Update failed',
+				message: 'Unable to update the post right now.',
+			});
+		} finally {
+			setIsPostActionSaving(false);
+		}
+	}, [activePostActionPost, isPostActionSaving, syncPostInFeed]);
+
+	const handleEditActivePost = () => {
+		if (!activePostActionPost) {
+			return;
+		}
+
+		setPostActionsVisible(false);
+		setActivePostActionPost(null);
+		navigation.navigate('CreatePostScreen', { post: activePostActionPost });
+	};
+
+	const handleToggleActivePostDraft = () => {
+		if (!activePostActionPost) {
+			return;
+		}
+
+		updateActivePost(
+			{ is_draft: !activePostActionPost.is_draft },
+			activePostActionPost.is_draft ? 'Post published' : 'Draft saved',
+			activePostActionPost.is_draft ? 'Your post is visible again.' : 'Your post was saved as a draft.'
+		);
+	};
+
+	const handleChangeActivePostVisibility = (visibility) => {
+		updateActivePost(
+			{ visibility },
+			'Visibility updated',
+			`This post is now visible to ${getPostVisibilityLabel({ visibility })}.`
+		);
+	};
+
+	const handleDeleteActivePost = () => {
+		if (!activePostActionPost) {
+			return;
+		}
+
+		showThemedAlert({
+			title: 'Delete post?',
+			message: 'This action cannot be undone.',
+			actions: [
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Delete',
+					style: 'destructive',
+					onPress: async () => {
+						const postId = activePostActionPost.id;
+
+						try {
+							setPostActionsVisible(false);
+							setActivePostActionPost(null);
+							setIsDeletingPost(true);
+							const token = await getAuthToken();
+
+							if (!token) {
+								setIsDeletingPost(false);
+								showThemedAlert({
+									title: 'Sign in required',
+									message: 'Please sign in again before deleting a post.',
+								});
+								return;
+							}
+
+							await api.delete(`/posts/${postId}`, {
+								headers: { Authorization: `Bearer ${token}` },
+							});
+
+							removePostFromFeed(postId);
+							showThemedAlert({
+								title: 'Post deleted',
+								message: 'Your post has been removed.',
+							});
+						} catch (error) {
+							console.error('Failed to delete post:', error);
+							showThemedAlert({
+								title: 'Delete failed',
+								message: 'Unable to delete the post right now.',
+							});
+						} finally {
+							setIsDeletingPost(false);
+						}
+					},
+				},
+			],
+		});
 	};
 
 	const getFeedItemKey = (post) => {
@@ -1128,35 +1355,16 @@ const UserFeedScreen = ({ navigation }) => {
 		}
 
 		if (postImages.length === 3) {
-			const leftImageKey = getPostImageKey(postId, postImages[0], 0);
-			const rightTopImageKey = getPostImageKey(postId, postImages[1], 1);
-			const rightBottomImageKey = getPostImageKey(postId, postImages[2], 2);
-
 			return (
 				<View style={styles.postThreeCollage}>
-					<View
-						style={[
-							styles.postThreeLeftTile,
-							{ aspectRatio: postImageRatios[leftImageKey] ?? 0.92 },
-						]}
-					>
+					<View style={styles.postThreeLeftTile}>
 						{renderPressableImage(post, postImages, postImages[0], 0, styles.postCollageImage)}
 					</View>
 					<View style={styles.postThreeRightColumn}>
-						<View
-							style={[
-								styles.postThreeRightTile,
-								{ aspectRatio: postImageRatios[rightTopImageKey] ?? 1.05 },
-							]}
-						>
+						<View style={styles.postThreeRightTile}>
 							{renderPressableImage(post, postImages, postImages[1], 1, styles.postCollageImage)}
 						</View>
-						<View
-							style={[
-								styles.postThreeRightTile,
-								{ aspectRatio: postImageRatios[rightBottomImageKey] ?? 1.05 },
-							]}
-						>
+						<View style={styles.postThreeRightTile}>
 							{renderPressableImage(post, postImages, postImages[2], 2, styles.postCollageImage)}
 						</View>
 					</View>
@@ -1202,6 +1410,8 @@ const UserFeedScreen = ({ navigation }) => {
 	const handleRefreshPosts = () => {
 		fetchPosts({ showLoadingState: true });
 	};
+
+	const activePostActionVisibilityLabel = getPostVisibilityLabel(activePostActionPost);
 
 	return (
 		<SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -1319,7 +1529,6 @@ const UserFeedScreen = ({ navigation }) => {
 						<View style={styles.feedSection}>
 							<View style={styles.feedHeaderRow}>
 								<Text style={styles.feedTitle}>Latest Posts</Text>
-								<Text style={styles.feedCount}>{posts.length} posts</Text>
 							</View>
 
 							{isLoadingPosts ? (
@@ -1339,7 +1548,7 @@ const UserFeedScreen = ({ navigation }) => {
 								</View>
 							) : (
 								posts.map((post) => {
-								const authorName = renderPostAuthorName(post);
+								const postAuthorName = renderPostAuthorName(post);
 								const avatarUri = renderPostAvatarUri(post);
 								const postImages = post.images ?? [];
 								const isRepostFeedItem = post.feed_type === 'repost';
@@ -1379,13 +1588,15 @@ const UserFeedScreen = ({ navigation }) => {
 														}
 													}}
 													>
-														<Text style={styles.postAuthorName}>{authorName}</Text>
+														<Text style={styles.postAuthorName} numberOfLines={1} ellipsizeMode="tail">
+															{postAuthorName}
+														</Text>
 													</Pressable>
 													<View style={styles.postMetaRow}>
 														<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
 														<Text style={styles.postMetaSeparator}>•</Text>
 														<Ionicons name="earth-outline" size={10} color="#7A7A7A" />
-														<Text style={styles.postMeta}>Public</Text>
+														<Text style={styles.postMeta}>{getPostVisibilityLabel(post)}</Text>
 														{isRepostFeedItem ? (
 															<>
 																<Text style={styles.postMetaSeparator}>•</Text>
@@ -1394,6 +1605,13 @@ const UserFeedScreen = ({ navigation }) => {
 														) : null}
 													</View>
 												</View>
+													<View style={styles.postHeaderRight}>
+														{canManagePost(post) ? (
+															<Pressable style={styles.postMenuButton} onPress={() => openPostActions(post)} hitSlop={8}>
+																<Ionicons name="ellipsis-horizontal" size={16} color="#31429B" />
+															</Pressable>
+														) : null}
+													</View>
 											</View>
 										)}
 
@@ -1424,7 +1642,7 @@ const UserFeedScreen = ({ navigation }) => {
 															<Text style={styles.postMeta}>{getRelativeTimeLabel(originalPost.created_at)}</Text>
 															<Text style={styles.postMetaSeparator}>•</Text>
 															<Ionicons name="earth-outline" size={10} color="#7A7A7A" />
-															<Text style={styles.postMeta}>Public</Text>
+															<Text style={styles.postMeta}>{getPostVisibilityLabel(originalPost)}</Text>
 														</View>
 													</View>
 												</View>
@@ -1510,9 +1728,10 @@ const UserFeedScreen = ({ navigation }) => {
 					initialIndex={viewerIndex}
 					visible={viewerVisible}
 					post={viewerPost}
-					authorName={viewerPost ? renderPostAuthorName(viewerPost) : ''}
+					viewerAuthorName={viewerPost ? renderPostAuthorName(viewerPost) : ''}
 					postAvatarUri={viewerPost ? renderPostAvatarUri(viewerPost) : ''}
 					timeLabel={viewerPost ? getRelativeTimeLabel(viewerPost.created_at) : ''}
+					postVisibilityLabel={viewerPost ? getPostVisibilityLabel(viewerPost) : 'Public'}
 					reactionCount={viewerPost?.reaction_count ?? 0}
 					commentCount={viewerPost?.comment_count ?? 0}
 					repostCount={viewerPost?.repost_count ?? 0}
@@ -1533,6 +1752,11 @@ const UserFeedScreen = ({ navigation }) => {
 					onCommentPress={() => (viewerPost ? handlePostComment(viewerPost) : null)}
 					onRepostPress={() => (viewerPost ? openRepostComposer(viewerPost) : null)}
 					onMenuPress={() => {
+						if (canManagePost(viewerPost)) {
+							openPostActions(viewerPost);
+							return;
+						}
+
 						showThemedAlert({
 							title: 'Image options',
 							message: 'More image actions are not available yet.',
@@ -1540,6 +1764,68 @@ const UserFeedScreen = ({ navigation }) => {
 						});
 					}}
 				/>
+
+				<Modal transparent visible={postActionsVisible} animationType="fade" onRequestClose={closePostActions}>
+					<View style={styles.postActionsBackdrop}>
+						<View style={styles.postActionsCard}>
+							<View style={styles.postActionsHeader}>
+								<Text style={styles.postActionsTitle}>Manage Post</Text>
+								<Pressable style={styles.postActionsCloseButton} onPress={closePostActions} hitSlop={8} disabled={isPostActionSaving}>
+									<Ionicons name="close" size={20} color="#31429B" />
+								</Pressable>
+							</View>
+
+							<Text style={styles.postActionsSubtitle}>
+								{activePostActionVisibilityLabel}. Edit the post, save it as a draft, change who can view it, or delete it.
+							</Text>
+
+							<View style={styles.postActionsRow}>
+								<Pressable style={styles.postActionChoiceButton} onPress={handleEditActivePost} disabled={isPostActionSaving}>
+									<Ionicons name="create-outline" size={16} color="#31429B" />
+									<Text style={styles.postActionChoiceText}>Edit</Text>
+								</Pressable>
+
+								<Pressable style={styles.postActionChoiceButton} onPress={handleToggleActivePostDraft} disabled={isPostActionSaving}>
+									<Ionicons name={activePostActionPost?.is_draft ? 'cloud-upload-outline' : 'bookmark-outline'} size={16} color="#31429B" />
+									<Text style={styles.postActionChoiceText}>{activePostActionPost?.is_draft ? 'Publish' : 'Draft'}</Text>
+								</Pressable>
+							</View>
+
+							<Text style={styles.postActionsLabel}>Who can view this post?</Text>
+							<View style={styles.postVisibilityChoicesRow}>
+								{['public', 'friends', 'private'].map((visibility) => {
+									const isSelected = (activePostActionPost?.visibility ?? 'public') === visibility;
+
+									return (
+										<Pressable
+											key={visibility}
+											style={[styles.postVisibilityChoice, isSelected && styles.postVisibilityChoiceSelected]}
+											onPress={() => handleChangeActivePostVisibility(visibility)}
+											disabled={isPostActionSaving}
+										>
+											<Text style={styles.postVisibilityChoiceText}>{getPostVisibilityLabel({ visibility })}</Text>
+										</Pressable>
+									);
+								})}
+							</View>
+
+							<Pressable style={styles.postDeleteButton} onPress={handleDeleteActivePost} disabled={isPostActionSaving}>
+								<Ionicons name="trash-outline" size={16} color="#B42318" />
+								<Text style={styles.postDeleteButtonText}>Delete Post</Text>
+							</Pressable>
+						</View>
+					</View>
+				</Modal>
+
+				<Modal visible={isDeletingPost} transparent animationType="fade" statusBarTranslucent>
+					<View style={styles.deleteLoadingBackdrop}>
+						<View style={styles.deleteLoadingCard}>
+							<ActivityIndicator size="large" color="#31429B" />
+							<Text style={styles.deleteLoadingTitle}>Deleting post</Text>
+							<Text style={styles.deleteLoadingText}>Please wait while the post is removed.</Text>
+						</View>
+					</View>
+				</Modal>
 
 				<Modal
 					transparent

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,17 +8,25 @@ import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/CreatePostScreen.styles';
 import { getAuthToken } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const CreatePostScreen = () => {
 	const navigation = useNavigation();
+	const route = useRoute();
+	const editingPost = route.params?.post ?? null;
+	const isEditMode = Boolean(editingPost?.id);
 	const [postText, setPostText] = useState('');
 	const [userData, setUserData] = useState(null);
-	const [selectedAudience, setSelectedAudience] = useState('Public');
+	const [selectedAudience, setSelectedAudience] = useState('public');
 	const [selectedPhotoUris, setSelectedPhotoUris] = useState([]);
+	const [selectedPhotoFiles, setSelectedPhotoFiles] = useState([]);
 	const [selectedVideoUris, setSelectedVideoUris] = useState([]);
+	const [existingPhotoItems, setExistingPhotoItems] = useState([]);
+	const [removedExistingPhotoIds, setRemovedExistingPhotoIds] = useState([]);
 	const [isPickingPhoto, setIsPickingPhoto] = useState(false);
 	const [isPickingVideo, setIsPickingVideo] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [submitAction, setSubmitAction] = useState(null);
 
 	const canPost = postText.trim().length > 0 || selectedPhotoUris.length > 0;
 
@@ -61,18 +69,44 @@ const CreatePostScreen = () => {
 	}, [profileName, userData]);
 
 	const audienceOptions = [
-		{ key: 'Public', icon: 'earth-outline' },
-		{ key: 'Private', icon: 'lock-closed-outline' },
-		{ key: 'Friends', icon: 'people-outline' },
+		{ value: 'public', label: 'Public', icon: 'earth-outline' },
+		{ value: 'private', label: 'Private', icon: 'lock-closed-outline' },
+		{ value: 'friends', label: 'Friends', icon: 'people-outline' },
 	];
 
-	const handlePickMedia = async (mediaType, setIsPickingState, setSelectedUris, permissionMessage) => {
+	useEffect(() => {
+		if (!editingPost) {
+			setExistingPhotoItems([]);
+			setRemovedExistingPhotoIds([]);
+			setSelectedPhotoFiles([]);
+			return;
+		}
+
+		setPostText(editingPost.caption ?? '');
+		setSelectedAudience(editingPost.visibility ?? 'public');
+		setSelectedPhotoUris([]);
+		setSelectedPhotoFiles([]);
+		setSelectedVideoUris([]);
+		setRemovedExistingPhotoIds([]);
+		setExistingPhotoItems(
+			Array.isArray(editingPost.images)
+				? editingPost.images
+					.map((image) => ({
+						id: image?.id ?? null,
+						uri: image?.image_url ?? image?.image_path ?? image?.uri ?? '',
+					}))
+					.filter((image) => Boolean(image.uri))
+				: []
+		);
+	}, [editingPost]);
+
+	const handlePickMedia = async (mediaType, setIsPickingState, onPickedMedia, permissionMessage) => {
 		try {
 			setIsPickingState(true);
 
 			const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 			if (permissionResult.status !== 'granted') {
-				Alert.alert('Permission required', permissionMessage);
+				showBrandedAlert('Permission required', permissionMessage, [{ text: 'OK' }], { variant: 'error' });
 				return;
 			}
 
@@ -84,34 +118,63 @@ const CreatePostScreen = () => {
 				quality: 0.85,
 			});
 
-			const pickedUris = result.assets
-				? result.assets.map((asset) => asset.uri).filter(Boolean)
+			const pickedAssets = Array.isArray(result.assets)
+				? result.assets.filter((asset) => Boolean(asset?.uri))
 				: result.uri
-					? [result.uri]
+					? [{ uri: result.uri, fileName: null, mimeType: null }]
 					: [];
 
-			if (pickedUris.length > 0) {
-				setSelectedUris(pickedUris);
+			if (pickedAssets.length > 0) {
+				onPickedMedia(pickedAssets);
 			}
 		} catch (error) {
 			console.error('Failed to pick media:', error);
-			Alert.alert('Error', 'Unable to open the media library.');
+			showBrandedAlert('Upload failed', 'Unable to open the media library.', [{ text: 'OK' }], { variant: 'error' });
 		} finally {
 			setIsPickingState(false);
 		}
 	};
 
-	const handlePickPhoto = () => handlePickMedia('images', setIsPickingPhoto, setSelectedPhotoUris, 'Permission to access photos is required to choose an image.');
+	const handlePickPhoto = () => handlePickMedia(
+		'images',
+		setIsPickingPhoto,
+		(pickedAssets) => {
+			setSelectedPhotoUris(pickedAssets.map((asset) => asset.uri));
+			setSelectedPhotoFiles(pickedAssets);
+		},
+		'Permission to access photos is required to choose an image.'
+	);
 
 	const handlePickVideo = () => handlePickMedia('videos', setIsPickingVideo, setSelectedVideoUris, 'Permission to access photos is required to choose a video.');
 
 	const handleRemovePhoto = (uriToRemove) => {
 		setSelectedPhotoUris((currentUris) => currentUris.filter((uri) => uri !== uriToRemove));
+		setSelectedPhotoFiles((currentFiles) => currentFiles.filter((file) => file.uri !== uriToRemove));
+	};
+
+	const handleRemoveExistingPhoto = (imageId) => {
+		setRemovedExistingPhotoIds((currentIds) => (currentIds.includes(imageId) ? currentIds : [...currentIds, imageId]));
 	};
 
 	const handleRemoveVideo = (uriToRemove) => {
 		setSelectedVideoUris((currentUris) => currentUris.filter((uri) => uri !== uriToRemove));
 	};
+
+	const previewPhotoItems = [
+		...existingPhotoItems
+			.filter((image) => !removedExistingPhotoIds.includes(image.id))
+			.map((image) => ({
+				key: image.id ?? image.uri,
+				uri: image.uri,
+				type: 'existing',
+				imageId: image.id,
+			})),
+		...selectedPhotoUris.map((uri) => ({
+			key: uri,
+			uri,
+			type: 'selected',
+		})),
+	];
 
 	const getImageMimeType = (uri) => {
 		const extension = uri.split('.').pop()?.toLowerCase();
@@ -131,32 +194,44 @@ const CreatePostScreen = () => {
 		}
 	};
 
-	const buildImageFile = (uri, index) => ({
+	const buildImageFile = (uri, index, asset = null) => ({
 		uri,
-		name: `post-image-${index + 1}.${uri.split('.').pop()?.toLowerCase() || 'jpg'}`,
-		type: getImageMimeType(uri),
+		name: asset?.fileName ?? `post-image-${index + 1}.${uri.split('.').pop()?.toLowerCase() || 'jpg'}`,
+		type: asset?.mimeType ?? getImageMimeType(uri),
 	});
 
-	const handleSubmitPost = async () => {
+	const handleSubmitPost = async (isDraft = false) => {
 		if (isSubmitting) {
 			return;
 		}
 
 		if (selectedVideoUris.length > 0) {
-			Alert.alert('Unsupported media', 'Video uploads are not supported yet. Remove the selected video(s) and try again.');
+			showBrandedAlert(
+				'Unsupported media',
+				'Video uploads are not supported yet. Remove the selected video(s) and try again.',
+				[{ text: 'OK' }],
+				{ variant: 'error' }
+			);
 			return;
 		}
 
-		if (!canPost) {
+		if (!isDraft && !canPost) {
 			return;
 		}
 
 		try {
 			setIsSubmitting(true);
+			setSubmitAction(
+				isDraft
+					? 'draft'
+					: isEditMode && editingPost?.is_draft
+						? 'publish-draft'
+						: 'publish'
+			);
 
 			const token = await getAuthToken();
 			if (!token) {
-				Alert.alert('Sign in required', 'Please sign in again before creating a post.');
+				showBrandedAlert('Sign in required', 'Please sign in again before creating a post.', [{ text: 'OK' }], { variant: 'error' });
 				return;
 			}
 
@@ -167,166 +242,240 @@ const CreatePostScreen = () => {
 				formData.append('caption', trimmedCaption);
 			}
 
+			formData.append('visibility', selectedAudience);
+			formData.append('is_draft', isDraft ? '1' : '0');
+
+			if (isEditMode && removedExistingPhotoIds.length > 0) {
+				removedExistingPhotoIds.forEach((imageId) => {
+					formData.append('remove_image_ids[]', String(imageId));
+				});
+			}
+
 			selectedPhotoUris.forEach((uri, index) => {
-				formData.append('images[]', buildImageFile(uri, index));
+				formData.append('images[]', buildImageFile(uri, index, selectedPhotoFiles[index] ?? null));
 			});
 
-			await api.post('/posts', formData, {
+			if (isEditMode) {
+				await api.post(`/posts/${editingPost.id}?_method=PATCH`, formData, {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						'Content-Type': 'multipart/form-data',
+					},
+				});
+			} else {
+				await api.post('/posts', formData, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					'Content-Type': 'multipart/form-data',
 				},
 			});
+			}
 
 			setPostText('');
+			setSelectedAudience('public');
 			setSelectedPhotoUris([]);
 			setSelectedVideoUris([]);
-			Alert.alert('Post created', 'Your post was added successfully.', [
+			showBrandedAlert(isDraft ? 'Draft saved' : isEditMode ? 'Post updated' : 'Post created', isDraft ? 'Your draft was saved successfully.' : isEditMode ? 'Your post was updated successfully.' : 'Your post was added successfully.', [
 				{ text: 'OK', onPress: () => navigation.goBack() },
-			]);
+			], { variant: 'success' });
 		} catch (error) {
 			console.error('Failed to create post:', error);
-			Alert.alert('Error', 'Unable to create your post right now. Please try again.');
+			showBrandedAlert('Upload failed', isEditMode ? 'Unable to update your post right now. Please try again.' : 'Unable to create your post right now. Please try again.', [{ text: 'OK' }], { variant: 'error' });
 		} finally {
 			setIsSubmitting(false);
+			setSubmitAction(null);
 		}
 	};
 
+	const getSubmitModalTitle = () => {
+		if (submitAction === 'draft') {
+			return 'Saving your draft';
+		}
+
+		if (submitAction === 'publish-draft') {
+			return 'Publishing your draft';
+		}
+
+		if (submitAction === 'publish') {
+			return isEditMode ? 'Updating your post' : 'Posting your content';
+		}
+
+		return isEditMode ? 'Updating your post' : 'Posting your content';
+	};
+
+	const getSubmitModalText = () => {
+		if (submitAction === 'draft') {
+			return 'Please wait while your draft is saved.';
+		}
+
+		if (submitAction === 'publish-draft') {
+			return 'Please wait while your draft is published.';
+		}
+
+		if (submitAction === 'publish') {
+			return isEditMode ? 'Please wait while your changes are saved.' : 'Please wait while your post uploads.';
+		}
+
+		return isEditMode ? 'Please wait while your changes are saved.' : 'Please wait while your post uploads.';
+	};
+
+	const isPublishDisabled = !isEditMode && !canPost;
+
 	return (
-		<SafeAreaView style={styles.safeArea} edges={['top']}>
-			<View style={styles.container}>
-				<BrandHeader />
+		<>
+			<SafeAreaView style={styles.safeArea} edges={['top']}>
+				<View style={styles.container}>
+					<BrandHeader />
 
-				<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-					<View style={styles.card}>
-						<Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
-							<Ionicons name="arrow-back" size={22} color="#31429B" />
-						</Pressable>
+					<ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+						<View style={styles.card}>
+							<Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
+								<Ionicons name="arrow-back" size={22} color="#31429B" />
+							</Pressable>
 
-						<View style={styles.cardHeader}>
+							{isEditMode ? <Text style={styles.editNotice}>Editing this post. Keep the current images or add new ones below.</Text> : null}
+
+							<View style={styles.cardHeader}>
 								<View style={styles.audienceOptionsRow}>
 									{audienceOptions.map((option) => {
-										const isSelected = selectedAudience === option.key;
+										const isSelected = selectedAudience === option.value;
 
 										return (
 											<Pressable
-												key={option.key}
+												key={option.value}
 												style={[styles.audiencePill, isSelected && styles.audiencePillSelected]}
-												onPress={() => setSelectedAudience(option.key)}
+												onPress={() => setSelectedAudience(option.value)}
 												android_ripple={{ color: '#EAF0FF' }}
 											>
 												<Ionicons name={option.icon} size={14} color="#31429B" />
-												<Text style={styles.audiencePillText}>{option.key}</Text>
+												<Text style={styles.audiencePillText}>{option.label}</Text>
 												{isSelected ? <Ionicons name="checkmark-circle" size={14} color="#31429B" style={styles.audienceCheckIcon} /> : null}
 											</Pressable>
 										);
 									})}
 								</View>
-						</View>
-
-						<View style={styles.composeRow}>
-							<Image
-								source={{ uri: profileImageUri }}
-								style={styles.avatar}
-							/>
-							<View style={styles.composeBody}>
-								<Text style={styles.composeName}>{profileName}</Text>
 							</View>
-						</View>
 
-						<TextInput
-							value={postText}
-							onChangeText={setPostText}
-							placeholder="What's on your mind?"
-							placeholderTextColor="#8A94A6"
-							multiline
-							textAlignVertical="top"
-							style={[styles.input, styles.postInput]}
-						/>
+							<View style={styles.composeRow}>
+								<Image source={{ uri: profileImageUri }} style={styles.avatar} />
+								<View style={styles.composeBody}>
+									<Text style={styles.composeName}>{profileName}</Text>
+								</View>
+							</View>
 
-						<View style={styles.toolbarRow}>
-							<Pressable style={styles.toolbarButton} onPress={handlePickPhoto} android_ripple={{ color: '#EAF0FF' }} disabled={isPickingPhoto}>
-								<Ionicons name="image-outline" size={18} color="#31429B" />
-								<Text style={styles.toolbarButtonText}>Photo</Text>
-							</Pressable>
+							<TextInput
+								value={postText}
+								onChangeText={setPostText}
+								placeholder="What's on your mind?"
+								placeholderTextColor="#8A94A6"
+								multiline
+								textAlignVertical="top"
+								style={[styles.input, styles.postInput]}
+							/>
 
-							<Pressable style={styles.toolbarButton} onPress={handlePickVideo} android_ripple={{ color: '#EAF0FF' }} disabled={isPickingVideo}>
-								<Ionicons name="videocam-outline" size={18} color="#31429B" />
-								<Text style={styles.toolbarButtonText}>Video</Text>
-							</Pressable>
+							<View style={styles.toolbarRow}>
+								<Pressable style={styles.toolbarButton} onPress={handlePickPhoto} android_ripple={{ color: '#EAF0FF' }} disabled={isPickingPhoto}>
+									<Ionicons name="image-outline" size={18} color="#31429B" />
+									<Text style={styles.toolbarButtonText}>Photo</Text>
+								</Pressable>
 
-							<Pressable style={styles.toolbarButton} android_ripple={{ color: '#EAF0FF' }}>
-								<Ionicons name="location-outline" size={18} color="#31429B" />
-								<Text style={styles.toolbarButtonText}>Location</Text>
-							</Pressable>
-						</View>
+								<Pressable style={styles.toolbarButton} onPress={handlePickVideo} android_ripple={{ color: '#EAF0FF' }} disabled={isPickingVideo}>
+									<Ionicons name="videocam-outline" size={18} color="#31429B" />
+									<Text style={styles.toolbarButtonText}>Video</Text>
+								</Pressable>
 
-						<View style={styles.previewCard}>
-							<View style={styles.previewImageWrap}>
-								{selectedPhotoUris.length === 1 ? (
-									<View style={styles.previewMediaItem}>
-										<Image source={{ uri: selectedPhotoUris[0] }} style={styles.previewImage} resizeMode="contain" />
-										<Pressable style={styles.previewRemoveButton} onPress={() => handleRemovePhoto(selectedPhotoUris[0])}>
-											<Ionicons name="close" size={14} color="#FFFFFF" />
-										</Pressable>
-									</View>
-								) : selectedPhotoUris.length > 1 ? (
-									<View style={styles.previewGrid}>
-										{selectedPhotoUris.map((uri) => (
-											<View key={uri} style={styles.previewGridItem}>
-												<Image source={{ uri }} style={styles.previewThumbnail} resizeMode="contain" />
-												<Pressable style={styles.previewRemoveButton} onPress={() => handleRemovePhoto(uri)}>
-													<Ionicons name="close" size={14} color="#FFFFFF" />
-												</Pressable>
+								<Pressable style={styles.toolbarButton} android_ripple={{ color: '#EAF0FF' }}>
+									<Ionicons name="location-outline" size={18} color="#31429B" />
+									<Text style={styles.toolbarButtonText}>Location</Text>
+								</Pressable>
+							</View>
+
+							<View style={styles.previewCard}>
+								<View style={styles.previewImageWrap}>
+									{previewPhotoItems.length > 0 ? (
+										previewPhotoItems.length === 1 ? (
+											<View style={styles.previewMediaItem}>
+													<Image source={{ uri: previewPhotoItems[0].uri }} style={styles.previewImage} resizeMode="contain" />
+													<Pressable
+														style={styles.previewRemoveButton}
+														onPress={() => (previewPhotoItems[0].type === 'existing' ? handleRemoveExistingPhoto(previewPhotoItems[0].imageId) : handleRemovePhoto(previewPhotoItems[0].uri))}
+													>
+														<Ionicons name="close" size={14} color="#FFFFFF" />
+													</Pressable>
 											</View>
-										))}
-									</View>
-								) : selectedVideoUris.length === 1 ? (
-									<View style={styles.previewMediaItem}>
-										<View style={styles.previewVideoTile}>
-											<Ionicons name="play-circle-outline" size={44} color="#31429B" />
-											<Text style={styles.previewVideoText}>Video selected</Text>
-										</View>
-										<Pressable style={styles.previewRemoveButton} onPress={() => handleRemoveVideo(selectedVideoUris[0])}>
-											<Ionicons name="close" size={14} color="#FFFFFF" />
-										</Pressable>
-									</View>
-								) : selectedVideoUris.length > 1 ? (
-									<View style={styles.previewGrid}>
-										{selectedVideoUris.map((uri) => (
-											<View key={uri} style={styles.previewGridItem}>
+										) : (
+											<View style={styles.previewGrid}>
+												{previewPhotoItems.map((item) => (
+													<View key={item.key} style={styles.previewGridItem}>
+														<Image source={{ uri: item.uri }} style={styles.previewThumbnail} resizeMode="contain" />
+														<Pressable
+															style={styles.previewRemoveButton}
+															onPress={() => (item.type === 'existing' ? handleRemoveExistingPhoto(item.imageId) : handleRemovePhoto(item.uri))}
+														>
+																<Ionicons name="close" size={14} color="#FFFFFF" />
+															</Pressable>
+													</View>
+												))}
+											</View>
+										)
+									) : selectedVideoUris.length === 1 ? (
+											<View style={styles.previewMediaItem}>
 												<View style={styles.previewVideoTile}>
 													<Ionicons name="play-circle-outline" size={44} color="#31429B" />
 													<Text style={styles.previewVideoText}>Video selected</Text>
 												</View>
-												<Pressable style={styles.previewRemoveButton} onPress={() => handleRemoveVideo(uri)}>
+												<Pressable style={styles.previewRemoveButton} onPress={() => handleRemoveVideo(selectedVideoUris[0])}>
 													<Ionicons name="close" size={14} color="#FFFFFF" />
 												</Pressable>
 											</View>
-										))}
-									</View>
-								) : (
-									<>
-										<Ionicons name="image-outline" size={30} color="#9CA3AF" />
-										<Text style={styles.previewText}>Media preview will appear here.</Text>
-									</>
-								)}
+										) : selectedVideoUris.length > 1 ? (
+											<View style={styles.previewGrid}>
+												{selectedVideoUris.map((uri) => (
+													<View key={uri} style={styles.previewGridItem}>
+														<View style={styles.previewVideoTile}>
+															<Ionicons name="play-circle-outline" size={44} color="#31429B" />
+															<Text style={styles.previewVideoText}>Video selected</Text>
+														</View>
+														<Pressable style={styles.previewRemoveButton} onPress={() => handleRemoveVideo(uri)}>
+															<Ionicons name="close" size={14} color="#FFFFFF" />
+														</Pressable>
+													</View>
+												))}
+											</View>
+										) : (
+											<>
+												<Ionicons name="image-outline" size={30} color="#9CA3AF" />
+												<Text style={styles.previewText}>Media preview will appear here.</Text>
+											</>
+										)
+									}
+								</View>
+							</View>
+
+							<View style={styles.footerRow}>
+								<Pressable style={styles.saveDraftButton} android_ripple={{ color: '#EAF0FF' }} onPress={() => handleSubmitPost(true)} disabled={isSubmitting}>
+									<Text style={styles.saveDraftText}>Save Draft</Text>
+								</Pressable>
+
+								<Pressable style={[styles.postButton, isPublishDisabled && styles.postButtonDisabled]} onPress={() => handleSubmitPost(false)} android_ripple={{ color: '#24346F' }} disabled={isPublishDisabled || isSubmitting}>
+									<Text style={styles.postButtonText}>{isEditMode ? 'Update' : 'Post'}</Text>
+								</Pressable>
 							</View>
 						</View>
+					</ScrollView>
+				</View>
+			</SafeAreaView>
 
-						<View style={styles.footerRow}>
-							<Pressable style={styles.saveDraftButton} android_ripple={{ color: '#EAF0FF' }}>
-								<Text style={styles.saveDraftText}>Save Draft</Text>
-							</Pressable>
-
-							<Pressable style={[styles.postButton, !canPost && styles.postButtonDisabled]} onPress={handleSubmitPost} android_ripple={{ color: '#24346F' }} disabled={!canPost || isSubmitting}>
-								<Text style={styles.postButtonText}>Post</Text>
-							</Pressable>
-						</View>
+			<Modal visible={isSubmitting} transparent animationType="fade" statusBarTranslucent>
+				<View style={styles.uploadModalBackdrop}>
+					<View style={styles.uploadModalCard}>
+						<ActivityIndicator size="large" color="#31429B" />
+						<Text style={styles.uploadModalTitle}>{getSubmitModalTitle()}</Text>
+						<Text style={styles.uploadModalText}>{getSubmitModalText()}</Text>
 					</View>
-				</ScrollView>
-			</View>
-		</SafeAreaView>
+				</View>
+			</Modal>
+		</>
 	);
 };
 

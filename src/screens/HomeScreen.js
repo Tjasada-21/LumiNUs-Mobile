@@ -42,6 +42,7 @@ const HomeScreen = ({ navigation }) => {
     const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [isIdFlipped, setIsIdFlipped] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef(null);
 
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const menuTranslateX = useRef(new Animated.Value(-Math.min(width * 0.92, 340))).current;
@@ -120,6 +121,8 @@ const HomeScreen = ({ navigation }) => {
   	// SECTION: Load user data
   	useFocusEffect(
   		useCallback(() => {
+        scrollViewRef.current?.scrollTo?.({ y: 0, animated: false });
+
         let isActive = true;
 
         const fetchUserData = async () => {
@@ -595,6 +598,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.container}>
         <BrandHeader />
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainScrollContent}
         >

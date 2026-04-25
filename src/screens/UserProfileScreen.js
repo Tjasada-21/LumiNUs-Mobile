@@ -6,6 +6,7 @@ import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/UserProfileScreen.styles';
 import { getAuthToken } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const UserProfileScreen = ({ navigation }) => {
 	// SECTION: Layout values
@@ -24,6 +25,9 @@ const UserProfileScreen = ({ navigation }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isBioModalVisible, setIsBioModalVisible] = useState(false);
   const [bioDraft, setBioDraft] = useState('');
+  const [postActionPost, setPostActionPost] = useState(null);
+  const [isPostActionModalVisible, setIsPostActionModalVisible] = useState(false);
+  const [isPostActionSaving, setIsPostActionSaving] = useState(false);
 
 	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
@@ -93,6 +97,42 @@ const UserProfileScreen = ({ navigation }) => {
   };
 
   const getPostImageUri = (image) => image?.image_url ?? image?.image_path ?? '';
+
+  const visibilityLabels = {
+    public: 'Public',
+    private: 'Private',
+    friends: 'Friends',
+  };
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage('');
+
+      const token = await getAuthToken();
+
+      if (!token) {
+        setErrorMessage('No active session found.');
+        return;
+      }
+
+      const response = await api.get('/alumni/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const postsResponse = await api.get('/alumni/profile/posts', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUserData(response.data?.alumni ?? null);
+      setProfilePosts(postsResponse.data?.posts ?? []);
+    } catch (fetchError) {
+      console.error('Failed to fetch profile:', fetchError);
+      setErrorMessage('Unable to load profile right now.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderProfilePostImages = (postImages = []) => {
     if (!Array.isArray(postImages) || postImages.length === 0) {
@@ -167,37 +207,7 @@ const UserProfileScreen = ({ navigation }) => {
 
 	// SECTION: Load profile data
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setLoading(true);
-        setErrorMessage('');
-
-        const token = await getAuthToken();
-
-        if (!token) {
-          setErrorMessage('No active session found.');
-          return;
-        }
-
-        const response = await api.get('/alumni/profile', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const postsResponse = await api.get('/alumni/profile/posts', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setUserData(response.data?.alumni ?? null);
-        setProfilePosts(postsResponse.data?.posts ?? []);
-      } catch (fetchError) {
-        console.error('Failed to fetch profile:', fetchError);
-        setErrorMessage('Unable to load profile right now.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
+    loadProfile();
   }, []);
 
 	// HANDLER: Open biography editor
@@ -246,6 +256,125 @@ const UserProfileScreen = ({ navigation }) => {
       }));
     } finally {
     }
+  };
+
+  const openPostActions = (post) => {
+    setPostActionPost(post);
+    setIsPostActionModalVisible(true);
+  };
+
+  const closePostActions = () => {
+    if (isPostActionSaving) {
+      return;
+    }
+
+    setIsPostActionModalVisible(false);
+    setPostActionPost(null);
+  };
+
+  const savePostUpdate = async (payload, successTitle, successMessage) => {
+    if (!postActionPost?.id || isPostActionSaving) {
+      return;
+    }
+
+    try {
+      setIsPostActionSaving(true);
+
+      const token = await getAuthToken();
+
+      if (!token) {
+        showBrandedAlert('Sign in required', 'Please sign in again before updating a post.', [{ text: 'OK' }], { variant: 'error' });
+        return;
+      }
+
+      await api.patch(`/posts/${postActionPost.id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      await loadProfile();
+      setIsPostActionModalVisible(false);
+      setPostActionPost(null);
+      showBrandedAlert(successTitle, successMessage, [{ text: 'OK' }], { variant: 'success' });
+    } catch (error) {
+      console.error('Failed to update post:', error);
+      showBrandedAlert('Update failed', 'Unable to update the post right now.', [{ text: 'OK' }], { variant: 'error' });
+    } finally {
+      setIsPostActionSaving(false);
+    }
+  };
+
+  const handleToggleDraft = () => {
+    if (!postActionPost) {
+      return;
+    }
+
+    savePostUpdate(
+      { is_draft: !postActionPost.is_draft },
+      postActionPost.is_draft ? 'Post published' : 'Draft saved',
+      postActionPost.is_draft ? 'Your post is visible again.' : 'Your post was saved as a draft.'
+    );
+  };
+
+  const handleChangeVisibility = (visibility) => {
+    savePostUpdate(
+      { visibility },
+      'Visibility updated',
+      `This post is now visible to ${visibilityLabels[visibility] ?? 'selected viewers'}.`
+    );
+  };
+
+  const handleEditPost = () => {
+    if (!postActionPost) {
+      return;
+    }
+
+    setIsPostActionModalVisible(false);
+    navigation.navigate('CreatePostScreen', { post: postActionPost });
+    setPostActionPost(null);
+  };
+
+  const handleDeletePost = () => {
+    if (!postActionPost) {
+      return;
+    }
+
+    showBrandedAlert(
+      'Delete post?',
+      'This action cannot be undone.',
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setIsPostActionSaving(true);
+
+              const token = await getAuthToken();
+
+              if (!token) {
+                showBrandedAlert('Sign in required', 'Please sign in again before deleting a post.', [{ text: 'OK' }], { variant: 'error' });
+                return;
+              }
+
+              await api.delete(`/posts/${postActionPost.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              await loadProfile();
+              setIsPostActionModalVisible(false);
+              setPostActionPost(null);
+              showBrandedAlert('Post deleted', 'Your post has been removed.', [{ text: 'OK' }], { variant: 'success' });
+            } catch (error) {
+              console.error('Failed to delete post:', error);
+              showBrandedAlert('Delete failed', 'Unable to delete the post right now.', [{ text: 'OK' }], { variant: 'error' });
+            } finally {
+              setIsPostActionSaving(false);
+            }
+          },
+        },
+      ],
+      { variant: 'error' }
+    );
   };
 
   // HANDLER: Open account settings
@@ -419,6 +548,7 @@ const UserProfileScreen = ({ navigation }) => {
                       const isRepost = post.feed_type === 'repost';
                       const originalCaption = post.original_post?.caption ?? '';
                       const postImages = post.images ?? [];
+                      const visibilityLabel = visibilityLabels[post.visibility] ?? 'Public';
 
                       return (
                         <View key={post.feed_id ?? `${post.feed_type}-${post.id}-${post.created_at}`} style={styles.profilePostItem}>
@@ -440,7 +570,21 @@ const UserProfileScreen = ({ navigation }) => {
                               </Text>
                             </View>
 
-                            <Text style={styles.profilePostTime}>{new Date(post.created_at).toLocaleString()}</Text>
+                            <View style={styles.profilePostHeaderRight}>
+                              <View style={styles.profilePostStatusGroup}>
+                                <Text style={styles.profilePostTime}>{new Date(post.created_at).toLocaleString()}</Text>
+                                <Text style={styles.profilePostVisibilityText}>
+                                  {post.is_draft ? 'Draft' : visibilityLabel}
+                                </Text>
+                              </View>
+                              <TouchableOpacity
+                                style={styles.profilePostMenuButton}
+                                activeOpacity={0.85}
+                                onPress={() => openPostActions(post)}
+                              >
+                                <Ionicons name="ellipsis-horizontal" size={16} color="#31429B" />
+                              </TouchableOpacity>
+                            </View>
                           </View>
 
                           {post.caption ? <Text style={styles.profilePostCaption}>{post.caption}</Text> : null}
@@ -468,6 +612,69 @@ const UserProfileScreen = ({ navigation }) => {
             </>
           )}
         </ScrollView>
+
+        <Modal
+          visible={isPostActionModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={closePostActions}
+        >
+          <View style={styles.postActionOverlay}>
+            <View style={styles.postActionCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Manage Post</Text>
+                <TouchableOpacity onPress={closePostActions} style={styles.modalCloseButton} activeOpacity={0.8} disabled={isPostActionSaving}>
+                  <Ionicons name="close" size={22} color="#31429B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalHelperText}>
+                Edit the content, change visibility, save it as a draft, or delete it.
+              </Text>
+
+              <View style={styles.postActionRow}>
+                <TouchableOpacity style={styles.postActionButton} activeOpacity={0.85} onPress={handleEditPost} disabled={isPostActionSaving}>
+                  <Ionicons name="create-outline" size={15} color="#31429B" />
+                  <Text style={styles.postActionButtonText}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.postActionButton} activeOpacity={0.85} onPress={handleToggleDraft} disabled={isPostActionSaving}>
+                  <Ionicons name={postActionPost?.is_draft ? 'cloud-upload-outline' : 'bookmark-outline'} size={15} color="#31429B" />
+                  <Text style={styles.postActionButtonText}>{postActionPost?.is_draft ? 'Publish' : 'Draft'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.postActionSectionLabel}>Who can view this post?</Text>
+              <View style={styles.postVisibilityRow}>
+                {['public', 'friends', 'private'].map((visibility) => {
+                  const isSelected = postActionPost?.visibility === visibility || (!postActionPost?.visibility && visibility === 'public');
+
+                  return (
+                    <TouchableOpacity
+                      key={visibility}
+                      style={[styles.postVisibilityPill, isSelected && styles.postVisibilityPillSelected]}
+                      activeOpacity={0.85}
+                      onPress={() => handleChangeVisibility(visibility)}
+                      disabled={isPostActionSaving}
+                    >
+                      <Text style={styles.postVisibilityPillText}>{visibilityLabels[visibility]}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={styles.postDeleteButton}
+                activeOpacity={0.85}
+                onPress={handleDeletePost}
+                disabled={isPostActionSaving}
+              >
+                <Ionicons name="trash-outline" size={15} color="#B91C1C" />
+                <Text style={styles.postDeleteButtonText}>Delete Post</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           visible={isBioModalVisible}

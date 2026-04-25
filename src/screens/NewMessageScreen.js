@@ -1,10 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import SmartTextInput from '../components/SmartTextInput';
 import styles from '../styles/NewMessageScreen.styles';
+import { getAuthToken } from '../services/authStorage';
 
 const SUGGESTED_PEOPLE = [
 	{
@@ -71,6 +73,9 @@ const NewMessageScreen = ({ navigation }) => {
 	const [groupName, setGroupName] = useState('');
 	const [memberQuery, setMemberQuery] = useState('');
 	const [selectedMembers, setSelectedMembers] = useState([]);
+	const [connections, setConnections] = useState([]);
+	const [connectionsLoading, setConnectionsLoading] = useState(false);
+	const [connectionsError, setConnectionsError] = useState('');
 
 	// DERIVED VALUE: Filtered people list
 	const filteredPeople = useMemo(() => {
@@ -98,8 +103,67 @@ const NewMessageScreen = ({ navigation }) => {
 		});
 	}, [memberQuery]);
 
+	// DERIVED VALUE: Filtered connections list
+	const filteredConnections = useMemo(() => {
+		const normalizedQuery = query.trim().toLowerCase();
+
+		if (!normalizedQuery) {
+			return connections;
+		}
+
+		return connections.filter((connection) => {
+			const connectionName = `${connection?.first_name ?? ''} ${connection?.last_name ?? ''}`.trim().toLowerCase();
+			return connectionName.includes(normalizedQuery);
+		});
+	}, [connections, query]);
+
 	// DERIVED VALUE: Selected member display names
 	const selectedMemberNames = useMemo(() => selectedMembers.map((person) => person.name), [selectedMembers]);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		const fetchConnections = async () => {
+			try {
+				setConnectionsLoading(true);
+				setConnectionsError('');
+
+				const token = await getAuthToken();
+
+				if (!token) {
+					if (isMounted) {
+						setConnectionsError('No active session found.');
+					}
+					return;
+				}
+
+				const response = await api.get('/contacts', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
+				if (!isMounted) {
+					return;
+				}
+
+				setConnections(response.data?.contacts ?? []);
+			} catch (fetchError) {
+				console.error('Failed to fetch connections:', fetchError);
+				if (isMounted) {
+					setConnectionsError('Unable to load connections right now.');
+				}
+			} finally {
+				if (isMounted) {
+					setConnectionsLoading(false);
+				}
+			}
+		};
+
+		fetchConnections();
+
+		return () => {
+			isMounted = false;
+		};
+	}, []);
 
 	// HANDLER: Open the group chat modal
 	const openGroupChatModal = () => {
@@ -127,8 +191,36 @@ const NewMessageScreen = ({ navigation }) => {
 	};
 
 	// HANDLER: Create the group chat from selected members
-	const handleCreateGroupChat = () => {
-		closeGroupChatModal();
+	const handleCreateGroupChat = async () => {
+		if (!groupName.trim() || selectedMembers.length < 2) {
+			// Optionally show error: group name required, at least 2 members
+			return;
+		}
+		try {
+			const token = await getAuthToken();
+			if (!token) return;
+			// Prepare member IDs (assuming SUGGESTED_PEOPLE uses .id)
+			const memberIds = selectedMembers.map((m) => m.id);
+			// Call backend to create group chat
+			const response = await api.post('/group-chats', {
+				name: groupName.trim(),
+				member_ids: memberIds,
+			}, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			const group = response.data?.group || response.data;
+			closeGroupChatModal();
+			// Navigate to ConvoScreen with group chat info
+			navigation.navigate('ConvoScreen', {
+				groupId: group.id,
+				groupName: group.name,
+				groupAvatar: group.avatar || null,
+				groupMembers: group.members || selectedMembers,
+			});
+		} catch (error) {
+			// Optionally show error
+			closeGroupChatModal();
+		}
 	};
 
 	// RENDER HELPER: Suggested person row
@@ -143,6 +235,26 @@ const NewMessageScreen = ({ navigation }) => {
 			</Text>
 		</Pressable>
 	);
+
+	const renderConnectionRow = (connection) => {
+		const connectionName = `${connection?.first_name ?? ''} ${connection?.last_name ?? ''}`.trim() || 'Alumni';
+		const connectionAvatar = connection?.alumni_photo
+			? connection.alumni_photo
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(connectionName)}&background=31429B&color=fff`;
+
+		return (
+			<Pressable key={String(connection?.connection_id ?? connection?.id)} style={styles.connectionRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
+				<Image source={{ uri: connectionAvatar }} style={styles.connectionAvatar} />
+				<View style={styles.connectionTextWrap}>
+					<Text style={styles.connectionName} numberOfLines={1}>
+						{connectionName}
+					</Text>
+					<Text style={styles.connectionMeta}>Connected</Text>
+				</View>
+				<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+			</Pressable>
+		);
+	};
 
 	// RENDER HELPER: Group member row
 	const renderMemberRow = ({ item }) => {
@@ -211,6 +323,31 @@ const NewMessageScreen = ({ navigation }) => {
 									<Ionicons name="document-text-outline" size={18} color="#31429B" />
 									<Text style={styles.notesButtonText}>Add notes</Text>
 								</Pressable>
+							</View>
+
+							<View style={styles.connectionsSection}>
+								<View style={styles.sectionHeaderRow}>
+									<Text style={styles.sectionLabel}>Connections</Text>
+									<Text style={styles.sectionCount}>{connections.length}</Text>
+								</View>
+
+								{connectionsLoading ? (
+									<View style={styles.connectionsLoadingWrap}>
+										<ActivityIndicator color="#31429B" />
+									</View>
+								) : connectionsError ? (
+									<View style={styles.connectionsEmptyWrap}>
+										<Text style={styles.emptyText}>{connectionsError}</Text>
+									</View>
+								) : filteredConnections.length > 0 ? (
+									<View style={styles.connectionsList}>
+										{filteredConnections.map(renderConnectionRow)}
+									</View>
+								) : (
+									<View style={styles.connectionsEmptyWrap}>
+										<Text style={styles.emptyText}>No connections found.</Text>
+									</View>
+								)}
 							</View>
 
 							<Text style={styles.sectionLabel}>Suggested</Text>

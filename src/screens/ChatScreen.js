@@ -64,6 +64,29 @@ const ChatScreen = ({ navigation }) => {
 		navigation.navigate('NewMessage');
 	};
 
+	const openConversation = (contact) => {
+		const contactName = `${contact?.first_name ?? ''} ${contact?.last_name ?? ''}`.trim() || 'Alumni';
+		const contactAvatar = contact?.alumni_photo
+			? contact.alumni_photo
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName)}&background=31429B&color=fff`;
+		const parentNavigator = navigation.getParent?.();
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('ConvoScreen', {
+				contactId: contact?.id,
+				contactName,
+				contactAvatar,
+			});
+			return;
+		}
+
+		navigation.navigate('ConvoScreen', {
+			contactId: contact?.id,
+			contactName,
+			contactAvatar,
+		});
+	};
+
 	// SECTION: Load the current user
 	useEffect(() => {
 		const fetchUserData = async () => {
@@ -139,7 +162,7 @@ const ChatScreen = ({ navigation }) => {
 			<TouchableOpacity
 				style={styles.contactCard}
 				activeOpacity={0.85}
-				onPress={() => navigation.navigate('NewMessage', { userId: item.id, userName: contactName, userAvatarUri: contactAvatar })}
+				onPress={() => openConversation(item)}
 			>
 				<Image source={{ uri: contactAvatar }} style={styles.contactAvatar} />
 				<View style={styles.contactTextWrap}>
