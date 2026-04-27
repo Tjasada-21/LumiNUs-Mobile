@@ -57,8 +57,16 @@ const ProfileViewScreen = ({ navigation, route }) => {
 	const isConnected = profileSummary.connectionStatus === 'connected';
 	const isPendingConnection = profileSummary.connectionStatus === 'pending';
 
-	const openNewMessage = () => {
-		navigation.navigate('NewMessage', {
+	const openConversation = () => {
+		if (!isConnected) {
+			showBrandedAlert(
+				'Message unavailable',
+				'You can only message alumni after you are connected with them.'
+			);
+			return;
+		}
+
+		navigation.navigate('ConvoScreen', {
 			userId,
 			userName: profileName,
 			userAvatarUri: profileImageUri,
@@ -329,7 +337,12 @@ const ProfileViewScreen = ({ navigation, route }) => {
 											</Text>
 										</TouchableOpacity>
 
-										<TouchableOpacity style={styles.messageButton} activeOpacity={0.85} onPress={openNewMessage}>
+										<TouchableOpacity
+											style={[styles.messageButton, !isConnected && styles.messageButtonDisabled]}
+											activeOpacity={0.85}
+											onPress={openConversation}
+											disabled={!isConnected}
+										>
 											<Ionicons name="chatbubble-ellipses-outline" size={12} color="#31429B" />
 											<Text style={styles.messageButtonText}>Message</Text>
 										</TouchableOpacity>

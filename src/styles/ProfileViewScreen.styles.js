@@ -127,6 +127,10 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 999,
   },
+  messageButtonDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
+  },
   messageButtonText: {
     color: '#31429B',
     fontSize: 11,

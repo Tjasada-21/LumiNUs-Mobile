@@ -28,6 +28,35 @@ import { useUnreadMessages } from '../context/UnreadMessagesContext';
 
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '👏'];
 
+const toMentionHandle = (firstName, lastName) => {
+  const normalizedHandle = `${firstName ?? ''}_${lastName ?? ''}`
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_.-]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return normalizedHandle || 'alumni';
+};
+
+const extractMentionQuery = (value) => {
+  const text = String(value ?? '');
+  const match = text.match(/(^|\s)@([a-zA-Z0-9_.-]*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const query = match[2] ?? '';
+  const mentionStart = text.length - query.length - 1;
+
+  return {
+    query,
+    mentionStart,
+    mentionEnd: text.length,
+  };
+};
+
 const normalizeMessageList = (value) => {
   if (Array.isArray(value)) {
     return value;
@@ -117,11 +146,47 @@ export default function ConvoScreen() {
   const [actionMessage, setActionMessage] = useState(null);
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [connections, setConnections] = useState([]);
 
   const hasConversation = Boolean(contactId || groupId);
   const headerSubtitle = isGroup
     ? (groupMembers.map((member) => member?.name).filter(Boolean).join(', ') || 'Group chat')
     : (conversationStatus || 'Active now');
+
+  const mentionContext = useMemo(() => extractMentionQuery(draft), [draft]);
+
+  const mentionSuggestions = useMemo(() => {
+    if (!mentionContext) {
+      return [];
+    }
+
+    const query = mentionContext.query.toLowerCase();
+
+    return connections
+      .map((connection) => {
+        const firstName = connection?.first_name ?? '';
+        const lastName = connection?.last_name ?? '';
+        const fullName = `${firstName} ${lastName}`.trim() || 'Alumni';
+        const avatar = connection?.alumni_photo
+          ? connection.alumni_photo
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=31429B&color=fff`;
+
+        return {
+          id: connection?.id,
+          name: fullName,
+          handle: toMentionHandle(firstName, lastName),
+          avatar,
+        };
+      })
+      .filter((item) => {
+        if (!query) {
+          return true;
+        }
+
+        return item.name.toLowerCase().includes(query) || item.handle.includes(query);
+      })
+      .slice(0, 5);
+  }, [connections, mentionContext]);
 
   const scrollToBottom = useCallback((animated = false) => {
     requestAnimationFrame(() => {
@@ -140,15 +205,61 @@ export default function ConvoScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      const contactsResponse = await api.get('/contacts', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       const userId = response.data?.id ?? response.data?.user?.id ?? response.data?.data?.id ?? null;
       const userFirstName = response.data?.first_name ?? response.data?.user?.first_name ?? response.data?.data?.first_name ?? '';
       const userLastName = response.data?.last_name ?? response.data?.user?.last_name ?? response.data?.data?.last_name ?? '';
       const userFullName = [userFirstName, userLastName].filter(Boolean).join(' ').trim();
       setCurrentUserId(userId);
+      setConnections(contactsResponse.data?.contacts ?? []);
     } catch (error) {
       console.error('Failed to load current user:', error);
+      setConnections([]);
     }
   }, []);
+
+  const handleMentionPick = useCallback((mentionHandle) => {
+    if (!mentionContext) {
+      return;
+    }
+
+    setDraft((currentDraft) => {
+      const safeText = String(currentDraft ?? '');
+      const prefix = safeText.slice(0, mentionContext.mentionStart);
+      const suffix = safeText.slice(mentionContext.mentionEnd);
+      return `${prefix}@${mentionHandle} ${suffix}`;
+    });
+  }, [mentionContext]);
+
+  const handleMentionPress = useCallback((token) => {
+    const mentionHandle = String(token ?? '').replace(/^@/, '').toLowerCase();
+
+    if (!mentionHandle) {
+      return;
+    }
+
+    const matchedConnection = connections.find((connection) => {
+      const connectionHandle = toMentionHandle(connection?.first_name, connection?.last_name);
+      return connectionHandle === mentionHandle;
+    });
+
+    if (!matchedConnection?.id) {
+      Alert.alert('Mention unavailable', `No profile found for @${mentionHandle}.`);
+      return;
+    }
+
+    const parentNavigator = navigation.getParent?.();
+
+    if (parentNavigator?.navigate) {
+      parentNavigator.navigate('ProfileView', { userId: matchedConnection.id });
+      return;
+    }
+
+    navigation.navigate('ProfileView', { userId: matchedConnection.id });
+  }, [connections, navigation]);
 
   const loadMessages = useCallback(async () => {
     if (!hasConversation) {
@@ -362,12 +473,13 @@ export default function ConvoScreen() {
         showAvatar={!isOutgoing}
         senderAvatar={senderAvatar}
         onLongPress={() => openMessageActions(item)}
+        onMentionPress={handleMentionPress}
         read={Boolean(item?.read_at)}
         messageTime={messageTime}
         sendStatus={sendStatus}
       />
     );
-  }, [conversationAvatar, conversationName, currentUserId, messages, openMessageActions]);
+  }, [conversationAvatar, conversationName, currentUserId, handleMentionPress, messages, openMessageActions]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyConversationState}>
@@ -409,17 +521,34 @@ export default function ConvoScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <CustomKeyboardView
         footer={(
-          <MessageInputBar
-            value={draft}
-            onChangeText={setDraft}
-            onSend={handleSend}
-            onAttach={() => Alert.alert('Attachments', 'Attachment picker is not implemented yet.')}
-            onEmoji={() => setDraft((currentDraft) => `${currentDraft} 😊`)}
-            disabled={isSending}
-            isReplying={Boolean(replyTo)}
-            onCancelReply={() => setReplyTo(null)}
-            replyTo={replyTo}
-          />
+          <View style={styles.composerFooterWrap}>
+            {mentionContext && mentionSuggestions.length > 0 ? (
+              <View style={styles.mentionPanel}>
+                {mentionSuggestions.map((item) => (
+                  <Pressable
+                    key={String(item.id ?? item.name)}
+                    style={styles.mentionItem}
+                    onPress={() => handleMentionPick(item.handle)}
+                  >
+                    <Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+                    <Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            <MessageInputBar
+              value={draft}
+              onChangeText={setDraft}
+              onSend={handleSend}
+              onAttach={() => Alert.alert('Attachments', 'Attachment picker is not implemented yet.')}
+              onEmoji={() => setDraft((currentDraft) => `${currentDraft} 😊`)}
+              disabled={isSending}
+              isReplying={Boolean(replyTo)}
+              onCancelReply={() => setReplyTo(null)}
+              replyTo={replyTo}
+            />
+          </View>
         )}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

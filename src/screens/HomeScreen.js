@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { 
-  View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, useWindowDimensions
+  View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, ImageBackground, Linking, Animated, Pressable, Dimensions, RefreshControl, useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import BrandHeader from '../components/BrandHeader';
 import { responsiveHeight, responsiveWidth } from '../utils/responsive';
 import styles from '../styles/HomeScreen.styles';
 import { clearAuthCredentials, getAuthToken } from '../services/authStorage';
+import { showBrandedAlert } from '../services/brandedAlert';
 
 const HomeScreen = ({ navigation }) => {
 	// SECTION: Layout values
@@ -40,6 +41,9 @@ const HomeScreen = ({ navigation }) => {
     const [userData, setUserData] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [featuredEvents, setFeaturedEvents] = useState([]);
+  const [isLoadingFeaturedEvents, setIsLoadingFeaturedEvents] = useState(false);
+    const [isRefreshingHome, setIsRefreshingHome] = useState(false);
   const [isIdFlipped, setIsIdFlipped] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
@@ -97,6 +101,31 @@ const HomeScreen = ({ navigation }) => {
       }
     }, []);
 
+    const fetchFeaturedEvents = useCallback(async () => {
+      try {
+        setIsLoadingFeaturedEvents(true);
+
+        const response = await api.get('/events');
+        const latestEvents = Array.isArray(response.data?.events) ? response.data.events.slice(0, 3) : [];
+
+        setFeaturedEvents(latestEvents);
+      } catch (error) {
+        console.error('Failed to fetch featured events:', error);
+        setFeaturedEvents([]);
+      } finally {
+        setIsLoadingFeaturedEvents(false);
+      }
+    }, []);
+
+    const refreshHomeContent = useCallback(async () => {
+      try {
+        setIsRefreshingHome(true);
+        await Promise.all([fetchNotifications(), fetchFeaturedEvents()]);
+      } finally {
+        setIsRefreshingHome(false);
+      }
+    }, [fetchFeaturedEvents, fetchNotifications]);
+
   	// HANDLER: Open the side menu
     const openMenu = () => {
         setIsMenuVisible(true)
@@ -151,12 +180,13 @@ const HomeScreen = ({ navigation }) => {
         };
 
         fetchUserData();
+        fetchFeaturedEvents();
 
         return () => {
           isActive = false;
         };
 
-  		}, [])
+		}, [fetchFeaturedEvents])
   	);
 
   useEffect(() => {
@@ -330,6 +360,23 @@ const HomeScreen = ({ navigation }) => {
 
   const notifData = Array.isArray(notifications) ? notifications : [];
   const notificationCount = notifData.length;
+  const visibleFeaturedEvents = Array.isArray(featuredEvents) ? featuredEvents : [];
+
+  const openEventDetails = (event) => {
+    const parentNavigator = navigation.getParent?.();
+    const rootNavigator = parentNavigator?.getParent?.() ?? parentNavigator;
+    const eventPayload = {
+      ...event,
+      cover_image_url: event?.cover_image_url ?? event?.images?.[0]?.image_url ?? null,
+    };
+
+    if (rootNavigator?.navigate) {
+      rootNavigator.navigate('ViewEventsScreen', { event: eventPayload });
+      return;
+    }
+
+    navigation.navigate('ViewEventsScreen', { event: eventPayload });
+  };
 
   const getNotificationTypeLabel = (type) => {
     if (type === 'announcement') {
@@ -494,6 +541,8 @@ const HomeScreen = ({ navigation }) => {
         await api.post(`/followers/${requestId}/accept`, {}, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        showBrandedAlert('Connection accepted', 'The connection request has been accepted.', [{ text: 'OK' }], { variant: 'success' });
       } else {
         await api.delete(`/followers/${requestId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -512,6 +561,27 @@ const HomeScreen = ({ navigation }) => {
       <Text style={styles.emptyNotifText}>No notifications yet.</Text>
     </View>
   );
+
+	// RENDER HELPER: Featured event card
+  const renderFeaturedEventCard = (event) => {
+    const imageSource = event?.cover_image_url
+      ? { uri: event.cover_image_url }
+      : require('../../assets/icons/Group.png');
+
+    return (
+      <Pressable
+        key={`featured-event-${event?.id ?? event?.title}`}
+        style={({ pressed }) => [
+          styles.promoCard,
+          { width: layout.promoCardWidth, height: layout.promoCardHeight },
+          pressed ? styles.promoCardPressed : null,
+        ]}
+        onPress={() => openEventDetails(event)}
+      >
+        <Image source={imageSource} style={styles.promoImage} resizeMode="cover" />
+      </Pressable>
+    );
+  };
 
 	// RENDER HELPER: Notification row
   const renderNotificationItem = ({ item }) => {
@@ -601,6 +671,14 @@ const HomeScreen = ({ navigation }) => {
           ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.mainScrollContent}
+          refreshControl={(
+            <RefreshControl
+              refreshing={isRefreshingHome}
+              onRefresh={refreshHomeContent}
+              tintColor="#31429B"
+              colors={['#31429B']}
+            />
+          )}
         >
           {/* SECTION: User profile and ID card */}
           <View style={styles.profileCardWrapper}>
@@ -711,29 +789,19 @@ const HomeScreen = ({ navigation }) => {
               style={styles.horizontalScroll}
               contentContainerStyle={styles.horizontalScrollContent}
             >
-              <View style={[styles.promoCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
-                <View style={styles.promoLeft} />
-                <View style={styles.promoRight}>
-                  <Text style={styles.promoEyebrow}>OPEN PLAY</Text>
-                  <Text style={styles.promoTitleMain}>PICKLE</Text>
-                  <Text style={styles.promoTitleSub}>BARK</Text>
-                  <Text style={styles.promoDate}>March 14, 2026</Text>
-                  <Text style={styles.promoLocation}>GoldenTop Sports Center</Text>
+              {isLoadingFeaturedEvents ? (
+                <View style={[styles.promoLoadingCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
+                  <ActivityIndicator size="small" color="#31429B" />
+                  <Text style={styles.promoLoadingText}>Loading events...</Text>
                 </View>
-              </View>
-
-              <View
-                style={[
-                  styles.promoCard,
-                  { width: layout.promoCardWidth, height: layout.promoCardHeight, backgroundColor: '#E2E8F0' },
-                ]}
-              >
-                <View style={styles.promoRight}>
-                  <Text style={styles.promoEyebrow}>COMING SOON</Text>
-                  <Text style={styles.promoTitleMain}>ALUMNI</Text>
-                  <Text style={styles.promoTitleSub}>HOMECOMING</Text>
+              ) : visibleFeaturedEvents.length > 0 ? (
+                visibleFeaturedEvents.map(renderFeaturedEventCard)
+              ) : (
+                <View style={[styles.promoEmptyCard, { width: layout.promoCardWidth, height: layout.promoCardHeight }]}>
+                  <Text style={styles.promoEyebrow}>NO EVENTS YET</Text>
+                  <Text style={styles.promoTitleMain}>Check back soon for the latest posted events.</Text>
                 </View>
-              </View>
+              )}
             </ScrollView>
           </View>
 

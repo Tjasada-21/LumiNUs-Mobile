@@ -4,7 +4,6 @@ import {
 	Text,
 	Image,
 	TouchableOpacity,
-	ScrollView,
 	useWindowDimensions,
 	FlatList,
 	ActivityIndicator,
@@ -57,7 +56,8 @@ const ChatScreen = ({ navigation }) => {
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
 	const [contacts, setContacts] = useState([]);
-	const [contactsLoading, setContactsLoading] = useState(false);
+	const [groupChats, setGroupChats] = useState([]);
+	const [isLoadingChatData, setIsLoadingChatData] = useState(false);
 
 	// HANDLER: Open the search screen
 	const openSearchMessage = () => {
@@ -106,14 +106,38 @@ const ChatScreen = ({ navigation }) => {
 		});
 	};
 
+	const openGroupConversation = (groupChat) => {
+		const groupName = groupChat?.name ?? 'Group Chat';
+		const groupAvatar = groupChat?.avatar_url
+			? groupChat.avatar_url
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(groupName)}&background=31429B&color=fff`;
+		const groupMembers = Array.isArray(groupChat?.members) ? groupChat.members : [];
+		const parentNavigator = navigation.getParent?.();
+
+		const conversationParams = {
+			groupId: groupChat?.id,
+			groupName,
+			groupAvatar,
+			groupMembers,
+		};
+
+		if (parentNavigator?.navigate) {
+			parentNavigator.navigate('ConvoScreen', conversationParams);
+			return;
+		}
+
+		navigation.navigate('ConvoScreen', conversationParams);
+	};
+
 	const loadChatData = useCallback(async () => {
 		try {
-			setContactsLoading(true);
+			setIsLoadingChatData(true);
 			const token = await getAuthToken();
 
 			if (!token) {
 				setUserData(null);
 				setContacts([]);
+				setGroupChats([]);
 				return;
 			}
 
@@ -123,15 +147,19 @@ const ChatScreen = ({ navigation }) => {
 			const contactsRequest = cachedContactsResponse
 				? Promise.resolve({ data: { contacts: cachedContactsResponse } })
 				: api.get('/contacts', { headers });
+			const groupChatsRequest = api.get('/group-chats', { headers });
 
-			const [userResponse, contactsResponse] = await Promise.all([
+			const [userResponse, contactsResponse, groupChatsResponse] = await Promise.all([
 				userRequest,
 				contactsRequest,
+				groupChatsRequest,
 			]);
 
 			setUserData(userResponse.data);
 			const nextContacts = contactsResponse.data?.contacts ?? [];
 			setContacts(nextContacts);
+			const nextGroupChats = groupChatsResponse.data?.group_chats ?? groupChatsResponse.data?.groups ?? [];
+			setGroupChats(nextGroupChats);
 
 			if (!cachedContactsResponse) {
 				cachedContacts = nextContacts;
@@ -141,8 +169,9 @@ const ChatScreen = ({ navigation }) => {
 			console.error('Failed to fetch chat screen data:', error);
 			setUserData(null);
 			setContacts([]);
+			setGroupChats([]);
 		} finally {
-			setContactsLoading(false);
+			setIsLoadingChatData(false);
 		}
 	}, []);
 
@@ -168,6 +197,49 @@ const ChatScreen = ({ navigation }) => {
 		return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=31429B&color=fff`;
 	}, [displayName, userData]);
 
+	const activeChats = useMemo(() => {
+		if (selectedTab === 'channels') {
+			return groupChats.map((groupChat) => ({ ...groupChat, __chatType: 'group' }));
+		}
+
+		if (selectedTab === 'favorites') {
+			return contacts
+				.filter((item) => item?.is_favorite || item?.favorite || item?.is_starred)
+				.map((contact) => ({ ...contact, __chatType: 'contact' }));
+		}
+
+		const mergedChats = [
+			...groupChats.map((groupChat) => ({ ...groupChat, __chatType: 'group' })),
+			...contacts.map((contact) => ({ ...contact, __chatType: 'contact' })),
+		];
+
+		return mergedChats.sort((firstItem, secondItem) => {
+			const firstTimestamp = new Date(
+				firstItem?.updated_at
+					?? firstItem?.latest_message?.created_at
+					?? firstItem?.created_at
+					?? 0
+			).getTime();
+			const secondTimestamp = new Date(
+				secondItem?.updated_at
+					?? secondItem?.latest_message?.created_at
+					?? secondItem?.created_at
+					?? 0
+			).getTime();
+
+			return secondTimestamp - firstTimestamp;
+		});
+	}, [contacts, groupChats, selectedTab]);
+
+	const renderEmptyState = useCallback((title, description) => {
+		return (
+			<View style={styles.emptyWrap}>
+				<Text style={styles.emptyTitle}>{title}</Text>
+				<Text style={styles.emptyText}>{description}</Text>
+			</View>
+		);
+	}, []);
+
 	const renderContactItem = ({ item }) => {
 		const contactName = `${item?.first_name ?? ''} ${item?.last_name ?? ''}`.trim() || 'Alumni';
 		const contactAvatar = item?.alumni_photo
@@ -192,6 +264,70 @@ const ChatScreen = ({ navigation }) => {
 				</View>
 			</TouchableOpacity>
 		);
+	};
+
+	const renderGroupChatItem = ({ item }) => {
+		const groupName = item?.name ?? 'Group Chat';
+		const groupAvatar = item?.avatar_url
+			? item.avatar_url
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(groupName)}&background=31429B&color=fff`;
+		const latestMessage = item?.latest_message?.content ?? 'No messages yet';
+		const memberCount = Array.isArray(item?.members) ? item.members.length : 0;
+		const unreadCount = Number(item?.unread_count ?? 0);
+
+		return (
+			<TouchableOpacity
+				style={styles.groupCard}
+				activeOpacity={0.85}
+				onPress={() => openGroupConversation(item)}
+			>
+				<Image source={{ uri: groupAvatar }} style={styles.groupAvatar} />
+				<View style={styles.groupTextWrap}>
+					<View style={styles.groupTitleRow}>
+						<Text style={styles.groupName} numberOfLines={1}>{groupName}</Text>
+						{unreadCount > 0 ? (
+							<View style={styles.groupUnreadPill}>
+								<Text style={styles.groupUnreadText}>{unreadCount}</Text>
+							</View>
+						) : null}
+					</View>
+					<Text style={styles.groupMeta} numberOfLines={1}>{memberCount} members</Text>
+					<Text style={styles.groupPreview} numberOfLines={1}>{latestMessage}</Text>
+				</View>
+				<View style={styles.contactRightWrap}>
+					<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+				</View>
+			</TouchableOpacity>
+		);
+	};
+
+	const getListEmptyComponent = useCallback(() => {
+		if (isLoadingChatData) {
+			return (
+				<View style={styles.loadingWrap}>
+					<ActivityIndicator color="#31429B" />
+				</View>
+			);
+		}
+
+		if (selectedTab === 'channels') {
+			return renderEmptyState('No group chats yet.', 'Create a group conversation and it will appear here.');
+		}
+
+		if (selectedTab === 'favorites') {
+			return renderEmptyState('No favorites yet.', 'Mark a chat as a favorite to keep it here.');
+		}
+
+		return renderEmptyState('No contacts yet.', 'Accepted connections will appear here as chat contacts.');
+	}, [isLoadingChatData, renderEmptyState, selectedTab]);
+
+	const listData = activeChats;
+	const renderItem = ({ item }) => {
+		if (item?.__chatType === 'group') {
+			return renderGroupChatItem({ item });
+		}
+
+		return renderContactItem({ item });
 	};
 
 	return (
@@ -244,24 +380,16 @@ const ChatScreen = ({ navigation }) => {
 					</View>
 
 					<View style={styles.listArea}>
-						{contactsLoading ? (
-							<View style={styles.loadingWrap}>
-								<ActivityIndicator color="#31429B" />
-							</View>
-						) : contacts.length > 0 ? (
-							<FlatList
-								data={contacts}
-								renderItem={renderContactItem}
-								keyExtractor={(item) => String(item.connection_id ?? item.id)}
-								showsVerticalScrollIndicator={false}
-								contentContainerStyle={styles.listContent}
-							/>
-						) : (
-							<View style={styles.emptyWrap}>
-								<Text style={styles.emptyTitle}>No contacts yet.</Text>
-								<Text style={styles.emptyText}>Accepted connections will appear here as chat contacts.</Text>
-							</View>
-						)}
+						<FlatList
+							data={listData}
+							renderItem={renderItem}
+							keyExtractor={(item) => `${item?.__chatType ?? 'chat'}-${String(item?.group_chat_id ?? item?.connection_id ?? item?.id)}`}
+							showsVerticalScrollIndicator={false}
+							contentContainerStyle={styles.listContent}
+							refreshing={isLoadingChatData}
+							onRefresh={loadChatData}
+							ListEmptyComponent={getListEmptyComponent}
+						/>
 					</View>
 				</View>
 			</View>

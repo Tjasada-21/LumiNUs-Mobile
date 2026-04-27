@@ -433,6 +433,38 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontStyle: 'italic',
 	},
+	composerFooterWrap: {
+		gap: 8,
+	},
+	mentionPanel: {
+		marginHorizontal: 12,
+		marginTop: 4,
+		borderRadius: 14,
+		backgroundColor: '#FFFFFF',
+		borderWidth: 1,
+		borderColor: '#D9E2FF',
+		paddingVertical: 6,
+		overflow: 'hidden',
+	},
+	mentionItem: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+	},
+	mentionAvatar: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		marginRight: 8,
+		backgroundColor: '#E5E7EB',
+	},
+	mentionName: {
+		flex: 1,
+		color: '#24346F',
+		fontSize: 13,
+		fontWeight: '700',
+	},
 });
 
 export default styles;

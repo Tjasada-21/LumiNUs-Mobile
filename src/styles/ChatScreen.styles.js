@@ -174,6 +174,19 @@ const styles = StyleSheet.create({
 		shadowRadius: 8,
 		shadowOffset: { width: 0, height: 4 },
 	},
+	groupCard: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: '#FFFFFF',
+		borderRadius: 16,
+		padding: 12,
+		marginBottom: 12,
+		elevation: 2,
+		shadowColor: '#000',
+		shadowOpacity: 0.04,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 4 },
+	},
 	contactAvatar: {
 		width: 46,
 		height: 46,
@@ -184,6 +197,53 @@ const styles = StyleSheet.create({
 	},
 	contactTextWrap: {
 		flex: 1,
+	},
+	groupTextWrap: {
+		flex: 1,
+	},
+	groupTitleRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 10,
+	},
+	groupAvatar: {
+		width: 46,
+		height: 46,
+		borderRadius: 23,
+		marginRight: 12,
+		borderWidth: 1,
+		borderColor: '#E5E7EB',
+	},
+	groupName: {
+		flex: 1,
+		color: '#31429B',
+		fontSize: 15,
+		fontWeight: '800',
+	},
+	groupUnreadPill: {
+		minWidth: 24,
+		height: 24,
+		borderRadius: 12,
+		paddingHorizontal: 7,
+		backgroundColor: '#31429B',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	groupUnreadText: {
+		color: '#FFFFFF',
+		fontSize: 12,
+		fontWeight: '800',
+	},
+	groupMeta: {
+		color: '#6B7280',
+		fontSize: 12,
+		marginTop: 2,
+	},
+	groupPreview: {
+		color: '#3E3E3E',
+		fontSize: 13,
+		marginTop: 3,
 	},
 	contactRightWrap: {
 		flexDirection: 'row',

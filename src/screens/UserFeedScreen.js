@@ -13,6 +13,35 @@ const MAX_ZOOM_SCALE = 2.5;
 const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
 const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
 
+const extractMentionQuery = (value) => {
+	const text = String(value ?? '');
+	const match = text.match(/(^|\s)@([a-zA-Z0-9_.-]*)$/);
+
+	if (!match) {
+		return null;
+	}
+
+	const query = match[2] ?? '';
+	const mentionStart = text.length - query.length - 1;
+
+	return {
+		query,
+		mentionStart,
+		mentionEnd: text.length,
+	};
+};
+
+const toMentionHandle = (firstName, lastName) => {
+	const normalizedHandle = `${firstName ?? ''}_${lastName ?? ''}`
+		.toLowerCase()
+		.replace(/\s+/g, '_')
+		.replace(/[^a-z0-9_.-]/g, '')
+		.replace(/_+/g, '_')
+		.replace(/^_+|_+$/g, '');
+
+	return normalizedHandle || 'alumni';
+};
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const getTouchDistance = (touches) => {
@@ -293,7 +322,50 @@ const UserFeedScreen = ({ navigation }) => {
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchResults, setSearchResults] = useState([]);
 	const [isSearching, setIsSearching] = useState(false);
+	const [connections, setConnections] = useState([]);
 	const reactionPulseScale = useRef(new Animated.Value(1)).current;
+
+	const repostMentionContext = useMemo(() => extractMentionQuery(repostCaptionDraft), [repostCaptionDraft]);
+	const commentMentionContext = useMemo(() => extractMentionQuery(commentDraft), [commentDraft]);
+
+	const mentionDirectory = useMemo(() => {
+		return connections.map((connection) => {
+			const firstName = connection?.first_name ?? '';
+			const lastName = connection?.last_name ?? '';
+			const name = `${firstName} ${lastName}`.trim() || 'Alumni';
+
+			return {
+				id: connection?.id,
+				name,
+				handle: toMentionHandle(firstName, lastName),
+				avatar: connection?.alumni_photo
+					? connection.alumni_photo
+					: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=31429B&color=fff`,
+			};
+		});
+	}, [connections]);
+
+	const repostMentionSuggestions = useMemo(() => {
+		if (!repostMentionContext) {
+			return [];
+		}
+
+		const query = repostMentionContext.query.toLowerCase();
+		return mentionDirectory
+			.filter((item) => (!query ? true : item.name.toLowerCase().includes(query) || item.handle.includes(query)))
+			.slice(0, 5);
+	}, [mentionDirectory, repostMentionContext]);
+
+	const commentMentionSuggestions = useMemo(() => {
+		if (!commentMentionContext) {
+			return [];
+		}
+
+		const query = commentMentionContext.query.toLowerCase();
+		return mentionDirectory
+			.filter((item) => (!query ? true : item.name.toLowerCase().includes(query) || item.handle.includes(query)))
+			.slice(0, 5);
+	}, [commentMentionContext, mentionDirectory]);
 
 	const closeThemedAlert = useCallback(() => {
 		setThemedAlertState((currentState) => ({
@@ -367,9 +439,15 @@ const UserFeedScreen = ({ navigation }) => {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 
+				const contactsResponse = await api.get('/contacts', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
 				setUserData(response.data?.alumni ?? null);
+				setConnections(contactsResponse.data?.contacts ?? []);
 			} catch (error) {
 				console.error('Failed to fetch feed profile:', error);
+				setConnections([]);
 			}
 		};
 
@@ -1313,6 +1391,32 @@ const UserFeedScreen = ({ navigation }) => {
 		handlePostRepost(targetPost, captionToSubmit);
 	};
 
+	const handleRepostMentionPick = (mentionHandle) => {
+		if (!repostMentionContext) {
+			return;
+		}
+
+		setRepostCaptionDraft((currentText) => {
+			const safeText = String(currentText ?? '');
+			const prefix = safeText.slice(0, repostMentionContext.mentionStart);
+			const suffix = safeText.slice(repostMentionContext.mentionEnd);
+			return `${prefix}@${mentionHandle} ${suffix}`;
+		});
+	};
+
+	const handleCommentMentionPick = (mentionHandle) => {
+		if (!commentMentionContext) {
+			return;
+		}
+
+		setCommentDraft((currentText) => {
+			const safeText = String(currentText ?? '');
+			const prefix = safeText.slice(0, commentMentionContext.mentionStart);
+			const suffix = safeText.slice(commentMentionContext.mentionEnd);
+			return `${prefix}@${mentionHandle} ${suffix}`;
+		});
+	};
+
 	const renderPressableImage = (post, postImages, image, imageIndex, imageStyle) => (
 		<Pressable style={styles.postImagePressable} onPress={() => openImageViewer(post, postImages, imageIndex)}>
 			{renderPostImage(post?.id ?? imageIndex, image, imageIndex, imageStyle)}
@@ -1852,6 +1956,21 @@ const UserFeedScreen = ({ navigation }) => {
 								textAlignVertical="top"
 							/>
 
+							{repostMentionContext && repostMentionSuggestions.length > 0 ? (
+								<View style={styles.mentionPanel}>
+									{repostMentionSuggestions.map((item) => (
+										<Pressable
+											key={`repost-mention-${String(item.id ?? item.name)}`}
+											style={styles.mentionItem}
+											onPress={() => handleRepostMentionPick(item.handle)}
+										>
+											<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+											<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+										</Pressable>
+									))}
+								</View>
+							) : null}
+
 							<View style={styles.repostModalActionsRow}>
 								<Pressable
 									style={styles.repostCancelButton}
@@ -2009,6 +2128,21 @@ const UserFeedScreen = ({ navigation }) => {
 												<Ionicons name="send" size={16} color="#FFFFFF" />
 											</Pressable>
 										</View>
+
+										{commentMentionContext && commentMentionSuggestions.length > 0 ? (
+											<View style={styles.commentMentionPanel}>
+												{commentMentionSuggestions.map((item) => (
+													<Pressable
+														key={`comment-mention-${String(item.id ?? item.name)}`}
+														style={styles.mentionItem}
+														onPress={() => handleCommentMentionPick(item.handle)}
+													>
+														<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+														<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+													</Pressable>
+												))}
+											</View>
+										) : null}
 									</View>
 								</View>
 							</View>

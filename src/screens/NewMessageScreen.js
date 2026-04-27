@@ -77,6 +77,18 @@ const NewMessageScreen = ({ navigation }) => {
 	const [connectionsLoading, setConnectionsLoading] = useState(false);
 	const [connectionsError, setConnectionsError] = useState('');
 
+	const getConnectionName = (connection) => {
+		return `${connection?.first_name ?? ''} ${connection?.last_name ?? ''}`.trim() || 'Alumni';
+	};
+
+	const getConnectionAvatar = (connection) => {
+		const connectionName = getConnectionName(connection);
+
+		return connection?.alumni_photo
+			? connection.alumni_photo
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(connectionName)}&background=31429B&color=fff`;
+	};
+
 	// DERIVED VALUE: Filtered people list
 	const filteredPeople = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
@@ -95,13 +107,14 @@ const NewMessageScreen = ({ navigation }) => {
 		const normalizedQuery = memberQuery.trim().toLowerCase();
 
 		if (!normalizedQuery) {
-			return SUGGESTED_PEOPLE;
+			return connections;
 		}
 
-		return SUGGESTED_PEOPLE.filter((person) => {
-			return person.name.toLowerCase().includes(normalizedQuery);
+		return connections.filter((connection) => {
+			const connectionName = getConnectionName(connection).toLowerCase();
+			return connectionName.includes(normalizedQuery);
 		});
-	}, [memberQuery]);
+	}, [connections, memberQuery]);
 
 	// DERIVED VALUE: Filtered connections list
 	const filteredConnections = useMemo(() => {
@@ -118,7 +131,7 @@ const NewMessageScreen = ({ navigation }) => {
 	}, [connections, query]);
 
 	// DERIVED VALUE: Selected member display names
-	const selectedMemberNames = useMemo(() => selectedMembers.map((person) => person.name), [selectedMembers]);
+	const selectedMemberNames = useMemo(() => selectedMembers.map((person) => getConnectionName(person)), [selectedMembers]);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -210,12 +223,17 @@ const NewMessageScreen = ({ navigation }) => {
 			});
 			const group = response.data?.group || response.data;
 			closeGroupChatModal();
+			const normalizedSelectedMembers = selectedMembers.map((member) => ({
+				id: member?.id,
+				name: getConnectionName(member),
+				alumni_photo: member?.alumni_photo,
+			}));
 			// Navigate to ConvoScreen with group chat info
 			navigation.navigate('ConvoScreen', {
 				groupId: group.id,
 				groupName: group.name,
 				groupAvatar: group.avatar || null,
-				groupMembers: group.members || selectedMembers,
+				groupMembers: group.members || normalizedSelectedMembers,
 			});
 		} catch (error) {
 			// Optionally show error
@@ -237,10 +255,8 @@ const NewMessageScreen = ({ navigation }) => {
 	);
 
 	const renderConnectionRow = (connection) => {
-		const connectionName = `${connection?.first_name ?? ''} ${connection?.last_name ?? ''}`.trim() || 'Alumni';
-		const connectionAvatar = connection?.alumni_photo
-			? connection.alumni_photo
-			: `https://ui-avatars.com/api/?name=${encodeURIComponent(connectionName)}&background=31429B&color=fff`;
+		const connectionName = getConnectionName(connection);
+		const connectionAvatar = getConnectionAvatar(connection);
 
 		return (
 			<Pressable key={String(connection?.connection_id ?? connection?.id)} style={styles.connectionRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
@@ -259,6 +275,8 @@ const NewMessageScreen = ({ navigation }) => {
 	// RENDER HELPER: Group member row
 	const renderMemberRow = ({ item }) => {
 		const isSelected = selectedMembers.some((member) => member.id === item.id);
+		const memberName = getConnectionName(item);
+		const memberAvatar = getConnectionAvatar(item);
 
 		return (
 			<Pressable
@@ -267,12 +285,12 @@ const NewMessageScreen = ({ navigation }) => {
 				android_ripple={{ color: '#F1F5F9' }}
 			>
 				<Image
-					source={{ uri: item.avatarUri }}
+					source={{ uri: memberAvatar }}
 					style={[styles.memberAvatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
 				/>
 				<View style={styles.memberTextWrap}>
 					<Text style={styles.memberName} numberOfLines={1}>
-						{item.name}
+						{memberName}
 					</Text>
 					<Text style={styles.memberMeta}>{isSelected ? 'Selected' : 'Tap to add to the group'}</Text>
 				</View>
@@ -401,9 +419,9 @@ const NewMessageScreen = ({ navigation }) => {
 							{selectedMemberNames.length > 0 ? (
 								<View style={styles.selectedWrap}>
 									<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedChipsRow}>
-										{selectedMemberNames.map((name) => (
-											<View key={name} style={styles.selectedChip}>
-												<Text style={styles.selectedChipText}>{name}</Text>
+										{selectedMembers.map((member) => (
+											<View key={String(member?.id)} style={styles.selectedChip}>
+												<Text style={styles.selectedChipText}>{getConnectionName(member)}</Text>
 											</View>
 										))}
 									</ScrollView>
@@ -418,7 +436,7 @@ const NewMessageScreen = ({ navigation }) => {
 								contentContainerStyle={styles.modalList}
 								ListEmptyComponent={(
 									<View style={styles.emptyWrap}>
-										<Text style={styles.emptyText}>No matching members found.</Text>
+										<Text style={styles.emptyText}>No matching connections found.</Text>
 									</View>
 								)}
 							/>

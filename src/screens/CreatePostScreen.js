@@ -10,6 +10,35 @@ import styles from '../styles/CreatePostScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 import { showBrandedAlert } from '../services/brandedAlert';
 
+const extractMentionQuery = (value) => {
+	const text = String(value ?? '');
+	const match = text.match(/(^|\s)@([a-zA-Z0-9_.-]*)$/);
+
+	if (!match) {
+		return null;
+	}
+
+	const query = match[2] ?? '';
+	const mentionStart = text.length - query.length - 1;
+
+	return {
+		query,
+		mentionStart,
+		mentionEnd: text.length,
+	};
+};
+
+const toMentionHandle = (firstName, lastName) => {
+	const normalizedHandle = `${firstName ?? ''}_${lastName ?? ''}`
+		.toLowerCase()
+		.replace(/\s+/g, '_')
+		.replace(/[^a-z0-9_.-]/g, '')
+		.replace(/_+/g, '_')
+		.replace(/^_+|_+$/g, '');
+
+	return normalizedHandle || 'alumni';
+};
+
 const CreatePostScreen = () => {
 	const navigation = useNavigation();
 	const route = useRoute();
@@ -18,6 +47,7 @@ const CreatePostScreen = () => {
 	const [postText, setPostText] = useState('');
 	const [userData, setUserData] = useState(null);
 	const [selectedAudience, setSelectedAudience] = useState('public');
+	const [connections, setConnections] = useState([]);
 	const [selectedPhotoUris, setSelectedPhotoUris] = useState([]);
 	const [selectedPhotoFiles, setSelectedPhotoFiles] = useState([]);
 	const [selectedVideoUris, setSelectedVideoUris] = useState([]);
@@ -29,6 +59,33 @@ const CreatePostScreen = () => {
 	const [submitAction, setSubmitAction] = useState(null);
 
 	const canPost = postText.trim().length > 0 || selectedPhotoUris.length > 0;
+
+	const mentionContext = useMemo(() => extractMentionQuery(postText), [postText]);
+
+	const mentionSuggestions = useMemo(() => {
+		if (!mentionContext) {
+			return [];
+		}
+
+		const query = mentionContext.query.toLowerCase();
+
+		return connections
+			.map((connection) => {
+				const firstName = connection?.first_name ?? '';
+				const lastName = connection?.last_name ?? '';
+				const name = `${connection?.first_name ?? ''} ${connection?.last_name ?? ''}`.trim() || 'Alumni';
+				return {
+					id: connection?.id,
+					name,
+					handle: toMentionHandle(firstName, lastName),
+					avatar: connection?.alumni_photo
+						? connection.alumni_photo
+						: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=31429B&color=fff`,
+				};
+			})
+			.filter((item) => (!query ? true : item.name.toLowerCase().includes(query) || item.handle.includes(query)))
+			.slice(0, 5);
+	}, [connections, mentionContext]);
 
 	useEffect(() => {
 		const fetchProfile = async () => {
@@ -43,9 +100,15 @@ const CreatePostScreen = () => {
 					headers: { Authorization: `Bearer ${token}` },
 				});
 
+				const contactsResponse = await api.get('/contacts', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
+
 				setUserData(response.data?.alumni ?? null);
+				setConnections(contactsResponse.data?.contacts ?? []);
 			} catch (error) {
 				console.error('Failed to fetch create post profile:', error);
+				setConnections([]);
 			}
 		};
 
@@ -321,6 +384,19 @@ const CreatePostScreen = () => {
 
 	const isPublishDisabled = !isEditMode && !canPost;
 
+	const handleMentionPick = (mentionHandle) => {
+		if (!mentionContext) {
+			return;
+		}
+
+		setPostText((currentText) => {
+			const safeText = String(currentText ?? '');
+			const prefix = safeText.slice(0, mentionContext.mentionStart);
+			const suffix = safeText.slice(mentionContext.mentionEnd);
+			return `${prefix}@${mentionHandle} ${suffix}`;
+		});
+	};
+
 	return (
 		<>
 			<SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -372,6 +448,21 @@ const CreatePostScreen = () => {
 								textAlignVertical="top"
 								style={[styles.input, styles.postInput]}
 							/>
+
+							{mentionContext && mentionSuggestions.length > 0 ? (
+								<View style={styles.mentionPanel}>
+									{mentionSuggestions.map((item) => (
+										<Pressable
+											key={String(item.id ?? item.name)}
+											style={styles.mentionItem}
+											onPress={() => handleMentionPick(item.handle)}
+										>
+											<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+											<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+										</Pressable>
+									))}
+								</View>
+							) : null}
 
 							<View style={styles.toolbarRow}>
 								<Pressable style={styles.toolbarButton} onPress={handlePickPhoto} android_ripple={{ color: '#EAF0FF' }} disabled={isPickingPhoto}>

@@ -2,7 +2,42 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, read, messageTime, sendStatus }) => {
+const MENTION_PATTERN = /(@[a-zA-Z0-9_.-]+)/g;
+
+const renderMessageContentWithMentions = (content, isOutgoing, onMentionPress) => {
+  const text = String(content ?? '');
+  const segments = text.split(MENTION_PATTERN);
+
+  return segments.map((segment, index) => {
+    const isMention = MENTION_PATTERN.test(segment);
+    MENTION_PATTERN.lastIndex = 0;
+
+    if (!isMention) {
+      return (
+        <Text key={`segment-${index}`} style={[styles.messageText, isOutgoing ? styles.textOutgoing : styles.textIncoming]}>
+          {segment}
+        </Text>
+      );
+    }
+
+    return (
+      <Text
+        key={`mention-${index}-${segment}`}
+        style={[
+          styles.messageText,
+          isOutgoing ? styles.textOutgoing : styles.textIncoming,
+          styles.mentionText,
+          isOutgoing ? styles.mentionTextOutgoing : styles.mentionTextIncoming,
+        ]}
+        onPress={() => onMentionPress?.(segment)}
+      >
+        {segment}
+      </Text>
+    );
+  });
+};
+
+const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, read, messageTime, sendStatus, onMentionPress }) => {
   const hasReactions = Boolean(message?.reactions && Object.keys(message.reactions).length > 0);
   const showSendingStatus = isOutgoing && sendStatus === 'sending';
   const showFailedStatus = isOutgoing && sendStatus === 'failed';
@@ -33,8 +68,8 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
           ) : null}
 
           {message?.content ? (
-            <Text style={[styles.messageText, isOutgoing ? styles.textOutgoing : styles.textIncoming]}>
-              {message.content}
+            <Text>
+              {renderMessageContentWithMentions(message.content, isOutgoing, onMentionPress)}
             </Text>
           ) : null}
         </TouchableOpacity>
@@ -143,6 +178,17 @@ const styles = StyleSheet.create({
   },
   textIncoming: {
     color: '#000000',
+  },
+  mentionText: {
+    fontWeight: '900',
+    textDecorationLine: 'underline',
+    color: '#F2C919',
+  },
+  mentionTextOutgoing: {
+    color: '#F2C919',
+  },
+  mentionTextIncoming: {
+    color: '#F2C919',
   },
   attachmentImage: {
     width: 200,

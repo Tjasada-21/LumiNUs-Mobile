@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     height: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 3,
   },
   headerProfileWrap: {
     flex: 1,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 2,
   },
 });
 
