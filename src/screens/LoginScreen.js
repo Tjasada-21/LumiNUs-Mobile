@@ -10,6 +10,7 @@ import api from '../services/api';
 import styles from '../styles/LoginScreen.styles';
 import { clearAuthCredentials, setAuthCredentials } from '../services/authStorage';
 import { showBrandedAlert } from '../services/brandedAlert';
+import { useUnreadMessages } from '../context/UnreadMessagesContext';
 
 const LoginScreen = ({ navigation }) => {
   // SECTION: Form state
@@ -18,6 +19,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const { refreshUnreadMessages } = useUnreadMessages();
 
   // SECTION: Restore saved login
   useEffect(() => {
@@ -64,6 +66,8 @@ const LoginScreen = ({ navigation }) => {
         email: alumni?.email || email,
         remember: rememberMe,
       });
+
+      await refreshUnreadMessages();
 
       showBrandedAlert('Success!', `Welcome back, ${alumni.first_name}!`);
 

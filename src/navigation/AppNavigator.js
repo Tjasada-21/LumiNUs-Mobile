@@ -1,7 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
-import HomeScreen from '../screens/HomeScreen';
 import MainTabNavigator from './MainTabNavigator';
 import AccountSettingsScreen from '../screens/AccountSettingsScreen';
 import ViewYearbookScreen from '../screens/ViewYearbookScreen';
@@ -17,9 +16,10 @@ import ConvoScreen from '../screens/ConvoScreen';
 
 const Stack = createNativeStackNavigator();
 
-const AppNavigator = () => {
+const AppNavigator = ({ initialRouteName = 'Login' }) => {
   return (
     <Stack.Navigator
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         animation: 'fade_from_bottom',

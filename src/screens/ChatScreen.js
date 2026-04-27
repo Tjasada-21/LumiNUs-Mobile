@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
 	View,
 	Text,
@@ -11,10 +11,29 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/ChatScreen.styles';
 import { getAuthToken } from '../services/authStorage';
+
+const CONTACTS_CACHE_TTL_MS = 15000;
+let cachedContacts = null;
+let cachedContactsLoadedAt = 0;
+
+const getCachedContacts = () => {
+	if (!cachedContacts) {
+		return null;
+	}
+
+	if (Date.now() - cachedContactsLoadedAt > CONTACTS_CACHE_TTL_MS) {
+		cachedContacts = null;
+		cachedContactsLoadedAt = 0;
+		return null;
+	}
+
+	return cachedContacts;
+};
 
 const TABS = [
 	{ key: 'all', label: 'All Chats' },
@@ -87,54 +106,51 @@ const ChatScreen = ({ navigation }) => {
 		});
 	};
 
-	// SECTION: Load the current user
-	useEffect(() => {
-		const fetchUserData = async () => {
-			try {
-				const token = await getAuthToken();
+	const loadChatData = useCallback(async () => {
+		try {
+			setContactsLoading(true);
+			const token = await getAuthToken();
 
-				if (!token) {
-					return;
-				}
-
-				const response = await api.get('/user', {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-				setUserData(response.data);
-			} catch (error) {
-				console.error('Failed to fetch chat user profile:', error);
-			}
-		};
-
-		fetchUserData();
-	}, []);
-
-	useEffect(() => {
-		const fetchContacts = async () => {
-			try {
-				setContactsLoading(true);
-				const token = await getAuthToken();
-
-				if (!token) {
-					setContacts([]);
-					return;
-				}
-
-				const response = await api.get('/contacts', {
-					headers: { Authorization: `Bearer ${token}` },
-				});
-
-				setContacts(response.data?.contacts ?? []);
-			} catch (error) {
-				console.error('Failed to fetch chat contacts:', error);
+			if (!token) {
+				setUserData(null);
 				setContacts([]);
-			} finally {
-				setContactsLoading(false);
+				return;
 			}
-		};
 
-		fetchContacts();
+			const headers = { Authorization: `Bearer ${token}` };
+			const cachedContactsResponse = getCachedContacts();
+			const userRequest = api.get('/user', { headers });
+			const contactsRequest = cachedContactsResponse
+				? Promise.resolve({ data: { contacts: cachedContactsResponse } })
+				: api.get('/contacts', { headers });
+
+			const [userResponse, contactsResponse] = await Promise.all([
+				userRequest,
+				contactsRequest,
+			]);
+
+			setUserData(userResponse.data);
+			const nextContacts = contactsResponse.data?.contacts ?? [];
+			setContacts(nextContacts);
+
+			if (!cachedContactsResponse) {
+				cachedContacts = nextContacts;
+				cachedContactsLoadedAt = Date.now();
+			}
+		} catch (error) {
+			console.error('Failed to fetch chat screen data:', error);
+			setUserData(null);
+			setContacts([]);
+		} finally {
+			setContactsLoading(false);
+		}
 	}, []);
+
+	useFocusEffect(
+		useCallback(() => {
+			void loadChatData();
+		}, [loadChatData])
+	);
 
 	// DERIVED VALUE: Display name
 	const displayName = useMemo(() => {
@@ -157,6 +173,7 @@ const ChatScreen = ({ navigation }) => {
 		const contactAvatar = item?.alumni_photo
 			? item.alumni_photo
 			: `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName)}&background=31429B&color=fff`;
+		const hasUnread = item?.is_read === false;
 
 		return (
 			<TouchableOpacity
@@ -169,7 +186,10 @@ const ChatScreen = ({ navigation }) => {
 					<Text style={styles.contactName} numberOfLines={1}>{contactName}</Text>
 					<Text style={styles.contactMeta}>Connected</Text>
 				</View>
-				<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+				<View style={styles.contactRightWrap}>
+					{hasUnread ? <View style={styles.contactUnreadIndicator} /> : null}
+					<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+				</View>
 			</TouchableOpacity>
 		);
 	};

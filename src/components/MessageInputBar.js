@@ -1,53 +1,90 @@
-import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Platform, View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import SmartTextInput from './SmartTextInput';
 
-const MessageInputBar = ({ value, onChangeText, onSend, onAttach, onEmoji, disabled, isReplying, onCancelReply, replyTo }) => {
+const MessageInputBar = ({
+  value = '',
+  onChangeText,
+  onSend,
+  onAttach,
+  onEmoji,
+  disabled,
+  isReplying,
+  onCancelReply,
+  replyTo,
+}) => {
+  const [inputHeight, setInputHeight] = useState(44);
+
+  const hasText = useMemo(() => value.trim().length > 0, [value]);
+
+  useEffect(() => {
+    if (!value.trim()) {
+      setInputHeight(44);
+    }
+  }, [value]);
+
+  const handleContentSizeChange = (event) => {
+    const nextHeight = event?.nativeEvent?.contentSize?.height ?? 44;
+    setInputHeight(Math.min(Math.max(44, nextHeight), 120));
+  };
+
+  const composerInputHeight = hasText ? inputHeight : 44;
+  const composerTextAlignVertical = Platform.OS === 'android' ? (hasText ? 'top' : 'center') : 'center';
+
   return (
-    <View style={styles.wrapper}>
-      {/* Reply Preview Bar */}
+    <View
+      style={[
+        styles.wrapper,
+        {
+          width: '100%',
+          paddingBottom: 0,
+          marginBottom: 0,
+        },
+      ]}
+    >
       {isReplying && replyTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
             <Text style={styles.replyLabel}>Replying to {replyTo.sender_name}</Text>
-            <Text style={styles.replyText} numberOfLines={1}>{replyTo.content}</Text>
+            <Text style={styles.replyText} numberOfLines={1}>
+              {replyTo.content}
+            </Text>
           </View>
           <TouchableOpacity onPress={onCancelReply}>
             <Ionicons name="close" size={20} color="#8E8E8E" />
           </TouchableOpacity>
         </View>
       )}
-
-      <View style={styles.inputContainer}>
-        {/* Camera/Attach Button outside the pill */}
-        <TouchableOpacity style={styles.iconButton} onPress={onAttach}>
-          <View style={styles.cameraCircle}>
-            <Ionicons name="camera" size={20} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-
-        {/* The IG Gray Pill */}
-        <View style={styles.pill}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Message..."
-            placeholderTextColor="#8E8E8E"
-            value={value}
-            onChangeText={onChangeText}
-            multiline
-            maxLength={500}
-          />
-          
-          {/* Send Button replaces Mic if typing */}
-          {value.trim().length > 0 ? (
-            <TouchableOpacity onPress={onSend} disabled={disabled} style={styles.sendButton}>
-              <Text style={styles.sendText}>Send</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.micButton}>
-              <Feather name="mic" size={20} color="#262626" />
-            </TouchableOpacity>
-          )}
+      <View style={styles.pill}>
+        <SmartTextInput
+          style={[styles.textInput, { height: composerInputHeight }]}
+          placeholder="Message..."
+          placeholderTextColor="#8E8E8E"
+          value={value}
+          onChangeText={onChangeText}
+          onContentSizeChange={handleContentSizeChange}
+          onBlur={() => setInputHeight(44)}
+          multiline={hasText}
+          numberOfLines={1}
+          maxLength={500}
+          textAlignVertical={composerTextAlignVertical}
+          scrollEnabled={hasText && inputHeight >= 120}
+          returnKeyType="default"
+          blurOnSubmit={false}
+        />
+        <View style={styles.actionsWrap}>
+          <TouchableOpacity style={styles.smileButton} onPress={onEmoji} activeOpacity={0.8}>
+            <Ionicons name="happy-outline" size={18} color="#31429B" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onSend}
+            disabled={disabled || !hasText}
+            style={[styles.sendButton, (!hasText || disabled) && styles.sendButtonDisabled]}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -56,21 +93,24 @@ const MessageInputBar = ({ value, onChangeText, onSend, onAttach, onEmoji, disab
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: '#FFFFFF', // IG chats usually have a solid white background at the bottom
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: '#DBDBDB',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    backgroundColor: 'transparent',
+    paddingTop: 0,
+    alignSelf: 'stretch',
   },
   replyBar: {
     flexDirection: 'row',
     backgroundColor: '#F2F2F2',
-    padding: 12,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  replyContent: {
+    flex: 1,
+    marginRight: 8,
   },
   replyLabel: {
     fontSize: 12,
@@ -82,60 +122,62 @@ const styles = StyleSheet.create({
     color: '#262626',
     marginTop: 2,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-  iconButton: {
-    padding: 4,
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  cameraCircle: {
-    backgroundColor: '#3797F0',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   pill: {
-    flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: '#F2F2F2',
-    borderRadius: 24,
+    alignItems: 'center',
+    backgroundColor: '#EEF0F7',
+    borderRadius: 40,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    minHeight: 44,
-    maxHeight: 120,
+    paddingVertical: 12,
+    marginHorizontal: 12,
+    minHeight: 64,
+    borderWidth: 1,
+    borderColor: '#D7DDF0',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   textInput: {
     flex: 1,
     fontSize: 16,
-    color: '#262626',
-    paddingTop: Platform.OS === 'ios' ? 4 : 0,
+    color: '#24346F',
+    paddingTop: 0,
     paddingBottom: 0,
-    marginRight: 8,
-    maxHeight: 100,
+    marginRight: 12,
+    maxHeight: 120,
+  },
+  actionsWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  smileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   sendButton: {
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
-    paddingBottom: 2,
-  },
-  sendText: {
-    color: '#3797F0',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  micButton: {
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 2,
-  }
+    backgroundColor: '#31429B',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#9AA4CF',
+  },
 });
 
 export default MessageInputBar;

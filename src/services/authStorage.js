@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 let sessionToken = null;
 let sessionEmail = null;
 let rememberSession = false;
+let tokenLoadPromise = null;
 
 export const setAuthCredentials = async ({ token, email, remember }) => {
   sessionToken = token ?? null;
@@ -32,12 +33,31 @@ export const getAuthToken = async () => {
     return sessionToken;
   }
 
-  const storedToken = await SecureStore.getItemAsync('userToken');
-  if (storedToken) {
-    sessionToken = storedToken;
+  if (tokenLoadPromise) {
+    return tokenLoadPromise;
   }
 
-  return storedToken;
+  tokenLoadPromise = SecureStore.getItemAsync('userToken').then((storedToken) => {
+    if (storedToken) {
+      sessionToken = storedToken;
+    }
+
+    return storedToken;
+  }).finally(() => {
+    tokenLoadPromise = null;
+  });
+
+  return tokenLoadPromise;
+};
+
+export const peekAuthToken = () => sessionToken;
+
+export const preloadAuthToken = () => {
+  if (sessionToken) {
+    return Promise.resolve(sessionToken);
+  }
+
+  return getAuthToken();
 };
 
 export const getAuthEmail = async () => {
@@ -59,6 +79,7 @@ export const clearAuthCredentials = async () => {
   sessionToken = null;
   sessionEmail = null;
   rememberSession = false;
+  tokenLoadPromise = null;
 
   await SecureStore.deleteItemAsync('userToken');
   await SecureStore.deleteItemAsync('userEmail');

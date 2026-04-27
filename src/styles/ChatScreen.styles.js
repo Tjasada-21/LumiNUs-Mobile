@@ -185,6 +185,17 @@ const styles = StyleSheet.create({
 	contactTextWrap: {
 		flex: 1,
 	},
+	contactRightWrap: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	contactUnreadIndicator: {
+		width: 10,
+		height: 10,
+		borderRadius: 5,
+		backgroundColor: '#E53935',
+	},
 	contactName: {
 		color: '#31429B',
 		fontSize: 15,

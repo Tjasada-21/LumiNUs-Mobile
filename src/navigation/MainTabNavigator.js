@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import ExploreStackNavigator from './ExploreStackNavigator';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 import ProfileViewScreen from '../screens/ProfileViewScreen';
 import RegisteredEventsScreen from '../screens/RegisteredEventsScreen';
+import { useUnreadMessages } from '../context/UnreadMessagesContext';
 
 // A temporary placeholder screen for your other tabs until we build them!
 const DummyScreen = ({ name }) => (
@@ -25,6 +26,8 @@ const DummyScreen = ({ name }) => (
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
+  const { unreadCount } = useUnreadMessages();
+
   const getTabBarStyle = (route) => {
     const baseStyle = {
       height: 65,
@@ -74,8 +77,14 @@ const MainTabNavigator = () => {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          // We make the icon slightly larger when focused for a premium feel
-          return <Ionicons name={iconName} size={focused ? 28 : 24} color={color} />;
+          const showUnreadBadge = route.name === 'Messages' && unreadCount > 0;
+
+          return (
+            <View style={styles.iconContainer}>
+              <Ionicons name={iconName} size={focused ? 28 : 24} color={color} />
+              {showUnreadBadge ? <View style={styles.unreadBadge} /> : null}
+            </View>
+          );
         },
         tabBarActiveTintColor: '#31429B', // Active icon color (NU Blue)
         tabBarInactiveTintColor: '#8E8E93', // Inactive icon color (Grey)
@@ -145,3 +154,22 @@ const MainTabNavigator = () => {
 };
 
 export default MainTabNavigator;
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#E53935',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+});

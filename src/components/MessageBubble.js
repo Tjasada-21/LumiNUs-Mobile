@@ -2,45 +2,44 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, read }) => {
-  // If no reactions exist, default to null
-  const hasReactions = message.reactions && Object.keys(message.reactions).length > 0;
+const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, read, messageTime, sendStatus }) => {
+  const hasReactions = Boolean(message?.reactions && Object.keys(message.reactions).length > 0);
+  const showSendingStatus = isOutgoing && sendStatus === 'sending';
+  const showFailedStatus = isOutgoing && sendStatus === 'failed';
+  const showSentStatus = isOutgoing && sendStatus === 'sent';
 
   return (
     <View style={[styles.messageRow, isOutgoing ? styles.rowOutgoing : styles.rowIncoming]}>
-      
-      {/* Avatar (Only show for incoming messages, and typically only on the last message of a group) */}
-      {!isOutgoing && (
-        showAvatar ? 
-          <Image source={{ uri: senderAvatar }} style={styles.avatar} /> : 
+      {!isOutgoing ? (
+        showAvatar ? (
+          <Image source={{ uri: senderAvatar }} style={styles.avatar} />
+        ) : (
           <View style={styles.avatarSpacer} />
-      )}
+        )
+      ) : null}
 
-      <View style={styles.bubbleWrapper}>
+      <View style={[styles.bubbleWrapper, isOutgoing ? styles.bubbleWrapperOutgoing : styles.bubbleWrapperIncoming]}>
         <TouchableOpacity
           activeOpacity={0.8}
           onLongPress={onLongPress}
           style={[
             styles.bubble,
             isOutgoing ? styles.bubbleOutgoing : styles.bubbleIncoming,
-            hasReactions && styles.bubbleWithReaction // Add bottom padding if it has a reaction badge
+            hasReactions && styles.bubbleWithReaction,
           ]}
         >
-          {/* If there's an image attachment */}
-          {message.attachment && (
+          {message?.attachment ? (
             <Image source={{ uri: message.attachment }} style={styles.attachmentImage} />
-          )}
+          ) : null}
 
-          {/* The Text */}
-          {message.content ? (
+          {message?.content ? (
             <Text style={[styles.messageText, isOutgoing ? styles.textOutgoing : styles.textIncoming]}>
               {message.content}
             </Text>
           ) : null}
         </TouchableOpacity>
 
-        {/* The Overlapping Instagram Reaction Badge */}
-        {hasReactions && (
+        {hasReactions ? (
           <View style={[styles.reactionBadge, isOutgoing ? styles.reactionBadgeOutgoing : styles.reactionBadgeIncoming]}>
             {Object.entries(message.reactions).map(([emoji, count]) => (
               <Text key={emoji} style={styles.reactionText}>
@@ -48,13 +47,34 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
               </Text>
             ))}
           </View>
-        )}
+        ) : null}
+
+        {(messageTime || showSendingStatus || showSentStatus || showFailedStatus || (isOutgoing && read)) ? (
+          <View style={[styles.messageMetaRow, isOutgoing ? styles.messageMetaRowOutgoing : styles.messageMetaRowIncoming]}>
+            {messageTime ? <Text style={styles.messageTime}>{messageTime}</Text> : null}
+            {showSendingStatus ? (
+              <View style={styles.statusWrap}>
+                <Ionicons name="time-outline" size={11} color="#6B7280" />
+                <Text style={styles.statusText}>Sending...</Text>
+              </View>
+            ) : null}
+            {showSentStatus ? (
+              <View style={styles.statusWrap}>
+                <Ionicons name="checkmark-circle-outline" size={11} color="#6B7280" />
+                <Text style={styles.statusText}>Sent</Text>
+              </View>
+            ) : null}
+            {showFailedStatus ? (
+              <View style={styles.statusWrap}>
+                <Ionicons name="close-circle-outline" size={11} color="#D92D20" />
+                <Text style={styles.statusTextFailed}>Not sent</Text>
+              </View>
+            ) : null}
+            {!showSendingStatus && !showFailedStatus && !showSentStatus && isOutgoing && read ? <Text style={styles.readReceipt}>Seen</Text> : null}
+          </View>
+        ) : null}
       </View>
 
-      {/* Tiny Read Receipt for Outgoing */}
-      {isOutgoing && read && (
-        <Text style={styles.readReceipt}>Seen</Text>
-      )}
     </View>
   );
 };
@@ -62,9 +82,9 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
 const styles = StyleSheet.create({
   messageRow: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
     marginVertical: 4,
-    paddingHorizontal: 16,
-    alignItems: 'flex-end', // Aligns avatar to the bottom of the bubble
+    paddingHorizontal: 0,
   },
   rowOutgoing: {
     justifyContent: 'flex-end',
@@ -76,34 +96,47 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
+    marginLeft: 8,
     marginRight: 8,
   },
   avatarSpacer: {
-    width: 36, // 28 width + 8 margin
+    width: 36,
   },
   bubbleWrapper: {
     position: 'relative',
     maxWidth: '75%',
+    flexShrink: 1,
+  },
+  bubbleWrapperOutgoing: {
+    alignItems: 'flex-end',
+  },
+  bubbleWrapperIncoming: {
+    alignItems: 'flex-start',
   },
   bubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 22, // The deep Instagram curve
+    borderRadius: 24,
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   bubbleOutgoing: {
-    backgroundColor: '#3797F0', // Classic IG Blue
-    borderBottomRightRadius: 4, // Sharp inner corner
+    backgroundColor: '#3797F0',
+    alignSelf: 'flex-end',
+    marginRight: 4,
   },
   bubbleIncoming: {
-    backgroundColor: '#EFEFEF', // Soft IG Gray
-    borderBottomLeftRadius: 4, // Sharp inner corner
+    backgroundColor: '#EFEFEF',
+    alignSelf: 'flex-start',
   },
   bubbleWithReaction: {
-    marginBottom: 8, // Give space for the overlapping reaction
+    marginBottom: 8,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 20,
+    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   textOutgoing: {
     color: '#FFFFFF',
@@ -119,7 +152,7 @@ const styles = StyleSheet.create({
   },
   reactionBadge: {
     position: 'absolute',
-    bottom: -6, // Pulls it down to overlap the border
+    bottom: -6,
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -135,20 +168,53 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   reactionBadgeOutgoing: {
-    right: 12, // Pin to the right for sent messages
+    right: 12,
   },
   reactionBadgeIncoming: {
-    left: 12, // Pin to the left for received messages
+    left: 12,
   },
   reactionText: {
     fontSize: 12,
   },
+  messageMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 8,
+  },
+  messageMetaRowOutgoing: {
+    justifyContent: 'flex-end',
+  },
+  messageMetaRowIncoming: {
+    justifyContent: 'flex-start',
+  },
+  messageTime: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  statusWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  statusTextFailed: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '600',
+    color: '#D92D20',
+  },
   readReceipt: {
     fontSize: 11,
     color: '#8E8E8E',
-    marginLeft: 4,
-    marginBottom: 2,
-  }
+  },
 });
 
 export default MessageBubble;

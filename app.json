@@ -9,7 +9,7 @@
     "backgroundColor": "#31429B",
 
     "splash": {
-      "image": "./assets/images/LumiNUs_Load.jpg",
+      "image": "./assets/images/nulogo.png",
       "resizeMode": "cover",
       "backgroundColor": "#31429B"
     },
@@ -19,7 +19,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/LumiNUs_Load.jpg",
+        "foregroundImage": "./assets/images/digital-yearbook-icon-in-blue.png",
         "backgroundColor": "#31429B"
       },
 

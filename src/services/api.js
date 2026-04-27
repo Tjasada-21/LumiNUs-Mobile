@@ -1,9 +1,10 @@
 import axios from 'axios';
-import { clearAuthCredentials, getAuthToken } from './authStorage';
+import { clearAuthCredentials, getAuthToken, peekAuthToken } from './authStorage';
 
-// Replace with your computer's actual IPv4 address
-// Since you are using Docker/Sail, DO NOT add a port number.
-const LOCAL_IP = '192.168.254.102'; 
+// Replace with your computer's actual IPv4 address when testing on a device.
+// Sail exposes the Laravel app on host port 8000 in this workspace.
+const LOCAL_IP = '192.168.254.104';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || `http://${LOCAL_IP}:8000/api`;
 
 // const api = axios.create({
 //   // 👑 Paste the Ngrok link here. MAKE SURE you keep the /api at the very end!
@@ -15,7 +16,7 @@ const LOCAL_IP = '192.168.254.102';
 // });
 
 const api = axios.create({
-  baseURL: `http://${LOCAL_IP}/api`,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -23,7 +24,7 @@ const api = axios.create({
 }); 
 
 api.interceptors.request.use(async (config) => {
-  const token = await getAuthToken();
+  const token = peekAuthToken() ?? await getAuthToken();
 
   if (token) {
     config.headers = config.headers ?? {};
