@@ -1,43 +1,55 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import this
+
 import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import FeedScreen from '../screens/UserFeedScreen';
+import ExploreStackNavigator from './ExploreStackNavigator';
 import ViewYearbookScreen from '../screens/ViewYearbookScreen';
 import EventsScreen from '../screens/EventsScreen';
 import ConnectionsScreen from '../screens/ConnectionsScreen';
-import ExploreStackNavigator from './ExploreStackNavigator';
-import { sharedScreenStyles } from '../styles/sharedStyles';
 import ProfileViewScreen from '../screens/ProfileViewScreen';
 import RegisteredEventsScreen from '../screens/RegisteredEventsScreen';
 import { useUnreadMessages } from '../context/UnreadMessagesContext';
-
-// A temporary placeholder screen for your other tabs until we build them!
-const DummyScreen = ({ name }) => (
-  <View style={sharedScreenStyles.container}>
-    <Text style={sharedScreenStyles.title}>{name} Screen Coming Soon</Text>
-  </View>
-);
+import { sharedScreenStyles } from '../styles/sharedStyles';
 
 const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
   const { unreadCount } = useUnreadMessages();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  const isCompactWidth = width < 375;
+  const isTablet = width >= 768;
+
+  // We use a smaller portion of the inset (e.g., half) or a fixed small value
+  // This prevents the "huge gap" while still lifting icons above the Android buttons
+  const adjustedBottomInset = insets.bottom > 0 ? Math.min(insets.bottom, 25) : 0;
+
+  const baseTabBarHeight = isTablet ? 76 : isCompactWidth ? 60 : 66;
+  const totalTabBarHeight = baseTabBarHeight + adjustedBottomInset;
 
   const getTabBarStyle = (route) => {
     const baseStyle = {
-      height: 65,
+      height: totalTabBarHeight,
       backgroundColor: '#FFFFFF',
       borderTopWidth: 1,
       borderTopColor: '#E2E8F0',
-      paddingTop: 0,
-      paddingBottom: 0,
+      // Reduced padding here to keep it tight
+      paddingBottom: adjustedBottomInset, 
       elevation: 10,
+      shadowColor: '#000',
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
     };
+    
+    // ... rest of your getTabBarStyle logic
 
     if (route.name !== 'Explore') {
       return baseStyle;
@@ -61,10 +73,9 @@ const MainTabNavigator = () => {
       sceneContainerStyle={{ backgroundColor: '#FFFFFF' }}
       screenOptions={({ route }) => ({
         animation: 'shift',
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
 
-          // Assigning the exact icons from your Figma design
           if (route.name === 'HomeTab') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Messages') {
@@ -78,25 +89,27 @@ const MainTabNavigator = () => {
           }
 
           const showUnreadBadge = route.name === 'Messages' && unreadCount > 0;
+          const iconSize = focused ? (isTablet ? 30 : 28) : (isCompactWidth ? 22 : 24);
 
           return (
             <View style={styles.iconContainer}>
-              <Ionicons name={iconName} size={focused ? 28 : 24} color={color} />
+              <Ionicons name={iconName} size={iconSize} color={color} />
               {showUnreadBadge ? <View style={styles.unreadBadge} /> : null}
             </View>
           );
         },
-        tabBarActiveTintColor: '#31429B', // Active icon color (NU Blue)
-        tabBarInactiveTintColor: '#8E8E93', // Inactive icon color (Grey)
-        tabBarShowLabel: false, // Hides the text labels to match your design
-        headerShown: false, // Hides the default top header (since you built a custom one)
+        tabBarActiveTintColor: '#31429B',
+        tabBarInactiveTintColor: '#8E8E93',
+        tabBarShowLabel: false,
+        headerShown: false,
         tabBarStyle: getTabBarStyle(route),
+        // Ensures icons aren't squished against the top of the bar
+        tabBarIconStyle: {
+          marginTop: insets.bottom > 0 ? 0 : 5, 
+        },
       })}
     >
-      {/* Tab 1: The actual Home Screen */}
       <Tab.Screen name="HomeTab" component={HomeScreen} />
-      
-      {/* Tabs 2-5: The Placeholders */}
       <Tab.Screen name="Messages" component={ChatScreen} />
       <Tab.Screen
         name="Explore"
@@ -108,6 +121,8 @@ const MainTabNavigator = () => {
       />
       <Tab.Screen name="Feed" component={FeedScreen} />
       <Tab.Screen name="Profile" component={UserProfileScreen} />
+
+      {/* Hidden Screens */}
       <Tab.Screen
         name="ViewYearbook"
         component={ViewYearbookScreen}
@@ -124,7 +139,6 @@ const MainTabNavigator = () => {
           tabBarItemStyle: { display: 'none' },
         }}
       />
-
       <Tab.Screen
         name="ProfileView"
         component={ProfileViewScreen}
@@ -153,8 +167,6 @@ const MainTabNavigator = () => {
   );
 };
 
-export default MainTabNavigator;
-
 const styles = StyleSheet.create({
   iconContainer: {
     position: 'relative',
@@ -173,3 +185,5 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
 });
+
+export default MainTabNavigator;

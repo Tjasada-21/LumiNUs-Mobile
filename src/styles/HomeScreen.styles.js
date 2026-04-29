@@ -93,15 +93,17 @@ const styles = StyleSheet.create({
   inactiveTab: { backgroundColor: '#E0E0E0', paddingVertical: 8, paddingHorizontal: 20, borderTopLeftRadius: 10, borderTopRightRadius: 10, marginLeft: 10 },
   inactiveTabText: { color: '#666' },
   idCard: {
-    borderRadius: 5,
+    borderRadius: 20,       // Match your face radius
     overflow: 'hidden',
     elevation: 6,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
     backgroundColor: '#0A1142',
-    height: 220,
+    width: '92%',           // Take up most of the screen width
+    aspectRatio: 1.58,      // This is the "Magic Ratio" for IDs
+    alignSelf: 'center',
   },
   idCardPerspective: {
     position: 'relative',
@@ -139,36 +141,41 @@ const styles = StyleSheet.create({
   },
   idPhoto: {
     position: 'absolute',
-    top: '11%',
-    right: '1.3%',
-    width: '30%',
-    height: '28%',
+    top: '12%',             // Adjusted slightly for better centering in the frame
+    right: '5%',            // Move it slightly in from the edge
+    width: '32%',           // Relative to card width
+    height: '58%',          // Relative to card height 
+    zIndex: 10,
   },
   idCardContent: {
     position: 'absolute',
-    top: '26%',
+    top: '26%',           // This is your "Starting Point" for the whole text block
     left: '6%',
     bottom: '10%',
     width: '62%',
+    justifyContent: 'flex-start', //
   },
   idName: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '900',
     lineHeight: 18,
-    top: '27%',
+    position: 'relative', // Add this to enable the 'top' offset
+    top: '27%',           // Adjust this percentage to move JUST the name
   },
   idCourse: {
     color: '#FFFFFF',
     fontSize: 12,
+    position: 'relative',
+    top: '28%',           // Adjust this to move the course line
     marginTop: 6,
-    top: '25%',
   },
   idClass: {
     color: '#FFFFFF',
     fontSize: 12,
+    position: 'relative',
+    top: '29%',           // Adjust this to move the graduation year
     marginTop: 2,
-    top: '25%',
   },
   idBackImage: {
     width: '100%',

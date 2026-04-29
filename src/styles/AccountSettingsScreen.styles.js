@@ -1,4 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+import { responsiveFontSize, responsiveHeight, responsiveSpacing, responsiveWidth } from '../utils/responsive';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -11,52 +14,52 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#31429B',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 20, 16, 28),
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 14, 12, 20),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerLogo: {
-    width: 146,
-    height: 36,
+    width: responsiveWidth(SCREEN_WIDTH, 0.36, 132, 180),
+    height: responsiveHeight(SCREEN_HEIGHT, 0.047, 34, 46),
   },
   badgeContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 7, 6, 10),
+    paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 12, 10, 16),
     flexDirection: 'row',
     alignItems: 'center',
   },
   badgeIcon: {
-    width: 17,
-    height: 17,
+    width: responsiveWidth(SCREEN_WIDTH, 0.042, 16, 20),
+    height: responsiveWidth(SCREEN_WIDTH, 0.042, 16, 20),
     marginRight: 6,
   },
   badgeText: {
     color: '#2D3F9E',
     fontWeight: '800',
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
   },
   headerAccent: {
-    height: 11,
+    height: responsiveHeight(SCREEN_HEIGHT, 0.014, 9, 14),
     backgroundColor: '#F2C919',
   },
   scrollContent: {
-    paddingHorizontal: 22,
-    paddingBottom: 28,
+    paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 22, 16, 28),
+    paddingBottom: responsiveSpacing(SCREEN_HEIGHT, 28, 22, 34),
   },
   homeButton: {
     alignSelf: 'flex-end',
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: responsiveWidth(SCREEN_WIDTH, 0.105, 38, 46),
+    height: responsiveWidth(SCREEN_WIDTH, 0.105, 38, 46),
+    borderRadius: responsiveWidth(SCREEN_WIDTH, 0.0525, 19, 23),
     backgroundColor: '#F2C919',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    marginBottom: 4,
+    marginTop: responsiveSpacing(SCREEN_HEIGHT, 16, 12, 20),
+    marginBottom: responsiveSpacing(SCREEN_HEIGHT, 4, 2, 8),
   },
   profileWrap: {
     alignSelf: 'center',
@@ -65,9 +68,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   profileImage: {
-    width: 126,
-    height: 126,
-    borderRadius: 63,
+    width: responsiveWidth(SCREEN_WIDTH, 0.315, 112, 160),
+    height: responsiveWidth(SCREEN_WIDTH, 0.315, 112, 160),
+    borderRadius: responsiveWidth(SCREEN_WIDTH, 0.1575, 56, 80),
     borderWidth: 2,
     borderColor: '#EEE',
   },
@@ -75,9 +78,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 2,
     bottom: 2,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: responsiveWidth(SCREEN_WIDTH, 0.075, 26, 34),
+    height: responsiveWidth(SCREEN_WIDTH, 0.075, 26, 34),
+    borderRadius: responsiveWidth(SCREEN_WIDTH, 0.0375, 13, 17),
     backgroundColor: '#F2C919',
     alignItems: 'center',
     justifyContent: 'center',
@@ -88,7 +91,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     color: '#3F3F3F',
-    fontSize: 18,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 18, 16, 22),
     fontWeight: '700',
     marginBottom: 10,
   },
@@ -100,8 +103,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#B9B9B9',
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 12, 10, 16),
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 9, 7, 12),
     marginBottom: 10,
   },
   inputBlockCompact: {
@@ -109,18 +112,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#B9B9B9',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 1,
+    paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 10, 8, 14),
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 1, 1, 4),
     marginBottom: 8,
   },
   inputLabel: {
     color: '#5C5C5C',
-    fontSize: 10,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 10, 9, 12),
     marginBottom: 1,
   },
   inputValue: {
     color: '#333333',
-    fontSize: 14,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 14, 12, 16),
   },
   inputGrow: {
     flex: 1,
@@ -145,19 +148,19 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     color: '#2F9B3D',
-    fontSize: 10,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 10, 9, 12),
     fontStyle: 'italic',
     fontWeight: '600',
   },
   verifyLink: {
     color: '#31429B',
-    fontSize: 10,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 10, 9, 12),
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
   helpText: {
     color: '#777777',
-    fontSize: 8,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 8, 8, 10),
     fontStyle: 'italic',
     marginBottom: 10,
   },
@@ -198,24 +201,24 @@ const styles = StyleSheet.create({
   dateValue: {
     flex: 1,
     marginLeft: 10,
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
     fontWeight: '600',
-    lineHeight: 14,
+    lineHeight: responsiveFontSize(SCREEN_WIDTH, 14, 12, 17),
     paddingVertical: 0,
   },
   loadingWrap: {
-    paddingTop: 16,
+    paddingTop: responsiveSpacing(SCREEN_HEIGHT, 16, 12, 20),
   },
   loadingText: {
     color: '#31429B',
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
     fontWeight: '600',
     marginTop: 14,
     textAlign: 'center',
   },
   errorText: {
     color: '#B91C1C',
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
     marginTop: 12,
   },
   saveButton: {
@@ -223,12 +226,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
-    marginTop: 22,
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 13, 11, 16),
+    marginTop: responsiveSpacing(SCREEN_HEIGHT, 22, 16, 28),
   },
   saveButtonText: {
     color: '#31429B',
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
     fontWeight: '700',
   },
   resetButton: {
@@ -236,12 +239,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 13,
-    marginTop: 14,
+    paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 13, 11, 16),
+    marginTop: responsiveSpacing(SCREEN_HEIGHT, 14, 12, 20),
   },
   resetButtonText: {
     color: '#F2C919',
-    fontSize: 12,
+    fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 11, 14),
     fontWeight: '700',
   },
 });

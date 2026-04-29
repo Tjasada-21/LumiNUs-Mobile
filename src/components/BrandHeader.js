@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, useWindowDimensions, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { responsiveHeight, responsiveWidth } from '../utils/responsive';
+import { responsiveFontSize, responsiveHeight, responsiveSpacing, responsiveWidth } from '../utils/responsive';
 
 const BrandHeader = () => {
   const navigation = useNavigation();
@@ -13,11 +13,23 @@ const BrandHeader = () => {
     headerLogoWidth: responsiveWidth(width, 0.39, 160, isTablet ? 238 : 196),
     headerLogoHeight: responsiveHeight(height, 0.06, 40, 56),
     pillMinWidth: isTablet ? 132 : isCompactWidth ? 108 : 122,
+    horizontalPadding: responsiveSpacing(width, 16, 14, 28),
+    verticalPaddingTop: responsiveSpacing(height, 16, 14, 22),
+    verticalPaddingBottom: responsiveSpacing(height, 18, 14, 24),
+    pillHorizontalPadding: responsiveSpacing(width, 14, 12, 18),
+    pillVerticalPadding: responsiveSpacing(height, 7, 6, 10),
+    pillIconSize: responsiveWidth(width, 0.06, 20, 28),
+    pillTextSize: responsiveFontSize(width, 14, 12, 16),
+    accentHeight: responsiveHeight(height, 0.012, 8, 14),
   };
 
   return (
     <View style={styles.brandHeader}>
-      <View style={styles.brandRow}>
+      <View style={[styles.brandRow, {
+        paddingHorizontal: layout.horizontalPadding,
+        paddingTop: layout.verticalPaddingTop,
+        paddingBottom: layout.verticalPaddingBottom,
+      }]}>
         <Pressable
           onPress={() => navigation.navigate('Home', { screen: 'HomeTab' })}
           accessibilityRole="button"
@@ -30,12 +42,16 @@ const BrandHeader = () => {
             resizeMode="contain"
           />
         </Pressable>
-        <View style={[styles.nulipaPill, { minWidth: layout.pillMinWidth }]}>
-          <Image source={require('../../assets/images/nulogo.png')} style={styles.nulipaIcon} resizeMode="contain" />
-          <Text style={styles.nulipaText}>NU LIPA</Text>
+        <View style={[styles.nulipaPill, {
+          minWidth: layout.pillMinWidth,
+          paddingHorizontal: layout.pillHorizontalPadding,
+          paddingVertical: layout.pillVerticalPadding,
+        }]}>
+          <Image source={require('../../assets/images/nulogo.png')} style={[styles.nulipaIcon, { width: layout.pillIconSize, height: layout.pillIconSize }]} resizeMode="contain" />
+          <Text style={[styles.nulipaText, { fontSize: layout.pillTextSize }]}>NU LIPA</Text>
         </View>
       </View>
-      <View style={styles.brandAccent} />
+      <View style={[styles.brandAccent, { height: layout.accentHeight }]} />
     </View>
   );
 };

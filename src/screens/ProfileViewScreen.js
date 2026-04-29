@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -56,6 +56,16 @@ const ProfileViewScreen = ({ navigation, route }) => {
 
 	const isConnected = profileSummary.connectionStatus === 'connected';
 	const isPendingConnection = profileSummary.connectionStatus === 'pending';
+	const isConnectionActionDisabled = followLoading || isPendingConnection;
+	const connectionButtonLabel = followLoading
+		? isConnected
+			? 'Removing...'
+			: 'Adding...'
+		: isConnected
+			? 'Remove Connection'
+			: isPendingConnection
+				? 'Connection Pending'
+				: 'Add Connection';
 
 	const openConversation = () => {
 		if (!isConnected) {
@@ -108,6 +118,59 @@ const ProfileViewScreen = ({ navigation, route }) => {
 		} finally {
 			setFollowLoading(false);
 		}
+	};
+
+	const handleRemoveConnectionConfirmed = async () => {
+		if (!userId || followLoading || !isConnected) {
+			return;
+		}
+
+		try {
+			setFollowLoading(true);
+
+			const token = await getAuthToken();
+
+			if (!token) {
+				showBrandedAlert('Connection unavailable', 'No active session found.');
+				return;
+			}
+
+			const response = await api.delete(`/alumni/${userId}/follow`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+
+			setUserData((current) => {
+				if (!current) {
+					return current;
+				}
+
+				return {
+					...current,
+					connection_status: 'none',
+					connections_count: Math.max(0, Number(current.connections_count ?? 0) - 1),
+				};
+			});
+
+			showBrandedAlert('Connection removed', response.data?.message || 'Connection removed successfully.');
+		} catch (removeError) {
+			console.error('Failed to remove connection:', removeError);
+			const serverMessage = removeError.response?.data?.message || 'Unable to remove this connection right now.';
+			showBrandedAlert('Remove connection failed', serverMessage);
+		} finally {
+			setFollowLoading(false);
+		}
+	};
+
+	const confirmRemoveConnection = () => {
+		Alert.alert(
+			'Remove connection',
+			`Are you sure you want to remove the connection with ${profileName}?`,
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Remove', style: 'destructive', onPress: () => handleRemoveConnectionConfirmed() },
+			],
+			{ cancelable: true }
+		);
 	};
 
 	const workExperience = useMemo(() => {
@@ -319,22 +382,15 @@ const ProfileViewScreen = ({ navigation, route }) => {
 										<TouchableOpacity
 											style={[
 												styles.addConnectionButton,
-												(isConnected || isPendingConnection) && styles.addConnectionButtonDisabled,
+												isConnected && styles.removeConnectionButton,
+												isConnectionActionDisabled && styles.addConnectionButtonDisabled,
 											]}
 											activeOpacity={0.85}
-											onPress={isConnected || isPendingConnection ? undefined : handleAddConnection}
-											disabled={followLoading || isConnected || isPendingConnection}
+											onPress={isConnected ? confirmRemoveConnection : handleAddConnection}
+											disabled={isConnectionActionDisabled}
 										>
-											<Ionicons name="person-add-outline" size={14} color="#FFFFFF" />
-											<Text style={styles.addConnectionButtonText}>
-												{followLoading
-													? 'Adding...'
-													: isConnected
-														? 'Connected'
-														: isPendingConnection
-															? 'Connection Pending'
-															: 'Add Connection'}
-											</Text>
+											<Ionicons name={isConnected ? 'person-remove-outline' : 'person-add-outline'} size={14} color="#FFFFFF" />
+											<Text style={styles.addConnectionButtonText}>{connectionButtonLabel}</Text>
 										</TouchableOpacity>
 
 										<TouchableOpacity

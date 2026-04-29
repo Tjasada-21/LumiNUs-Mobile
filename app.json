@@ -7,7 +7,6 @@
     "icon": "./assets/images/LumiNUs_Load.jpg",
     "userInterfaceStyle": "light",
     "backgroundColor": "#31429B",
-
     "splash": {
       "image": "./assets/images/nulogo.png",
       "resizeMode": "cover",
@@ -22,7 +21,7 @@
         "foregroundImage": "./assets/images/digital-yearbook-icon-in-blue.png",
         "backgroundColor": "#31429B"
       },
-
+      "package": "com.sakalatadik_2.LumiNUsMobile_App"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,6 +29,13 @@
     "plugins": [
       "expo-secure-store",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "apiBaseUrl": "http://10.61.193.120:8000/api",
+      "eas": {
+        "projectId": "b0ff116b-bf3b-463f-bcbb-0e23eefc766a"
+      }
+    },
+    "owner": "sakalatadik_2"
   }
 }

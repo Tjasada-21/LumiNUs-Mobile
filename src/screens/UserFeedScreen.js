@@ -12,6 +12,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_ZOOM_SCALE = 2.5;
 const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
 const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
+const MENTION_PATTERN = /(@[a-zA-Z0-9_.-]+)/g;
 
 const extractMentionQuery = (value) => {
 	const text = String(value ?? '');
@@ -811,6 +812,66 @@ const UserFeedScreen = ({ navigation }) => {
 		});
 	}, []);
 
+	const handleCaptionMentionPress = useCallback((mentionText) => {
+		const mentionHandle = String(mentionText ?? '').replace(/^@/, '').toLowerCase();
+
+		if (!mentionHandle) {
+			return;
+		}
+
+		const matchedConnection = mentionDirectory.find((item) => item.handle === mentionHandle);
+
+		if (!matchedConnection?.id) {
+			showThemedAlert({
+				title: 'Mention unavailable',
+				message: `No profile found for @${mentionHandle}.`,
+			});
+			return;
+		}
+
+		if (matchedConnection.id === userData?.id) {
+			navigation.navigate('Profile');
+		} else {
+			navigation.navigate('ProfileView', { userId: matchedConnection.id });
+		}
+	}, [mentionDirectory, userData?.id, navigation, showThemedAlert]);
+
+	const renderCaptionWithMentions = (caption, captionStyle) => {
+		if (!caption) {
+			return null;
+		}
+
+		const text = String(caption ?? '');
+		const segments = text.split(MENTION_PATTERN);
+
+		return (
+			<>
+				{segments.map((segment, index) => {
+					const isMention = MENTION_PATTERN.test(segment);
+					MENTION_PATTERN.lastIndex = 0;
+
+					if (!isMention) {
+						return (
+							<Text key={`segment-${index}`} style={captionStyle}>
+								{segment}
+							</Text>
+						);
+					}
+
+					return (
+						<Text
+							key={`mention-${index}-${segment}`}
+							style={[captionStyle, styles.captionMention]}
+							onPress={() => handleCaptionMentionPress(segment)}
+						>
+							{segment}
+						</Text>
+					);
+				})}
+			</>
+		);
+	};
+
 	const renderExpandableCaption = (feedItemKey, caption, captionStyle) => {
 		if (!caption) {
 			return null;
@@ -829,7 +890,7 @@ const UserFeedScreen = ({ navigation }) => {
 					</Text>
 				</View>
 				<Text style={captionStyle} numberOfLines={isExpanded ? undefined : CAPTION_COLLAPSED_LINES}>
-					{caption}
+					{renderCaptionWithMentions(caption, captionStyle)}
 				</Text>
 				{shouldShowToggle ? (
 					<Pressable

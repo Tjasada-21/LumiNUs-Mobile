@@ -28,6 +28,16 @@ const UserProfileScreen = ({ navigation }) => {
   const [postActionPost, setPostActionPost] = useState(null);
   const [isPostActionModalVisible, setIsPostActionModalVisible] = useState(false);
   const [isPostActionSaving, setIsPostActionSaving] = useState(false);
+  const [isWorkModalVisible, setIsWorkModalVisible] = useState(false);
+  const [workDraft, setWorkDraft] = useState({
+    id: null,
+    title: '',
+    subtitle: '',
+    period: '',
+    location: '',
+    description: '',
+  });
+  const [isWorkSaving, setIsWorkSaving] = useState(false);
 
 	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
@@ -83,6 +93,104 @@ const UserProfileScreen = ({ navigation }) => {
       description: "Contributed to the development of the university's alumni portal.",
     };
   }, [userData]);
+
+  const openWorkModal = (employment = null) => {
+    const source = employment ?? null;
+
+    setWorkDraft({
+      id: source?.id ?? null,
+      title: source?.title ?? '',
+      subtitle: source?.subtitle ?? '',
+      period: source?.period ?? '',
+      location: source?.location ?? '',
+      description: source?.description ?? '',
+    });
+
+    setIsWorkModalVisible(true);
+  };
+
+  const closeWorkModal = () => {
+    if (isWorkSaving) return;
+    setIsWorkModalVisible(false);
+  };
+
+  const saveWorkExperience = async () => {
+    const payload = {
+      title: workDraft.title.trim() || null,
+      subtitle: workDraft.subtitle.trim() || null,
+      period: workDraft.period.trim() || null,
+      location: workDraft.location.trim() || null,
+      description: workDraft.description.trim() || null,
+    };
+
+    try {
+      setIsWorkSaving(true);
+
+      const token = await getAuthToken();
+      if (!token) {
+        showBrandedAlert('Sign in required', 'Please sign in again before updating work experience.', [{ text: 'OK' }], { variant: 'error' });
+        return;
+      }
+
+      if (workDraft.id) {
+        await api.patch(`/alumni/employments/${workDraft.id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        await api.post('/alumni/employments', payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
+      await loadProfile();
+      setIsWorkModalVisible(false);
+      showBrandedAlert('Work experience saved', 'Your work experience was updated.', [{ text: 'OK' }], { variant: 'success' });
+    } catch (err) {
+      console.error('Failed to save work experience:', err);
+      showBrandedAlert('Save failed', 'Unable to save work experience right now.', [{ text: 'OK' }], { variant: 'error' });
+    } finally {
+      setIsWorkSaving(false);
+    }
+  };
+
+  const handleDeleteWork = (employment) => {
+    if (!employment?.id) return;
+
+    showBrandedAlert(
+      'Delete work experience?',
+      'This action cannot be undone.',
+      [
+        { text: 'Cancel' },
+        {
+          text: 'Delete',
+          onPress: async () => {
+            try {
+              setIsWorkSaving(true);
+
+              const token = await getAuthToken();
+              if (!token) {
+                showBrandedAlert('Sign in required', 'Please sign in again before deleting work experience.', [{ text: 'OK' }], { variant: 'error' });
+                return;
+              }
+
+              await api.delete(`/alumni/employments/${employment.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              await loadProfile();
+              showBrandedAlert('Deleted', 'Work experience removed.', [{ text: 'OK' }], { variant: 'success' });
+            } catch (err) {
+              console.error('Failed to delete work experience:', err);
+              showBrandedAlert('Delete failed', 'Unable to delete work experience right now.', [{ text: 'OK' }], { variant: 'error' });
+            } finally {
+              setIsWorkSaving(false);
+            }
+          },
+        },
+      ],
+      { variant: 'error' }
+    );
+  };
 
   const repostsCount = useMemo(
     () => profilePosts.filter((post) => post?.feed_type === 'repost').length,
@@ -394,7 +502,6 @@ const UserProfileScreen = ({ navigation }) => {
       <View style={styles.container}>
         <BrandHeader />
 
-        {/* SECTION: Profile content */}
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {loading ? (
             <View style={styles.stateWrap}>
@@ -493,37 +600,55 @@ const UserProfileScreen = ({ navigation }) => {
 
               <View style={styles.sectionBlock}>
                 <View style={styles.workSectionCard}>
-                  <Text style={styles.sectionHeading}>Work Experience</Text>
-                  <View style={styles.workCard}>
-                    <View style={styles.workRow}>
-                      <TouchableOpacity activeOpacity={0.8} style={styles.workNavButton}>
-                        <Ionicons name="chevron-back" size={18} color="#31429B" />
-                      </TouchableOpacity>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionHeading}>Work Experience</Text>
+                    <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={() => openWorkModal(null)}>
+                      <Ionicons name="add" size={12} color="#404040" />
+                      <Text style={styles.editPillText}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
 
-                      <View style={styles.workContent}>
-                        <View style={styles.workTitleRow}>
-                          <Ionicons name="briefcase" size={15} color="#31429B" />
-                          <Text style={styles.workTitle}>{workExperience.title}</Text>
-                        </View>
-                        <Text style={styles.workSubtitle}>{workExperience.subtitle}</Text>
-                        <Text style={styles.workPeriod}>{workExperience.period}</Text>
-                        <View style={styles.workLocationRow}>
-                          <Ionicons name="location-sharp" size={15} color="#5C6471" />
-                          <Text style={styles.workLocation}>{workExperience.location}</Text>
-                        </View>
-                        <Text style={styles.workDescription}>{workExperience.description}</Text>
+                  <View>
+                    {Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0 ? (
+                      userData.work_experiences.map((emp) => (
+                        <View key={emp.id ?? `${emp.title}-${emp.period}`} style={styles.workCard}>
+                          <View style={styles.workRow}>
+                            <View style={styles.workContent}>
+                              <View style={styles.workTitleRow}>
+                                <Ionicons name="briefcase" size={15} color="#31429B" />
+                                <Text style={styles.workTitle}>{emp.title}</Text>
+                              </View>
+                              {emp.subtitle ? <Text style={styles.workSubtitle}>{emp.subtitle}</Text> : null}
+                              {emp.period ? <Text style={styles.workPeriod}>{emp.period}</Text> : null}
+                              {emp.location ? (
+                                <View style={styles.workLocationRow}>
+                                  <Ionicons name="location-sharp" size={15} color="#5C6471" />
+                                  <Text style={styles.workLocation}>{emp.location}</Text>
+                                </View>
+                              ) : null}
 
-                        <View style={styles.paginationRow}>
-                          <View style={styles.paginationDot} />
-                          <View style={styles.paginationDot} />
-                          <View style={[styles.paginationDot, styles.paginationDotActive]} />
+                              {emp.description ? <Text style={styles.workDescription}>{emp.description}</Text> : null}
+                            </View>
+
+                            <View style={styles.workActionsRow || { justifyContent: 'flex-end' }}>
+                              <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={() => openWorkModal(emp)}>
+                                <Ionicons name="create-outline" size={12} color="#404040" />
+                                <Text style={styles.editPillText}>Edit</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity style={[styles.postDeleteButton, { marginLeft: 8 }]} activeOpacity={0.8} onPress={() => handleDeleteWork(emp)}>
+                                <Ionicons name="trash-outline" size={15} color="#B91C1C" />
+                                <Text style={styles.postDeleteButtonText}>Delete</Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
                         </View>
+                      ))
+                    ) : (
+                      <View style={styles.workCard}>
+                        <Text style={styles.emptyPostsText}>No work experience yet.</Text>
                       </View>
-
-                      <TouchableOpacity activeOpacity={0.8} style={styles.workNavButton}>
-                        <Ionicons name="chevron-forward" size={18} color="#31429B" />
-                      </TouchableOpacity>
-                    </View>
+                    )}
                   </View>
                 </View>
               </View>
@@ -613,6 +738,7 @@ const UserProfileScreen = ({ navigation }) => {
           )}
         </ScrollView>
 
+        {/* Post Action Modal */}
         <Modal
           visible={isPostActionModalVisible}
           transparent
@@ -628,9 +754,7 @@ const UserProfileScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalHelperText}>
-                Edit the content, change visibility, save it as a draft, or delete it.
-              </Text>
+              <Text style={styles.modalHelperText}>Edit the content, change visibility, save it as a draft, or delete it.</Text>
 
               <View style={styles.postActionRow}>
                 <TouchableOpacity style={styles.postActionButton} activeOpacity={0.85} onPress={handleEditPost} disabled={isPostActionSaving}>
@@ -676,16 +800,14 @@ const UserProfileScreen = ({ navigation }) => {
           </View>
         </Modal>
 
+        {/* Biography Modal */}
         <Modal
           visible={isBioModalVisible}
           transparent
           animationType="fade"
           onRequestClose={closeBioModal}
         >
-          <KeyboardAvoidingView
-            style={styles.modalOverlay}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
+          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View style={styles.modalCard}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Edit Biography</Text>
@@ -694,9 +816,7 @@ const UserProfileScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalHelperText}>
-                Update your biography so people can learn more about you.
-              </Text>
+              <Text style={styles.modalHelperText}>Update your biography so people can learn more about you.</Text>
 
               <TextInput
                 value={bioDraft}
@@ -710,20 +830,44 @@ const UserProfileScreen = ({ navigation }) => {
               />
 
               <View style={styles.modalButtonRow}>
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.modalCancelButton]}
-                  activeOpacity={0.85}
-                  onPress={closeBioModal}
-                >
+                <TouchableOpacity style={[styles.modalActionButton, styles.modalCancelButton]} activeOpacity={0.85} onPress={closeBioModal}>
                   <Text style={styles.modalCancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.modalActionButton, styles.modalSaveButton]}
-                  activeOpacity={0.85}
-                  onPress={saveBiography}
-                >
+                <TouchableOpacity style={[styles.modalActionButton, styles.modalSaveButton]} activeOpacity={0.85} onPress={saveBiography}>
                   <Text style={styles.modalSaveButtonText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Work Experience Modal */}
+        <Modal visible={isWorkModalVisible} transparent animationType="fade" onRequestClose={closeWorkModal}>
+          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Edit Work Experience</Text>
+                <TouchableOpacity onPress={closeWorkModal} style={styles.modalCloseButton} activeOpacity={0.8} disabled={isWorkSaving}>
+                  <Ionicons name="close" size={22} color="#31429B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalHelperText}>Add or update your work experience.</Text>
+
+              <TextInput value={workDraft.title} onChangeText={(t) => setWorkDraft((d) => ({ ...d, title: t }))} placeholder="Position / Title" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
+              <TextInput value={workDraft.subtitle} onChangeText={(t) => setWorkDraft((d) => ({ ...d, subtitle: t }))} placeholder="Company / Organization" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
+              <TextInput value={workDraft.period} onChangeText={(t) => setWorkDraft((d) => ({ ...d, period: t }))} placeholder="Period (e.g., 2021 - 2022)" placeholderTextColor="#94A3B8" style={styles.input} maxLength={50} />
+              <TextInput value={workDraft.location} onChangeText={(t) => setWorkDraft((d) => ({ ...d, location: t }))} placeholder="Location" placeholderTextColor="#94A3B8" style={styles.input} maxLength={120} />
+              <TextInput value={workDraft.description} onChangeText={(t) => setWorkDraft((d) => ({ ...d, description: t }))} placeholder="Brief description" placeholderTextColor="#94A3B8" multiline textAlignVertical="top" style={[styles.bioInput, { height: 100 }]} maxLength={1000} />
+
+              <View style={styles.modalButtonRow}>
+                <TouchableOpacity style={[styles.modalActionButton, styles.modalCancelButton]} activeOpacity={0.85} onPress={closeWorkModal} disabled={isWorkSaving}>
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.modalActionButton, styles.modalSaveButton]} activeOpacity={0.85} onPress={saveWorkExperience} disabled={isWorkSaving}>
+                  <Text style={styles.modalSaveButtonText}>{isWorkSaving ? 'Saving...' : 'Save'}</Text>
                 </TouchableOpacity>
               </View>
             </View>

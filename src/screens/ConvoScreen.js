@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   FlatList,
   Image,
   Keyboard,
@@ -27,6 +28,7 @@ import MessageInputBar from '../components/MessageInputBar';
 import { useUnreadMessages } from '../context/UnreadMessagesContext';
 
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '👏'];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const toMentionHandle = (firstName, lastName) => {
   const normalizedHandle = `${firstName ?? ''}_${lastName ?? ''}`
@@ -642,8 +644,8 @@ export default function ConvoScreen() {
 
 const localStyles = StyleSheet.create({
   attachmentImage: {
-    width: 220,
-    height: 220,
+    width: Math.min(SCREEN_WIDTH * 0.72, 280),
+    height: Math.min(SCREEN_WIDTH * 0.72, 280),
     borderRadius: 14,
     marginBottom: 8,
     backgroundColor: '#E5E7EB',
@@ -655,7 +657,7 @@ const localStyles = StyleSheet.create({
   },
   messageColumn: {
     flexShrink: 1,
-    maxWidth: '78%',
+    maxWidth: '76%',
   },
   bottomSafeArea: {
     backgroundColor: 'transparent',

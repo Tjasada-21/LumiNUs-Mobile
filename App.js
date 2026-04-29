@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -11,6 +11,8 @@ import {
 import BrandedAlertHost from './src/components/BrandedAlertHost';
 import { getAuthToken, peekAuthToken, preloadAuthToken } from './src/services/authStorage';
 import { UnreadMessagesProvider } from './src/context/UnreadMessagesContext';
+import { NotificationProvider } from './src/context/NotificationContext';
+import * as Notifications from 'expo-notifications';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -20,6 +22,7 @@ export default function App() {
   });
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [initialRouteName, setInitialRouteName] = useState('Login');
+  const navigationRef = useRef(null);
 
   useEffect(() => {
     void preloadAuthToken();
@@ -36,17 +39,34 @@ export default function App() {
     bootstrapAuth();
   }, []);
 
+  // Handle notification responses
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      
+      if (navigationRef.current && data.screen) {
+        navigationRef.current.navigate(data.screen, {
+          ...data,
+        });
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   if (!fontsLoaded || isCheckingAuth) {
     return null;
   }
 
   return (
-    <UnreadMessagesProvider>
-      <NavigationContainer>
-        <BrandedAlertHost />
-        <AppNavigator initialRouteName={initialRouteName} />
-      </NavigationContainer>
-    </UnreadMessagesProvider>
+    <NotificationProvider>
+      <UnreadMessagesProvider>
+        <NavigationContainer ref={navigationRef}>
+          <BrandedAlertHost />
+          <AppNavigator initialRouteName={initialRouteName} />
+        </NavigationContainer>
+      </UnreadMessagesProvider>
+    </NotificationProvider>
   );
 }
 

@@ -6,15 +6,6 @@ import { clearAuthCredentials, getAuthToken, peekAuthToken } from './authStorage
 const LOCAL_IP = '192.168.254.104';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || `http://${LOCAL_IP}:8000/api`;
 
-// const api = axios.create({
-//   // 👑 Paste the Ngrok link here. MAKE SURE you keep the /api at the very end!
-//   baseURL: 'https://rosy-stash-aneurism.ngrok-free.dev/api',
-//   headers: {
-//     'Content-Type': 'application/json',
-//     'Accept': 'application/json',
-//   },
-// });
-
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {

@@ -316,6 +316,11 @@ const styles = StyleSheet.create({
 		fontWeight: '800',
 		color: '#31429B',
 	},
+	captionMention: {
+		fontWeight: '900',
+		textDecorationLine: 'underline',
+		color: '#F2C919',
+	},
 	announcementTitle: {
 		fontSize: 16,
 		lineHeight: 22,
@@ -794,19 +799,23 @@ const styles = StyleSheet.create({
 		color: '#24346F',
 	},
 	mentionPanel: {
-		marginTop: 8,
+		marginHorizontal: 12,
+		marginTop: 4,
 		borderRadius: 14,
 		backgroundColor: '#FFFFFF',
 		borderWidth: 1,
 		borderColor: '#D9E2FF',
+		paddingVertical: 6,
 		overflow: 'hidden',
 	},
 	commentMentionPanel: {
-		marginTop: 8,
+		marginHorizontal: 12,
+		marginTop: 4,
 		borderRadius: 14,
 		backgroundColor: '#FFFFFF',
 		borderWidth: 1,
 		borderColor: '#D9E2FF',
+		paddingVertical: 6,
 		overflow: 'hidden',
 	},
 	mentionItem: {
@@ -824,9 +833,9 @@ const styles = StyleSheet.create({
 	},
 	mentionName: {
 		flex: 1,
+		color: '#24346F',
 		fontSize: 13,
 		fontWeight: '700',
-		color: '#24346F',
 	},
 	repostModalActionsRow: {
 		marginTop: 14,

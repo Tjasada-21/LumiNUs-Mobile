@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { responsiveFontSize, responsiveSpacing } from '../utils/responsive';
 
 export const colors = {
 	blue: '#31429B',
@@ -7,7 +8,7 @@ export const colors = {
 	textSecondary: '#4B5563',
 };
 
-export const sharedScreenStyles = StyleSheet.create({
+export const createSharedScreenStyles = (screenWidth = 375) => ({
 	safeArea: {
 		flex: 1,
 		backgroundColor: colors.lightBlue,
@@ -16,18 +17,20 @@ export const sharedScreenStyles = StyleSheet.create({
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingHorizontal: 24,
+		paddingHorizontal: responsiveSpacing(screenWidth, 24, 16, 32),
 	},
 	title: {
-		fontSize: 28,
+		fontSize: responsiveFontSize(screenWidth, 28, 22, 34),
 		fontWeight: '700',
 		color: colors.textPrimary,
 		textAlign: 'center',
 		marginBottom: 8,
 	},
 	subtitle: {
-		fontSize: 16,
+		fontSize: responsiveFontSize(screenWidth, 16, 14, 20),
 		color: colors.textSecondary,
 		textAlign: 'center',
 	},
 });
+
+export const sharedScreenStyles = StyleSheet.create(createSharedScreenStyles());

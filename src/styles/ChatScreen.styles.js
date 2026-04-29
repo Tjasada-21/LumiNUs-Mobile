@@ -1,4 +1,7 @@
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
+import { responsiveFontSize, responsiveHeight, responsiveSpacing, responsiveWidth } from '../utils/responsive';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
 	safeArea: {
@@ -13,51 +16,51 @@ const styles = StyleSheet.create({
 		backgroundColor: '#31429B',
 	},
 	brandRow: {
-		paddingHorizontal: 16,
-		paddingTop: 16,
-		paddingBottom: 18,
+		paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 16, 14, 24),
+		paddingTop: responsiveSpacing(SCREEN_HEIGHT, 16, 14, 22),
+		paddingBottom: responsiveSpacing(SCREEN_HEIGHT, 18, 14, 24),
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
 	},
 	brandLogo: {
-		width: 136,
-		height: 42,
+		width: responsiveWidth(SCREEN_WIDTH, 0.34, 126, 178),
+		height: responsiveHeight(SCREEN_HEIGHT, 0.055, 38, 52),
 	},
 	nulipaPill: {
 		backgroundColor: '#FFFFFF',
 		borderRadius: 999,
-		paddingVertical: 7,
-		paddingHorizontal: 14,
+		paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 7, 6, 10),
+		paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 14, 12, 18),
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	nulipaIcon: {
-		width: 22,
-		height: 22,
+		width: responsiveWidth(SCREEN_WIDTH, 0.055, 20, 28),
+		height: responsiveWidth(SCREEN_WIDTH, 0.055, 20, 28),
 		marginRight: 6,
 	},
 	nulipaText: {
 		color: '#2D3F9E',
 		fontWeight: '800',
-		fontSize: 14,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 14, 12, 16),
 		letterSpacing: 0.3,
 	},
 	brandAccent: {
-		height: 10,
+		height: responsiveHeight(SCREEN_HEIGHT, 0.012, 8, 14),
 		backgroundColor: '#F2C919',
 	},
 	contentWrap: {
 		flex: 1,
-		paddingHorizontal: 16,
-		paddingTop: 12,
+		paddingHorizontal: responsiveSpacing(SCREEN_WIDTH, 16, 14, 22),
+		paddingTop: responsiveSpacing(SCREEN_HEIGHT, 12, 10, 18),
 	},
 	userRow: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		marginBottom: 12,
+		marginBottom: responsiveSpacing(SCREEN_HEIGHT, 12, 10, 16),
 	},
 	userInfoRow: {
 		flexDirection: 'row',
@@ -69,19 +72,19 @@ const styles = StyleSheet.create({
 		flexShrink: 1,
 	},
 	avatar: {
-		width: 38,
-		height: 38,
-		borderRadius: 19,
+		width: responsiveWidth(SCREEN_WIDTH, 0.095, 34, 44),
+		height: responsiveWidth(SCREEN_WIDTH, 0.095, 34, 44),
+		borderRadius: responsiveWidth(SCREEN_WIDTH, 0.0475, 17, 22),
 		marginRight: 10,
 	},
 	helloText: {
 		color: '#6A6A6A',
-		fontSize: 14,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 14, 12, 16),
 		lineHeight: 16,
 	},
 	nameText: {
 		color: '#3E3E3E',
-		fontSize: 20,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 20, 18, 24),
 		fontWeight: '800',
 	},
 	actionsRow: {
@@ -89,9 +92,9 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 	},
 	circleAction: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
+		width: responsiveWidth(SCREEN_WIDTH, 0.1, 36, 44),
+		height: responsiveWidth(SCREEN_WIDTH, 0.1, 36, 44),
+		borderRadius: responsiveWidth(SCREEN_WIDTH, 0.05, 18, 22),
 		borderWidth: 2,
 		borderColor: '#31429B',
 		alignItems: 'center',
@@ -107,21 +110,21 @@ const styles = StyleSheet.create({
 		backgroundColor: '#DADBE0',
 		borderRadius: 16,
 		padding: 2,
-		marginBottom: 6,
+		marginBottom: responsiveSpacing(SCREEN_HEIGHT, 6, 4, 10),
 	},
 	segmentItem: {
 		flex: 1,
 		borderRadius: 14,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingVertical: 6,
+		paddingVertical: responsiveSpacing(SCREEN_HEIGHT, 6, 5, 8),
 	},
 	segmentItemActive: {
 		backgroundColor: '#31429B',
 	},
 	segmentText: {
 		color: '#8C8D94',
-		fontSize: 14,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 14, 12, 16),
 		fontWeight: '500',
 	},
 	segmentTextActive: {
@@ -151,14 +154,14 @@ const styles = StyleSheet.create({
 	},
 	emptyTitle: {
 		color: '#31429B',
-		fontSize: 18,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 18, 16, 22),
 		fontWeight: '800',
 		marginBottom: 6,
 	},
 	emptyText: {
 		color: '#6B7280',
-		fontSize: 13,
-		lineHeight: 18,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 13, 12, 15),
+		lineHeight: responsiveFontSize(SCREEN_WIDTH, 18, 16, 22),
 		textAlign: 'center',
 	},
 	contactCard: {
@@ -166,8 +169,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		backgroundColor: '#FFFFFF',
 		borderRadius: 16,
-		padding: 12,
-		marginBottom: 12,
+		padding: responsiveSpacing(SCREEN_WIDTH, 12, 10, 16),
+		marginBottom: responsiveSpacing(SCREEN_HEIGHT, 12, 10, 16),
 		elevation: 2,
 		shadowColor: '#000',
 		shadowOpacity: 0.04,
@@ -179,8 +182,8 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		backgroundColor: '#FFFFFF',
 		borderRadius: 16,
-		padding: 12,
-		marginBottom: 12,
+		padding: responsiveSpacing(SCREEN_WIDTH, 12, 10, 16),
+		marginBottom: responsiveSpacing(SCREEN_HEIGHT, 12, 10, 16),
 		elevation: 2,
 		shadowColor: '#000',
 		shadowOpacity: 0.04,
@@ -188,9 +191,9 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 4 },
 	},
 	contactAvatar: {
-		width: 46,
-		height: 46,
-		borderRadius: 23,
+		width: responsiveWidth(SCREEN_WIDTH, 0.115, 42, 52),
+		height: responsiveWidth(SCREEN_WIDTH, 0.115, 42, 52),
+		borderRadius: responsiveWidth(SCREEN_WIDTH, 0.0575, 21, 26),
 		marginRight: 12,
 		borderWidth: 1,
 		borderColor: '#E5E7EB',
@@ -208,9 +211,9 @@ const styles = StyleSheet.create({
 		gap: 10,
 	},
 	groupAvatar: {
-		width: 46,
-		height: 46,
-		borderRadius: 23,
+		width: responsiveWidth(SCREEN_WIDTH, 0.115, 42, 52),
+		height: responsiveWidth(SCREEN_WIDTH, 0.115, 42, 52),
+		borderRadius: responsiveWidth(SCREEN_WIDTH, 0.0575, 21, 26),
 		marginRight: 12,
 		borderWidth: 1,
 		borderColor: '#E5E7EB',
@@ -218,13 +221,13 @@ const styles = StyleSheet.create({
 	groupName: {
 		flex: 1,
 		color: '#31429B',
-		fontSize: 15,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 15, 13, 18),
 		fontWeight: '800',
 	},
 	groupUnreadPill: {
-		minWidth: 24,
-		height: 24,
-		borderRadius: 12,
+		minWidth: responsiveWidth(SCREEN_WIDTH, 0.06, 22, 28),
+		height: responsiveWidth(SCREEN_WIDTH, 0.06, 22, 28),
+		borderRadius: responsiveWidth(SCREEN_WIDTH, 0.03, 11, 14),
 		paddingHorizontal: 7,
 		backgroundColor: '#31429B',
 		alignItems: 'center',
@@ -232,17 +235,17 @@ const styles = StyleSheet.create({
 	},
 	groupUnreadText: {
 		color: '#FFFFFF',
-		fontSize: 12,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 10, 14),
 		fontWeight: '800',
 	},
 	groupMeta: {
 		color: '#6B7280',
-		fontSize: 12,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 12, 10, 14),
 		marginTop: 2,
 	},
 	groupPreview: {
 		color: '#3E3E3E',
-		fontSize: 13,
+		fontSize: responsiveFontSize(SCREEN_WIDTH, 13, 12, 15),
 		marginTop: 3,
 	},
 	contactRightWrap: {
