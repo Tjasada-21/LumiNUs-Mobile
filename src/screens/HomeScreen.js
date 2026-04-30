@@ -595,7 +595,7 @@ const HomeScreen = ({ navigation }) => {
   const renderNotificationItem = ({ item }) => {
     const firstName = String(item?.actor?.first_name ?? 'Unknown');
     const lastName = String(item?.actor?.last_name ?? 'User');
-    const name = item?.type === 'announcement' ? 'NU LIPA' : `${firstName} ${lastName}`.trim();
+    const name = item?.type === 'announcement' ? 'NU LIPA ALUMNI OFFICE' : `${firstName} ${lastName}`.trim();
     const time = formatNotificationTime(item?.created_at);
     const avatarUri = item?.type === 'announcement'
       ? null
@@ -621,11 +621,6 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.notifBody}>
           <View style={styles.notifTopRow}>
             <Text style={styles.notifName}>{name}</Text>
-            {item?.type === 'announcement' ? (
-              <View style={styles.notifTypePill}>
-                <Text style={styles.notifTypePillText}>{getNotificationTypeLabel(item.type)}</Text>
-              </View>
-            ) : null}
           </View>
           <Text style={styles.notifAction}>{actionText}</Text>
           {titleText ? <Text style={styles.notifDetail}>{titleText}</Text> : null}

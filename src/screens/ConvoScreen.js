@@ -151,14 +151,15 @@ export default function ConvoScreen() {
   const [connections, setConnections] = useState([]);
 
   const hasConversation = Boolean(contactId || groupId);
+  const allowMentions = isGroup;
   const headerSubtitle = isGroup
     ? (groupMembers.map((member) => member?.name).filter(Boolean).join(', ') || 'Group chat')
     : (conversationStatus || 'Active now');
 
-  const mentionContext = useMemo(() => extractMentionQuery(draft), [draft]);
+  const mentionContext = useMemo(() => (allowMentions ? extractMentionQuery(draft) : null), [allowMentions, draft]);
 
   const mentionSuggestions = useMemo(() => {
-    if (!mentionContext) {
+    if (!allowMentions || !mentionContext) {
       return [];
     }
 
@@ -188,7 +189,7 @@ export default function ConvoScreen() {
         return item.name.toLowerCase().includes(query) || item.handle.includes(query);
       })
       .slice(0, 5);
-  }, [connections, mentionContext]);
+  }, [allowMentions, connections, mentionContext]);
 
   const scrollToBottom = useCallback((animated = false) => {
     requestAnimationFrame(() => {
@@ -224,7 +225,7 @@ export default function ConvoScreen() {
   }, []);
 
   const handleMentionPick = useCallback((mentionHandle) => {
-    if (!mentionContext) {
+    if (!allowMentions || !mentionContext) {
       return;
     }
 
@@ -234,9 +235,13 @@ export default function ConvoScreen() {
       const suffix = safeText.slice(mentionContext.mentionEnd);
       return `${prefix}@${mentionHandle} ${suffix}`;
     });
-  }, [mentionContext]);
+  }, [allowMentions, mentionContext]);
 
   const handleMentionPress = useCallback((token) => {
+    if (!allowMentions) {
+      return;
+    }
+
     const mentionHandle = String(token ?? '').replace(/^@/, '').toLowerCase();
 
     if (!mentionHandle) {
@@ -261,7 +266,7 @@ export default function ConvoScreen() {
     }
 
     navigation.navigate('ProfileView', { userId: matchedConnection.id });
-  }, [connections, navigation]);
+  }, [allowMentions, connections, navigation]);
 
   const loadMessages = useCallback(async () => {
     if (!hasConversation) {
@@ -475,13 +480,13 @@ export default function ConvoScreen() {
         showAvatar={!isOutgoing}
         senderAvatar={senderAvatar}
         onLongPress={() => openMessageActions(item)}
-        onMentionPress={handleMentionPress}
+        onMentionPress={allowMentions ? handleMentionPress : undefined}
         read={Boolean(item?.read_at)}
         messageTime={messageTime}
         sendStatus={sendStatus}
       />
     );
-  }, [conversationAvatar, conversationName, currentUserId, handleMentionPress, messages, openMessageActions]);
+  }, [allowMentions, conversationAvatar, conversationName, currentUserId, handleMentionPress, messages, openMessageActions]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyConversationState}>

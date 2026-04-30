@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import BrandHeader from '../components/BrandHeader';
+import CustomKeyboardView from '../components/CustomKeyboardView';
 import styles from '../styles/UserFeedScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
@@ -1785,7 +1786,7 @@ const UserFeedScreen = ({ navigation }) => {
 													resizeMode="contain"
 												/>
 												<View style={styles.postHeaderTextWrap}>
-													<Text style={styles.postAuthorName}>NU LIPA</Text>
+													<Text style={styles.postAuthorName}>NU LIPA ALUMNI OFFICE</Text>
 													<View style={styles.postMetaRow}>
 														<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
 														<Text style={styles.postMetaSeparator}>•</Text>
@@ -1881,7 +1882,7 @@ const UserFeedScreen = ({ navigation }) => {
 												]}
 												onPress={isAnnouncementFeedItem ? () => {
 													showThemedAlert({
-														title: 'NU LIPA',
+														title: 'NU LIPA ALUMNI OFFICE',
 														message: 'Reaction actions for announcements are not available yet.',
 													});
 												} : () => handlePostReaction(post)}
@@ -1905,7 +1906,7 @@ const UserFeedScreen = ({ navigation }) => {
 												style={styles.postCommentButton}
 												onPress={isAnnouncementFeedItem ? () => {
 													showThemedAlert({
-														title: 'NU LIPA',
+														title: 'NU LIPA ALUMNI OFFICE',
 														message: 'Commenting on announcements is not available yet.',
 													});
 												} : () => handlePostComment(post)}
@@ -1920,7 +1921,7 @@ const UserFeedScreen = ({ navigation }) => {
 												style={[styles.postRepostButton, post.my_repost ? styles.postRepostButtonActive : null]}
 												onPress={isAnnouncementFeedItem ? () => {
 													showThemedAlert({
-														title: 'NU LIPA',
+														title: 'NU LIPA ALUMNI OFFICE',
 														message: 'Reposting announcements is not available yet.',
 													});
 												} : () => openRepostComposer(post)}
@@ -2160,7 +2161,7 @@ const UserFeedScreen = ({ navigation }) => {
 					<View style={styles.commentsModalBackdrop}>
 						<Pressable style={StyleSheet.absoluteFillObject} onPress={closeCommentsModal} />
 
-						<View style={styles.commentsSheet}>
+						<SafeAreaView style={styles.commentsSheet} edges={['top', 'bottom']}>
 							<View style={styles.commentsHeaderRow}>
 								<View style={styles.commentsHeaderCenter}>
 									<Text style={styles.commentsTitle}>
@@ -2176,7 +2177,64 @@ const UserFeedScreen = ({ navigation }) => {
 								</Pressable>
 							</View>
 
-							<View style={styles.commentsBody}>
+							<CustomKeyboardView style={styles.commentsBody} keyboardVerticalOffset={90} footer={(
+								<View style={styles.commentComposerSafeArea}>
+									<View style={styles.commentComposer}>
+										<View style={styles.commentComposerContent}>
+											{replyingToComment ? (
+												<View style={styles.commentReplyContext}>
+													<Text style={styles.commentReplyContextText} numberOfLines={1}>
+														Replying to {renderCommentAuthorName(replyingToComment)}
+													</Text>
+													<Pressable style={styles.commentReplyContextCancel} onPress={() => setReplyingToComment(null)}>
+														<Ionicons name="close" size={14} color="#31429B" />
+													</Pressable>
+												</View>
+											) : null}
+
+											<View style={styles.commentInputWrap}>
+												<TextInput
+													value={commentDraft}
+													onChangeText={setCommentDraft}
+													onContentSizeChange={handleCommentInputContentSizeChange}
+													placeholder={replyingToComment ? 'Write a reply...' : 'Write a comment...'}
+													placeholderTextColor="#8A94A6"
+													style={[styles.commentInput, { height: commentInputHeight }]}
+													multiline
+													scrollEnabled={false}
+													textAlignVertical="top"
+												/>
+
+												<Pressable
+													style={[
+														styles.commentSendButtonInside,
+														!commentDraft.trim() ? styles.commentSendButtonDisabled : null,
+													]}
+													onPress={handleSubmitComment}
+													disabled={!commentDraft.trim()}
+												>
+													<Ionicons name="send" size={16} color="#FFFFFF" />
+												</Pressable>
+											</View>
+
+											{commentMentionContext && commentMentionSuggestions.length > 0 ? (
+												<View style={styles.commentMentionPanel}>
+													{commentMentionSuggestions.map((item) => (
+														<Pressable
+															key={`comment-mention-${String(item.id ?? item.name)}`}
+															style={styles.mentionItem}
+															onPress={() => handleCommentMentionPick(item.handle)}
+														>
+															<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+															<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+														</Pressable>
+													))}
+												</View>
+											) : null}
+										</View>
+									</View>
+								</View>
+							)}>
 								<ScrollView
 									style={styles.commentsList}
 									contentContainerStyle={styles.commentsListContent}
@@ -2199,68 +2257,11 @@ const UserFeedScreen = ({ navigation }) => {
 											<Text style={styles.commentsEmptyText}>No comments loaded yet.</Text>
 										</View>
 									) : (
-									commentTree.map((thread) => renderCommentNode(thread))
+										commentTree.map((thread) => renderCommentNode(thread))
 									)}
 								</ScrollView>
-							</View>
-
-							<View style={styles.commentComposerSafeArea}>
-								<View style={styles.commentComposer}>
-									<View style={styles.commentComposerContent}>
-										{replyingToComment ? (
-											<View style={styles.commentReplyContext}>
-												<Text style={styles.commentReplyContextText} numberOfLines={1}>
-													Replying to {renderCommentAuthorName(replyingToComment)}
-												</Text>
-												<Pressable style={styles.commentReplyContextCancel} onPress={() => setReplyingToComment(null)}>
-													<Ionicons name="close" size={14} color="#31429B" />
-												</Pressable>
-											</View>
-										) : null}
-
-										<View style={styles.commentInputWrap}>
-											<TextInput
-												value={commentDraft}
-												onChangeText={setCommentDraft}
-												onContentSizeChange={handleCommentInputContentSizeChange}
-												placeholder={replyingToComment ? 'Write a reply...' : 'Write a comment...'}
-												placeholderTextColor="#8A94A6"
-												style={[styles.commentInput, { height: commentInputHeight }]}
-												multiline
-												scrollEnabled={false}
-												textAlignVertical="top"
-											/>
-
-											<Pressable
-												style={[
-													styles.commentSendButtonInside,
-													!commentDraft.trim() ? styles.commentSendButtonDisabled : null,
-												]}
-												onPress={handleSubmitComment}
-												disabled={!commentDraft.trim()}
-											>
-												<Ionicons name="send" size={16} color="#FFFFFF" />
-											</Pressable>
-										</View>
-
-										{commentMentionContext && commentMentionSuggestions.length > 0 ? (
-											<View style={styles.commentMentionPanel}>
-												{commentMentionSuggestions.map((item) => (
-													<Pressable
-														key={`comment-mention-${String(item.id ?? item.name)}`}
-														style={styles.mentionItem}
-														onPress={() => handleCommentMentionPick(item.handle)}
-													>
-														<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
-														<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
-													</Pressable>
-												))}
-											</View>
-										) : null}
-									</View>
-								</View>
-							</View>
-						</View>
+							</CustomKeyboardView>
+						</SafeAreaView>
 					</View>
 				</Modal>
 			</View>
