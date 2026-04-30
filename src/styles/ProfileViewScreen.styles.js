@@ -229,6 +229,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
+  workPagerContent: {
+    alignItems: 'stretch',
+    marginBottom: 12,
+  },
+  workPage: {
+    paddingRight: 12,
+  },
   sectionHeading: {
     color: '#404040',
     fontSize: 18,

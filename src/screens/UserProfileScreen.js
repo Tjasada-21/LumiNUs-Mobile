@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, useWindowDimensions, Modal, TextInput, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -17,6 +17,7 @@ const UserProfileScreen = ({ navigation }) => {
     avatarSize: isTablet ? 118 : isCompactWidth ? 88 : 102,
     heroPadding: isCompactWidth ? 14 : 16,
     nameSize: isCompactWidth ? 19 : 22,
+    workPageWidth: Math.max(width - (isCompactWidth ? 28 : 36), 280),
   };
 
   const [userData, setUserData] = useState(null);
@@ -29,6 +30,7 @@ const UserProfileScreen = ({ navigation }) => {
   const [isPostActionModalVisible, setIsPostActionModalVisible] = useState(false);
   const [isPostActionSaving, setIsPostActionSaving] = useState(false);
   const [isWorkModalVisible, setIsWorkModalVisible] = useState(false);
+  const [activeWorkExperienceIndex, setActiveWorkExperienceIndex] = useState(0);
   const [workDraft, setWorkDraft] = useState({
     id: null,
     title: '',
@@ -40,6 +42,7 @@ const UserProfileScreen = ({ navigation }) => {
   });
   const [isWorkSaving, setIsWorkSaving] = useState(false);
   const [yearDropdownType, setYearDropdownType] = useState(null); // 'start' or 'end'
+  const workPagerRef = useRef(null);
 
 	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
@@ -82,19 +85,30 @@ const UserProfileScreen = ({ navigation }) => {
   }), [userData]);
 
 	// DERIVED VALUE: Work experience card data
-  const workExperience = useMemo(() => {
+  const workExperiences = useMemo(() => {
     if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
-      return userData.work_experiences[0];
+      return userData.work_experiences;
     }
 
-    return {
+    return [{
       title: 'Student Developer',
       subtitle: 'NU Lipa - LumiNUs Portal',
       period: '2021 - 2022',
       location: 'Lipa City, Batangas',
       description: "Contributed to the development of the university's alumni portal.",
-    };
+    }];
   }, [userData]);
+
+  useEffect(() => {
+    setActiveWorkExperienceIndex(0);
+    workPagerRef.current?.scrollTo?.({ x: 0, animated: false });
+  }, [workExperiences.length]);
+
+  const handleWorkPagerScrollEnd = (event) => {
+    const pageWidth = event?.nativeEvent?.layoutMeasurement?.width ?? 1;
+    const nextIndex = Math.round((event?.nativeEvent?.contentOffset?.x ?? 0) / pageWidth);
+    setActiveWorkExperienceIndex(nextIndex);
+  };
 
   const openWorkModal = (employment = null) => {
     const source = employment ?? null;
@@ -646,46 +660,71 @@ const UserProfileScreen = ({ navigation }) => {
                   </View>
 
                   <View>
-                    {Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0 ? (
-                      userData.work_experiences.map((emp) => (
-                        <View key={emp.id ?? `${emp.title}-${emp.period}`} style={styles.workCard}>
-                          <View style={styles.workRow}>
-                            <View style={styles.workContent}>
-                              <View style={styles.workTitleRow}>
-                                <Ionicons name="briefcase" size={15} color="#31429B" />
-                                <Text style={styles.workTitle}>{emp.title}</Text>
-                              </View>
-                              {emp.subtitle ? <Text style={styles.workSubtitle}>{emp.subtitle}</Text> : null}
-                              {emp.period ? <Text style={styles.workPeriod}>{emp.period}</Text> : null}
-                              {emp.location ? (
-                                <View style={styles.workLocationRow}>
-                                  <Ionicons name="location-sharp" size={15} color="#5C6471" />
-                                  <Text style={styles.workLocation}>{emp.location}</Text>
+                    <ScrollView
+                      ref={workPagerRef}
+                      horizontal
+                      pagingEnabled
+                      showsHorizontalScrollIndicator={false}
+                      decelerationRate="fast"
+                      snapToInterval={layout.workPageWidth}
+                      snapToAlignment="start"
+                      contentContainerStyle={styles.workPagerContent}
+                      onMomentumScrollEnd={handleWorkPagerScrollEnd}
+                    >
+                      {workExperiences.map((emp, index) => (
+                        <View
+                          key={emp.id ?? `${emp.title}-${emp.period}-${index}`}
+                          style={[styles.workPage, { width: layout.workPageWidth }]}
+                        >
+                          <View style={styles.workCard}>
+                            <View style={styles.workRow}>
+                              <View style={styles.workContent}>
+                                <View style={styles.workTitleRow}>
+                                  <Ionicons name="briefcase" size={15} color="#31429B" />
+                                  <Text style={styles.workTitle}>{emp.title}</Text>
                                 </View>
-                              ) : null}
+                                {emp.subtitle ? <Text style={styles.workSubtitle}>{emp.subtitle}</Text> : null}
+                                {emp.period ? <Text style={styles.workPeriod}>{emp.period}</Text> : null}
+                                {emp.location ? (
+                                  <View style={styles.workLocationRow}>
+                                    <Ionicons name="location-sharp" size={15} color="#5C6471" />
+                                    <Text style={styles.workLocation}>{emp.location}</Text>
+                                  </View>
+                                ) : null}
 
-                              {emp.description ? <Text style={styles.workDescription}>{emp.description}</Text> : null}
-                            </View>
+                                {emp.description ? <Text style={styles.workDescription}>{emp.description}</Text> : null}
+                              </View>
 
-                            <View style={styles.workActionsRow || { justifyContent: 'flex-end' }}>
-                              <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={() => openWorkModal(emp)}>
-                                <Ionicons name="create-outline" size={12} color="#404040" />
-                                <Text style={styles.editPillText}>Edit</Text>
-                              </TouchableOpacity>
+                              <View style={styles.workActionsRow || { justifyContent: 'flex-end' }}>
+                                <TouchableOpacity style={styles.editPill} activeOpacity={0.8} onPress={() => openWorkModal(emp)}>
+                                  <Ionicons name="create-outline" size={12} color="#404040" />
+                                  <Text style={styles.editPillText}>Edit</Text>
+                                </TouchableOpacity>
 
-                              <TouchableOpacity style={[styles.postDeleteButton, { marginLeft: 8 }]} activeOpacity={0.8} onPress={() => handleDeleteWork(emp)}>
-                                <Ionicons name="trash-outline" size={15} color="#B91C1C" />
-                                <Text style={styles.postDeleteButtonText}>Delete</Text>
-                              </TouchableOpacity>
+                                <TouchableOpacity style={[styles.postDeleteButton, { marginLeft: 8 }]} activeOpacity={0.8} onPress={() => handleDeleteWork(emp)}>
+                                  <Ionicons name="trash-outline" size={15} color="#B91C1C" />
+                                  <Text style={styles.postDeleteButtonText}>Delete</Text>
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           </View>
                         </View>
-                      ))
-                    ) : (
-                      <View style={styles.workCard}>
-                        <Text style={styles.emptyPostsText}>No work experience yet.</Text>
+                      ))}
+                    </ScrollView>
+
+                    {workExperiences.length > 1 ? (
+                      <View style={styles.paginationRow}>
+                        {workExperiences.map((_, index) => (
+                          <View
+                            key={`work-dot-${index}`}
+                            style={[
+                              styles.paginationDot,
+                              activeWorkExperienceIndex === index ? styles.paginationDotActive : null,
+                            ]}
+                          />
+                        ))}
                       </View>
-                    )}
+                    ) : null}
                   </View>
                 </View>
               </View>

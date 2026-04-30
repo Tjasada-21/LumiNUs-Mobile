@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ const ProfileViewScreen = ({ navigation, route }) => {
 		avatarSize: isTablet ? 118 : isCompactWidth ? 88 : 102,
 		heroPadding: isCompactWidth ? 14 : 16,
 		nameSize: isCompactWidth ? 19 : 22,
+		workPageWidth: Math.max(width - (isCompactWidth ? 28 : 36), 280),
 	};
 	const [userData, setUserData] = useState(null);
 	const [profilePosts, setProfilePosts] = useState([]);
@@ -24,6 +25,8 @@ const ProfileViewScreen = ({ navigation, route }) => {
 	const [postsLoading, setPostsLoading] = useState(true);
 	const [followLoading, setFollowLoading] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
+	const [activeWorkExperienceIndex, setActiveWorkExperienceIndex] = useState(0);
+	const workPagerRef = useRef(null);
 
 	const profileName = useMemo(() => {
 		if (!userData) {
@@ -173,19 +176,30 @@ const ProfileViewScreen = ({ navigation, route }) => {
 		);
 	};
 
-	const workExperience = useMemo(() => {
+	const workExperiences = useMemo(() => {
 		if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
-			return userData.work_experiences[0];
+			return userData.work_experiences;
 		}
 
-		return {
+		return [{
 			title: 'Student Developer',
 			subtitle: 'NU Lipa - LumiNUs Portal',
 			period: '2021 - 2022',
 			location: 'Lipa City, Batangas',
 			description: 'Contributed to the development of the university\'s alumni portal.',
-		};
+		}];
 	}, [userData]);
+
+	useEffect(() => {
+		setActiveWorkExperienceIndex(0);
+		workPagerRef.current?.scrollTo?.({ x: 0, animated: false });
+	}, [workExperiences.length]);
+
+	const handleWorkPagerScrollEnd = (event) => {
+		const pageWidth = event?.nativeEvent?.layoutMeasurement?.width ?? 1;
+		const nextIndex = Math.round((event?.nativeEvent?.contentOffset?.x ?? 0) / pageWidth);
+		setActiveWorkExperienceIndex(nextIndex);
+	};
 
 	const repostsCount = useMemo(
 		() => profilePosts.filter((post) => post?.feed_type === 'repost').length,
@@ -433,37 +447,56 @@ const ProfileViewScreen = ({ navigation, route }) => {
 								<View style={styles.sectionBlock}>
 									<View style={styles.workSectionCard}>
 										<Text style={styles.sectionHeading}>Work Experience</Text>
-										<View style={styles.workCard}>
-											<View style={styles.workRow}>
-												<View style={styles.workNavButton}>
-													<Ionicons name="chevron-back" size={18} color="#31429B" />
-												</View>
-
-												<View style={styles.workContent}>
-													<View style={styles.workTitleRow}>
-														<Ionicons name="briefcase" size={15} color="#31429B" />
-														<Text style={styles.workTitle}>{workExperience.title}</Text>
+										<ScrollView
+											ref={workPagerRef}
+											horizontal
+											pagingEnabled
+											showsHorizontalScrollIndicator={false}
+											decelerationRate="fast"
+											snapToInterval={layout.workPageWidth}
+											snapToAlignment="start"
+											contentContainerStyle={styles.workPagerContent}
+											onMomentumScrollEnd={handleWorkPagerScrollEnd}
+										>
+											{workExperiences.map((experience, index) => (
+												<View
+													key={experience.id ?? `${experience.title}-${experience.period}-${index}`}
+													style={[styles.workPage, { width: layout.workPageWidth }]}
+												>
+													<View style={styles.workCard}>
+														<View style={styles.workRow}>
+															<View style={styles.workContent}>
+																<View style={styles.workTitleRow}>
+																	<Ionicons name="briefcase" size={15} color="#31429B" />
+																	<Text style={styles.workTitle}>{experience.title}</Text>
+																</View>
+																<Text style={styles.workSubtitle}>{experience.subtitle}</Text>
+																<Text style={styles.workPeriod}>{experience.period}</Text>
+																<View style={styles.workLocationRow}>
+																	<Ionicons name="location-sharp" size={15} color="#5C6471" />
+																	<Text style={styles.workLocation}>{experience.location}</Text>
+																</View>
+																<Text style={styles.workDescription}>{experience.description}</Text>
+															</View>
+														</View>
 													</View>
-													<Text style={styles.workSubtitle}>{workExperience.subtitle}</Text>
-													<Text style={styles.workPeriod}>{workExperience.period}</Text>
-													<View style={styles.workLocationRow}>
-														<Ionicons name="location-sharp" size={15} color="#5C6471" />
-														<Text style={styles.workLocation}>{workExperience.location}</Text>
-													</View>
-													<Text style={styles.workDescription}>{workExperience.description}</Text>
-
-													<View style={styles.paginationRow}>
-														<View style={styles.paginationDot} />
-														<View style={styles.paginationDot} />
-														<View style={[styles.paginationDot, styles.paginationDotActive]} />
-													</View>
 												</View>
+											))}
+										</ScrollView>
 
-												<View style={styles.workNavButton}>
-													<Ionicons name="chevron-forward" size={18} color="#31429B" />
-												</View>
+										{workExperiences.length > 1 ? (
+											<View style={styles.paginationRow}>
+												{workExperiences.map((_, index) => (
+													<View
+														key={`work-dot-${index}`}
+														style={[
+															styles.paginationDot,
+															activeWorkExperienceIndex === index ? styles.paginationDotActive : null,
+														]}
+													/>
+												))}
 											</View>
-										</View>
+										) : null}
 									</View>
 								</View>
 
