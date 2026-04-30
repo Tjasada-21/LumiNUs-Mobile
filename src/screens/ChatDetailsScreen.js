@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Dimensions, View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const getAvatarUri = (name, avatarUri) => {
+  if (avatarUri) {
+    return avatarUri;
+  }
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=31429B&color=fff`;
+};
+
 const ChatDetailsScreen = ({ route, navigation }) => {
   // Placeholder data
-  const group = route?.params?.group || {
+  const fallbackGroup = {
     name: 'Project Group',
     avatar: 'https://randomuser.me/api/portraits/men/2.jpg',
     members: [
@@ -19,51 +28,92 @@ const ChatDetailsScreen = ({ route, navigation }) => {
     ],
   };
 
+  const group = route?.params?.group || fallbackGroup;
+
+  const normalizedMembers = useMemo(() => {
+    const rawMembers = Array.isArray(group?.members) ? group.members : [];
+
+    return rawMembers.map((member, index) => {
+      const firstName = member?.first_name ?? member?.admin_first_name ?? '';
+      const lastName = member?.last_name ?? member?.admin_last_name ?? '';
+      const fallbackName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      const fullName = (member?.name ?? fallbackName) || 'Member';
+      const avatar = member?.avatar
+        ?? member?.photo
+        ?? member?.alumni_photo
+        ?? member?.profile_photo
+        ?? null;
+
+      return {
+        id: member?.id ?? member?.alumni_id ?? member?.member_id ?? index,
+        name: fullName,
+        avatar: getAvatarUri(fullName, avatar),
+      };
+    });
+  }, [group?.members]);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Image source={{ uri: group.avatar }} style={styles.avatar} />
-        <Text style={styles.name}>{group.name}</Text>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <Image source={{ uri: getAvatarUri(group?.name, group?.avatar) }} style={styles.avatar} />
+          <Text style={styles.name}>{group?.name || 'Group Chat'}</Text>
+        </View>
+        <Text style={styles.sectionTitle}>Members</Text>
+        {normalizedMembers.length > 0 ? (
+          <FlatList
+            data={normalizedMembers}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={({ item }) => (
+              <View style={styles.memberRow}>
+                <Image source={{ uri: item.avatar }} style={styles.memberAvatar} />
+                <Text style={styles.memberName} numberOfLines={1}>{item.name}</Text>
+              </View>
+            )}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+          />
+        ) : (
+          <Text style={styles.emptyText}>No members found for this group chat.</Text>
+        )}
+        <Text style={styles.sectionTitle}>Shared Media</Text>
+        <FlatList
+          data={group?.media ?? []}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
+          renderItem={({ item }) => (
+            <Image source={{ uri: item?.uri }} style={styles.mediaImage} />
+          )}
+          horizontal
+        />
+        <TouchableOpacity style={styles.leaveBtn}>
+          <Ionicons name="exit-outline" size={18} color="#E57373" />
+          <Text style={styles.leaveBtnText}>Leave Group</Text>
+        </TouchableOpacity>
       </View>
-      <Text style={styles.sectionTitle}>Members</Text>
-      <FlatList
-        data={group.members}
-        keyExtractor={item => String(item.id)}
-        renderItem={({ item }) => (
-          <View style={styles.memberRow}>
-            <Image source={{ uri: item.avatar }} style={styles.memberAvatar} />
-            <Text style={styles.memberName}>{item.name}</Text>
-          </View>
-        )}
-        horizontal
-        style={{ marginBottom: 12 }}
-      />
-      <Text style={styles.sectionTitle}>Shared Media</Text>
-      <FlatList
-        data={group.media}
-        keyExtractor={item => String(item.id)}
-        renderItem={({ item }) => (
-          <Image source={{ uri: item.uri }} style={styles.mediaImage} />
-        )}
-        horizontal
-      />
-      <TouchableOpacity style={styles.leaveBtn}>
-        <Ionicons name="exit-outline" size={18} color="#E57373" />
-        <Text style={styles.leaveBtnText}>Leave Group</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, backgroundColor: '#fff', padding: Math.max(14, Math.min(20, SCREEN_WIDTH * 0.04)) },
   header: { alignItems: 'center', marginBottom: Math.max(14, Math.min(22, SCREEN_HEIGHT * 0.024)) },
+  backButton: { position: 'absolute', left: 0, top: 0, zIndex: 2, padding: 4 },
   avatar: { width: Math.max(64, Math.min(84, SCREEN_WIDTH * 0.18)), height: Math.max(64, Math.min(84, SCREEN_WIDTH * 0.18)), borderRadius: Math.max(32, Math.min(42, SCREEN_WIDTH * 0.09)), marginBottom: 8 },
   name: { fontWeight: 'bold', fontSize: Math.max(18, Math.min(22, SCREEN_WIDTH * 0.05)), color: '#222' },
   sectionTitle: { fontWeight: 'bold', color: '#31429B', marginTop: 16, marginBottom: 6, fontSize: Math.max(14, Math.min(16, SCREEN_WIDTH * 0.04)) },
   memberRow: { alignItems: 'center', marginRight: 16 },
   memberAvatar: { width: Math.max(36, Math.min(44, SCREEN_WIDTH * 0.1)), height: Math.max(36, Math.min(44, SCREEN_WIDTH * 0.1)), borderRadius: Math.max(18, Math.min(22, SCREEN_WIDTH * 0.05)), marginBottom: 4 },
   memberName: { fontSize: Math.max(12, Math.min(14, SCREEN_WIDTH * 0.034)), color: '#222' },
+  emptyText: { fontSize: 13, color: '#6B7280', marginBottom: 12 },
   mediaImage: { width: Math.max(56, Math.min(80, SCREEN_WIDTH * 0.18)), height: Math.max(56, Math.min(80, SCREEN_WIDTH * 0.18)), borderRadius: 8, marginRight: 8 },
   leaveBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 32, alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 8 },
   leaveBtnText: { color: '#E57373', fontWeight: 'bold', marginLeft: 6, fontSize: Math.max(14, Math.min(16, SCREEN_WIDTH * 0.036)) },

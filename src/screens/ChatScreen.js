@@ -56,6 +56,8 @@ const ChatScreen = ({ navigation }) => {
 	const [selectedTab, setSelectedTab] = useState('all');
 	const [userData, setUserData] = useState(null);
 	const [contacts, setContacts] = useState([]);
+	const [admins, setAdmins] = useState([]);
+	const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 	const [groupChats, setGroupChats] = useState([]);
 	const [isLoadingChatData, setIsLoadingChatData] = useState(false);
 
@@ -132,6 +134,7 @@ const ChatScreen = ({ navigation }) => {
 	const loadChatData = useCallback(async () => {
 		try {
 			setIsLoadingChatData(true);
+			setIsLoadingAdmins(true);
 			const token = await getAuthToken();
 
 			if (!token) {
@@ -149,10 +152,14 @@ const ChatScreen = ({ navigation }) => {
 				: api.get('/contacts', { headers });
 			const groupChatsRequest = api.get('/group-chats', { headers });
 
-			const [userResponse, contactsResponse, groupChatsResponse] = await Promise.all([
+			// attempt to load admins as well; backend may return different shapes
+			const adminsRequest = api.get('/admins', { headers }).catch(() => ({ data: { admins: [] } }));
+
+			const [userResponse, contactsResponse, groupChatsResponse, adminsResponse] = await Promise.all([
 				userRequest,
 				contactsRequest,
 				groupChatsRequest,
+				adminsRequest,
 			]);
 
 			setUserData(userResponse.data);
@@ -160,6 +167,8 @@ const ChatScreen = ({ navigation }) => {
 			setContacts(nextContacts);
 			const nextGroupChats = groupChatsResponse.data?.group_chats ?? groupChatsResponse.data?.groups ?? [];
 			setGroupChats(nextGroupChats);
+			const nextAdmins = adminsResponse.data?.admins ?? adminsResponse.data ?? [];
+			setAdmins(nextAdmins);
 
 			if (!cachedContactsResponse) {
 				cachedContacts = nextContacts;
@@ -172,6 +181,7 @@ const ChatScreen = ({ navigation }) => {
 			setGroupChats([]);
 		} finally {
 			setIsLoadingChatData(false);
+			setIsLoadingAdmins(false);
 		}
 	}, []);
 
@@ -301,6 +311,30 @@ const ChatScreen = ({ navigation }) => {
 		);
 	};
 
+	const renderAdminItem = ({ item }) => {
+		const adminName = `${item?.admin_first_name ?? item?.first_name ?? ''} ${item?.admin_last_name ?? item?.last_name ?? ''}`.trim() || 'Admin';
+		const adminAvatar = item?.photo || item?.admin_photo
+			? (item.photo || item.admin_photo)
+			: `https://ui-avatars.com/api/?name=${encodeURIComponent(adminName)}&background=31429B&color=fff`;
+
+		return (
+			<TouchableOpacity
+				style={styles.contactCard}
+				activeOpacity={0.85}
+				onPress={() => openConversation({ id: item?.id, first_name: item?.admin_first_name ?? item?.first_name, last_name: item?.admin_last_name ?? item?.last_name, alumni_photo: item?.photo ?? item?.admin_photo })}
+			>
+				<Image source={{ uri: adminAvatar }} style={styles.contactAvatar} />
+				<View style={styles.contactTextWrap}>
+					<Text style={styles.contactName} numberOfLines={1}>{adminName}</Text>
+					<Text style={styles.contactMeta}>Admin</Text>
+				</View>
+				<View style={styles.contactRightWrap}>
+					<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+				</View>
+			</TouchableOpacity>
+		);
+	};
+
 	const getListEmptyComponent = useCallback(() => {
 		if (isLoadingChatData) {
 			return (
@@ -361,7 +395,39 @@ const ChatScreen = ({ navigation }) => {
 						</View>
 					</View>
 
-					<View style={styles.segmentedWrap}>
+							{/* Admin messaging quick access */}
+							{isLoadingAdmins ? (
+								<View style={styles.adminLoadingWrap}>
+									<ActivityIndicator color="#31429B" />
+								</View>
+							) : admins && admins.length > 0 ? (
+								admins.length === 1 ? (
+									<TouchableOpacity
+										style={styles.contactCard}
+										activeOpacity={0.85}
+										onPress={() => openConversation({ id: admins[0]?.id, first_name: admins[0]?.admin_first_name ?? admins[0]?.first_name, last_name: admins[0]?.admin_last_name ?? admins[0]?.last_name, alumni_photo: admins[0]?.photo ?? admins[0]?.admin_photo })}
+									>
+										<Image source={{ uri: admins[0]?.photo ?? admins[0]?.admin_photo ?? `https://ui-avatars.com/api/?name=${encodeURIComponent((admins[0]?.admin_first_name ?? admins[0]?.first_name) || 'Admin')}&background=31429B&color=fff` }} style={styles.contactAvatar} />
+										<View style={styles.contactTextWrap}>
+											<Text style={styles.contactName} numberOfLines={1}>{`${admins[0]?.admin_first_name ?? admins[0]?.first_name ?? ''} ${admins[0]?.admin_last_name ?? admins[0]?.last_name ?? ''}`.trim() || 'Admin'}</Text>
+											<Text style={styles.contactMeta}>Message Admin</Text>
+										</View>
+										<View style={styles.contactRightWrap}>
+											<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
+										</View>
+									</TouchableOpacity>
+								) : (
+									<FlatList
+										data={admins}
+										renderItem={renderAdminItem}
+										keyExtractor={(item) => `admin-${String(item?.id)}`}
+										showsVerticalScrollIndicator={false}
+										contentContainerStyle={styles.listContent}
+									/>
+								)
+							) : null}
+
+							<View style={styles.segmentedWrap}>
 						{TABS.map((tab) => {
 							const isActive = selectedTab === tab.key;
 							return (

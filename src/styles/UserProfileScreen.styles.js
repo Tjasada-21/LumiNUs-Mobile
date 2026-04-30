@@ -272,6 +272,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
+  workDeletePill: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#f59f9f',
+  },
+  workDeletePillText: {
+    color: '#B91C1C',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   aboutItem: {
     flexDirection: 'row',
     alignItems: 'center',

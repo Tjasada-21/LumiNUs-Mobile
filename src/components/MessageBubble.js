@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo, useRef } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const MENTION_PATTERN = /(@[a-zA-Z0-9_.-]+)/g;
@@ -37,11 +37,47 @@ const renderMessageContentWithMentions = (content, isOutgoing, onMentionPress) =
   });
 };
 
-const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, read, messageTime, sendStatus, onMentionPress }) => {
+const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPress, onSwipeReply, read, messageTime, sendStatus, onMentionPress }) => {
   const hasReactions = Boolean(message?.reactions && Object.keys(message.reactions).length > 0);
   const showSendingStatus = isOutgoing && sendStatus === 'sending';
   const showFailedStatus = isOutgoing && sendStatus === 'failed';
   const showSentStatus = isOutgoing && sendStatus === 'sent';
+  const translateX = useRef(new Animated.Value(0)).current;
+  const swipeDirection = isOutgoing ? -1 : 1;
+  const swipeResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      const horizontalDistance = Math.abs(gestureState.dx);
+      return horizontalDistance > 6 && horizontalDistance > Math.abs(gestureState.dy);
+    },
+    onPanResponderGrant: () => {
+      translateX.setOffset(0);
+      translateX.setValue(0);
+    },
+    onPanResponderMove: (_, gestureState) => {
+      const limitedDx = Math.max(Math.min(gestureState.dx, 90), -90);
+      translateX.setValue(limitedDx * 0.35);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const shouldReply = swipeDirection * gestureState.dx > 55;
+
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+      }).start();
+
+      if (shouldReply) {
+        onSwipeReply?.(message);
+      }
+    },
+    onPanResponderTerminate: () => {
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 0,
+      }).start();
+    },
+  }), [message, onSwipeReply, swipeDirection, translateX]);
 
   return (
     <View style={[styles.messageRow, isOutgoing ? styles.rowOutgoing : styles.rowIncoming]}>
@@ -53,7 +89,14 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
         )
       ) : null}
 
-      <View style={[styles.bubbleWrapper, isOutgoing ? styles.bubbleWrapperOutgoing : styles.bubbleWrapperIncoming]}>
+      <Animated.View
+        {...swipeResponder.panHandlers}
+        style={[
+          styles.bubbleWrapper,
+          isOutgoing ? styles.bubbleWrapperOutgoing : styles.bubbleWrapperIncoming,
+          { transform: [{ translateX }] },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.8}
           onLongPress={onLongPress}
@@ -108,7 +151,7 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
             {!showSendingStatus && !showFailedStatus && !showSentStatus && isOutgoing && read ? <Text style={styles.readReceipt}>Seen</Text> : null}
           </View>
         ) : null}
-      </View>
+      </Animated.View>
 
     </View>
   );

@@ -87,7 +87,44 @@ const UserProfileScreen = ({ navigation }) => {
 	// DERIVED VALUE: Work experience card data
   const workExperiences = useMemo(() => {
     if (Array.isArray(userData?.work_experiences) && userData.work_experiences.length > 0) {
-      return userData.work_experiences;
+      return [...userData.work_experiences]
+        .map((experience, index) => ({ experience, index }))
+        .sort((a, b) => {
+          const getStartYear = (item) => {
+            const directStartDate = item?.start_date ?? item?.startDate;
+
+            if (directStartDate) {
+              const year = Number(String(directStartDate).slice(0, 4));
+              if (Number.isFinite(year)) {
+                return year;
+              }
+            }
+
+            if (item?.startYear) {
+              const year = Number(item.startYear);
+              if (Number.isFinite(year)) {
+                return year;
+              }
+            }
+
+            const periodYear = String(item?.period ?? '').match(/\d{4}/)?.[0];
+            if (periodYear) {
+              return Number(periodYear);
+            }
+
+            return Number.MAX_SAFE_INTEGER;
+          };
+
+          const aYear = getStartYear(a.experience);
+          const bYear = getStartYear(b.experience);
+
+          if (aYear === bYear) {
+            return a.index - b.index;
+          }
+
+          return aYear - bYear;
+        })
+        .map(({ experience }) => experience);
     }
 
     return [{
@@ -701,9 +738,9 @@ const UserProfileScreen = ({ navigation }) => {
                                   <Text style={styles.editPillText}>Edit</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={[styles.postDeleteButton, { marginLeft: 8 }]} activeOpacity={0.8} onPress={() => handleDeleteWork(emp)}>
+                                <TouchableOpacity style={[styles.workDeletePill, { marginLeft: 8 }]} activeOpacity={0.8} onPress={() => handleDeleteWork(emp)}>
                                   <Ionicons name="trash-outline" size={15} color="#B91C1C" />
-                                  <Text style={styles.postDeleteButtonText}>Delete</Text>
+                                  <Text style={styles.workDeletePillText}>Delete</Text>
                                 </TouchableOpacity>
                               </View>
                             </View>

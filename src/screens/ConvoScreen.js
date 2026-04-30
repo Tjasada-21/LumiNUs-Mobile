@@ -374,9 +374,23 @@ export default function ConvoScreen() {
       return;
     }
 
-    setReplyTo(actionMessage);
+    setReplyTo({
+      ...actionMessage,
+      sender_name: actionMessage?.sender_name ?? actionMessage?.sender?.name ?? conversationName,
+    });
     closeMessageActions();
-  }, [actionMessage, closeMessageActions]);
+  }, [actionMessage, closeMessageActions, conversationName]);
+
+  const handleSwipeReply = useCallback((message) => {
+    if (!message) {
+      return;
+    }
+
+    setReplyTo({
+      ...message,
+      sender_name: message?.sender_name ?? message?.sender?.name ?? conversationName,
+    });
+  }, [conversationName]);
 
   const handleDeleteMessage = useCallback(async () => {
     if (!actionMessage) {
@@ -480,13 +494,14 @@ export default function ConvoScreen() {
         showAvatar={!isOutgoing}
         senderAvatar={senderAvatar}
         onLongPress={() => openMessageActions(item)}
+        onSwipeReply={handleSwipeReply}
         onMentionPress={allowMentions ? handleMentionPress : undefined}
         read={Boolean(item?.read_at)}
         messageTime={messageTime}
         sendStatus={sendStatus}
       />
     );
-  }, [allowMentions, conversationAvatar, conversationName, currentUserId, handleMentionPress, messages, openMessageActions]);
+  }, [allowMentions, conversationAvatar, conversationName, currentUserId, handleMentionPress, handleSwipeReply, messages, openMessageActions]);
 
   const renderEmptyState = useCallback(() => (
     <View style={styles.emptyConversationState}>
@@ -568,7 +583,17 @@ export default function ConvoScreen() {
               onProfilePress={() => {}}
               onCallPress={() => {}}
               onVideoPress={() => {}}
-              onInfoPress={() => {}}
+              onInfoPress={() => {
+                navigation.navigate('ChatDetailsScreen', {
+                  group: {
+                    id: groupId,
+                    name: conversationName,
+                    avatar: getAvatarUri(conversationName, conversationAvatar),
+                    members: isGroup ? groupMembers : [],
+                    media: [],
+                  },
+                });
+              }}
             />
 
             <FlatList
