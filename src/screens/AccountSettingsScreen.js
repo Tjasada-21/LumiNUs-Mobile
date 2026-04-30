@@ -4,10 +4,11 @@ import SmartTextInput from '../components/SmartTextInput';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import api from '../services/api';
+import api, { applyBaseUrlOverride } from '../services/api';
 import BrandHeader from '../components/BrandHeader';
 import styles from '../styles/AccountSettingsScreen.styles';
 import { getAuthEmail, getAuthToken, isRememberedSession, setAuthCredentials } from '../services/authStorage';
+import { getBaseUrlOverride, setBaseUrlOverride, clearBaseUrlOverride } from '../services/baseUrlOverride';
 import { showBrandedAlert } from '../services/brandedAlert';
 
 const formatDate = (value) => {
@@ -55,6 +56,24 @@ const AccountSettingsScreen = ({ navigation }) => {
   const [pickingImage, setPickingImage] = useState(false);
   const [photoCooldownUntil, setPhotoCooldownUntil] = useState(0);
   const [photoCooldownSeconds, setPhotoCooldownSeconds] = useState(0);
+
+  // Developer override for API base URL
+  const [baseUrlOverrideInput, setBaseUrlOverrideInput] = useState('');
+  const [overrideLoading, setOverrideLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const v = await getBaseUrlOverride();
+        if (mounted) setBaseUrlOverrideInput(v ?? '');
+      } catch (e) {
+        // ignore
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
 
   const fetchAccountData = async ({ showRefreshingState = false } = {}) => {
     try {
@@ -528,6 +547,77 @@ const AccountSettingsScreen = ({ navigation }) => {
               <Text style={styles.saveButtonText}>Save Profile Information</Text>
             )}
           </TouchableOpacity>
+
+          {/* Developer: API Base URL override */}
+          <View style={[styles.formCard, { paddingHorizontal: layout.cardPadding, paddingVertical: layout.cardPadding, marginTop: 12 }]}>
+            <Text style={styles.sectionHeading}>Developer</Text>
+            <Text style={styles.inputLabel}>API Base URL Override (optional)</Text>
+            <SmartTextInput
+              value={baseUrlOverrideInput}
+              onChangeText={setBaseUrlOverrideInput}
+              placeholder="http://192.168.1.42:8000/api"
+              placeholderTextColor="#9A9A9A"
+              style={styles.inputValue}
+              autoCapitalize="none"
+              editable={!overrideLoading}
+            />
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                activeOpacity={0.9}
+                disabled={overrideLoading}
+                onPress={async () => {
+                  setOverrideLoading(true);
+                  try {
+                    const trimmed = (baseUrlOverrideInput || '').trim() || '';
+                    await setBaseUrlOverride(trimmed || null);
+                      // Apply the override immediately for the running API client
+                      try { await applyBaseUrlOverride(); } catch (e) { /* ignore */ }
+                    showBrandedAlert('Saved', 'Base URL override saved. It will be applied immediately for new requests.');
+                  } catch (e) {
+                    console.error('Failed to save base URL override:', e);
+                    showBrandedAlert('Error', 'Unable to save the override.');
+                  } finally {
+                    setOverrideLoading(false);
+                  }
+                }}
+              >
+                {overrideLoading ? (
+                  <ActivityIndicator color="#31429B" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save Override</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resetButton}
+                activeOpacity={0.9}
+                onPress={() => showBrandedAlert('Clear override?', 'Remove saved base URL override?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Clear',
+                    onPress: async () => {
+                      setOverrideLoading(true);
+                      try {
+                        await clearBaseUrlOverride();
+                        setBaseUrlOverrideInput('');
+                        try { await applyBaseUrlOverride(); } catch (e) { /* ignore */ }
+                        showBrandedAlert('Cleared', 'Base URL override removed.');
+                      } catch (e) {
+                        console.error('Failed to clear override:', e);
+                        showBrandedAlert('Error', 'Unable to clear the override.');
+                      } finally {
+                        setOverrideLoading(false);
+                      }
+                    },
+                  },
+                ], { cancelable: true })}
+              >
+                <Text style={styles.resetButtonText}>Clear Override</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
 
 

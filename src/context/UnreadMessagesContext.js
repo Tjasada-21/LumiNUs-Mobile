@@ -20,8 +20,15 @@ export const UnreadMessagesProvider = ({ children }) => {
         return 0;
       }
 
-      const response = await api.get('/messages/unread-count');
-      const nextUnreadCount = Number(response.data?.unread_count ?? 0);
+      let nextUnreadCount = 0;
+      try {
+        const response = await api.get('/messages/unread-count');
+        nextUnreadCount = Number(response.data?.unread_count ?? 0);
+      } catch (apiError) {
+        console.error('Failed to fetch unread count from API:', apiError);
+        nextUnreadCount = 0;
+      }
+
       const normalizedUnreadCount = Number.isFinite(nextUnreadCount) ? nextUnreadCount : 0;
 
       setUnreadCount(normalizedUnreadCount);

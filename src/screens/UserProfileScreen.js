@@ -33,11 +33,13 @@ const UserProfileScreen = ({ navigation }) => {
     id: null,
     title: '',
     subtitle: '',
-    period: '',
+    startYear: null,
+    endYear: null,
     location: '',
     description: '',
   });
   const [isWorkSaving, setIsWorkSaving] = useState(false);
+  const [yearDropdownType, setYearDropdownType] = useState(null); // 'start' or 'end'
 
 	// DERIVED VALUE: Profile display name
   const profileName = useMemo(() => {
@@ -101,7 +103,8 @@ const UserProfileScreen = ({ navigation }) => {
       id: source?.id ?? null,
       title: source?.title ?? '',
       subtitle: source?.subtitle ?? '',
-      period: source?.period ?? '',
+      startYear: source?.startYear ?? null,
+      endYear: source?.endYear ?? null,
       location: source?.location ?? '',
       description: source?.description ?? '',
     });
@@ -115,13 +118,36 @@ const UserProfileScreen = ({ navigation }) => {
   };
 
   const saveWorkExperience = async () => {
+    // Validate required fields
+    if (!workDraft.title.trim()) {
+      showBrandedAlert('Missing field', 'Please enter a position/title.', [{ text: 'OK' }], { variant: 'error' });
+      return;
+    }
+    if (!workDraft.subtitle.trim()) {
+      showBrandedAlert('Missing field', 'Please enter a company/organization.', [{ text: 'OK' }], { variant: 'error' });
+      return;
+    }
+    if (!workDraft.location.trim()) {
+      showBrandedAlert('Missing field', 'Please enter a location.', [{ text: 'OK' }], { variant: 'error' });
+      return;
+    }
+
     const payload = {
-      title: workDraft.title.trim() || null,
-      subtitle: workDraft.subtitle.trim() || null,
-      period: workDraft.period.trim() || null,
-      location: workDraft.location.trim() || null,
-      description: workDraft.description.trim() || null,
+      title: workDraft.title.trim(),
+      subtitle: workDraft.subtitle.trim(),
+      location: workDraft.location.trim(),
     };
+
+    // Only add optional fields if they have values
+    if (workDraft.startYear) {
+      payload.start_date = `${workDraft.startYear}-01-01`;
+    }
+    if (workDraft.endYear) {
+      payload.end_date = `${workDraft.endYear}-12-31`;
+    }
+    if (workDraft.description.trim()) {
+      payload.description = workDraft.description.trim();
+    }
 
     try {
       setIsWorkSaving(true);
@@ -147,7 +173,18 @@ const UserProfileScreen = ({ navigation }) => {
       showBrandedAlert('Work experience saved', 'Your work experience was updated.', [{ text: 'OK' }], { variant: 'success' });
     } catch (err) {
       console.error('Failed to save work experience:', err);
-      showBrandedAlert('Save failed', 'Unable to save work experience right now.', [{ text: 'OK' }], { variant: 'error' });
+      
+      // Extract validation errors from backend
+      let errorMsg = 'Unable to save work experience right now.';
+      if (err.response?.data?.errors) {
+        const errors = err.response.data.errors;
+        const firstError = Object.values(errors)[0];
+        errorMsg = Array.isArray(firstError) ? firstError[0] : firstError;
+      } else if (err.response?.data?.message) {
+        errorMsg = err.response.data.message;
+      }
+      
+      showBrandedAlert('Save failed', errorMsg, [{ text: 'OK' }], { variant: 'error' });
     } finally {
       setIsWorkSaving(false);
     }
@@ -846,20 +883,45 @@ const UserProfileScreen = ({ navigation }) => {
         <Modal visible={isWorkModalVisible} transparent animationType="fade" onRequestClose={closeWorkModal}>
           <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View style={styles.modalCard}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Edit Work Experience</Text>
-                <TouchableOpacity onPress={closeWorkModal} style={styles.modalCloseButton} activeOpacity={0.8} disabled={isWorkSaving}>
-                  <Ionicons name="close" size={22} color="#31429B" />
-                </TouchableOpacity>
-              </View>
+              <ScrollView showsVerticalScrollIndicator={true} scrollEnabled={true}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Edit Work Experience</Text>
+                  <TouchableOpacity onPress={closeWorkModal} style={styles.modalCloseButton} activeOpacity={0.8} disabled={isWorkSaving}>
+                    <Ionicons name="close" size={22} color="#31429B" />
+                  </TouchableOpacity>
+                </View>
 
-              <Text style={styles.modalHelperText}>Add or update your work experience.</Text>
+                <Text style={styles.modalHelperText}>Add or update your work experience.</Text>
 
-              <TextInput value={workDraft.title} onChangeText={(t) => setWorkDraft((d) => ({ ...d, title: t }))} placeholder="Position / Title" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
-              <TextInput value={workDraft.subtitle} onChangeText={(t) => setWorkDraft((d) => ({ ...d, subtitle: t }))} placeholder="Company / Organization" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
-              <TextInput value={workDraft.period} onChangeText={(t) => setWorkDraft((d) => ({ ...d, period: t }))} placeholder="Period (e.g., 2021 - 2022)" placeholderTextColor="#94A3B8" style={styles.input} maxLength={50} />
+                <TextInput value={workDraft.title} onChangeText={(t) => setWorkDraft((d) => ({ ...d, title: t }))} placeholder="Position / Title" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
+                <TextInput value={workDraft.subtitle} onChangeText={(t) => setWorkDraft((d) => ({ ...d, subtitle: t }))} placeholder="Company / Organization" placeholderTextColor="#94A3B8" style={styles.input} maxLength={150} />
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 4, fontWeight: '500' }}>Start Year</Text>
+                    <TouchableOpacity
+                      onPress={() => setYearDropdownType('start')}
+                      style={[styles.input, { justifyContent: 'center', paddingVertical: 12 }]}
+                    >
+                      <Text style={{ color: workDraft.startYear ? '#1E293B' : '#94A3B8' }}>
+                        {workDraft.startYear ? String(workDraft.startYear) : 'Select year...'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 4, fontWeight: '500' }}>End Year</Text>
+                    <TouchableOpacity
+                      onPress={() => setYearDropdownType('end')}
+                      style={[styles.input, { justifyContent: 'center', paddingVertical: 12 }]}
+                    >
+                      <Text style={{ color: workDraft.endYear ? '#1E293B' : '#94A3B8' }}>
+                        {workDraft.endYear ? String(workDraft.endYear) : 'Select year...'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               <TextInput value={workDraft.location} onChangeText={(t) => setWorkDraft((d) => ({ ...d, location: t }))} placeholder="Location" placeholderTextColor="#94A3B8" style={styles.input} maxLength={120} />
-              <TextInput value={workDraft.description} onChangeText={(t) => setWorkDraft((d) => ({ ...d, description: t }))} placeholder="Brief description" placeholderTextColor="#94A3B8" multiline textAlignVertical="top" style={[styles.bioInput, { height: 100 }]} maxLength={1000} />
+              <TextInput value={workDraft.description} onChangeText={(t) => setWorkDraft((d) => ({ ...d, description: t }))} placeholder="Brief description" placeholderTextColor="#94A3B8" multiline textAlignVertical="top" style={[styles.bioInput, { minHeight: 80 }]} maxLength={1000} />
+              </ScrollView>
 
               <View style={styles.modalButtonRow}>
                 <TouchableOpacity style={[styles.modalActionButton, styles.modalCancelButton]} activeOpacity={0.85} onPress={closeWorkModal} disabled={isWorkSaving}>
@@ -872,6 +934,61 @@ const UserProfileScreen = ({ navigation }) => {
               </View>
             </View>
           </KeyboardAvoidingView>
+        </Modal>
+
+        {/* Year Selection Modal */}
+        <Modal visible={yearDropdownType !== null} transparent animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+            <View style={{ backgroundColor: '#FFF', borderRadius: 12, maxHeight: '70%', width: '100%' }}>
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#1E293B' }}>
+                  {yearDropdownType === 'start' ? 'Select Start Year' : 'Select End Year'}
+                </Text>
+              </View>
+              <ScrollView style={{ paddingVertical: 8 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (yearDropdownType === 'start') {
+                      setWorkDraft((d) => ({ ...d, startYear: null }));
+                    } else {
+                      setWorkDraft((d) => ({ ...d, endYear: null }));
+                    }
+                    setYearDropdownType(null);
+                  }}
+                  style={{ paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B' }}>Clear selection</Text>
+                </TouchableOpacity>
+                {Array.from({ length: 75 }, (_, i) => 2025 - i).map((year) => (
+                  <TouchableOpacity
+                    key={year}
+                    onPress={() => {
+                      if (yearDropdownType === 'start') {
+                        setWorkDraft((d) => ({ ...d, startYear: year }));
+                      } else {
+                        setWorkDraft((d) => ({ ...d, endYear: year }));
+                      }
+                      setYearDropdownType(null);
+                    }}
+                    style={[
+                      { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+                      (yearDropdownType === 'start' ? workDraft.startYear === year : workDraft.endYear === year) && { backgroundColor: '#EFF6FF' },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: (yearDropdownType === 'start' ? workDraft.startYear === year : workDraft.endYear === year) ? '#31429B' : '#1E293B',
+                        fontWeight: (yearDropdownType === 'start' ? workDraft.startYear === year : workDraft.endYear === year) ? '600' : '400',
+                      }}
+                    >
+                      {year}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
         </Modal>
       </View>
     </SafeAreaView>

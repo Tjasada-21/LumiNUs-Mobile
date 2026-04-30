@@ -6,7 +6,7 @@ import {
 import SmartTextInput from '../components/SmartTextInput';
 import { Ionicons } from '@expo/vector-icons'; // Expo's built-in icons
 import * as SecureStore from 'expo-secure-store';
-import api from '../services/api';
+import api, { apiReady } from '../services/api';
 import styles from '../styles/LoginScreen.styles';
 import { clearAuthCredentials, setAuthCredentials } from '../services/authStorage';
 import { showBrandedAlert } from '../services/brandedAlert';
@@ -24,6 +24,10 @@ const LoginScreen = ({ navigation }) => {
   // SECTION: Restore saved login
   useEffect(() => {
     const restoreRememberedLogin = async () => {
+      // Wait for API base URL detection to complete before attempting any requests
+      await apiReady;
+      console.log('[LoginScreen] API ready, attempting to restore session...');
+
       const savedToken = await SecureStore.getItemAsync('userToken');
       const savedEmail = await SecureStore.getItemAsync('userEmail');
 
@@ -39,8 +43,8 @@ const LoginScreen = ({ navigation }) => {
 
           navigation.replace('Home');
         } catch (error) {
+          console.warn('[LoginScreen] Stored session is no longer valid:', error.message);
           await clearAuthCredentials();
-          console.error('Stored session is no longer valid:', error);
         }
       }
     };
@@ -58,6 +62,10 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
+      // Ensure API is ready (base URL has been detected)
+      await apiReady;
+      console.log('[LoginScreen] Attempting login...');
+
       const response = await api.post('/login', { email, password });
       const { token, alumni } = response.data;
 

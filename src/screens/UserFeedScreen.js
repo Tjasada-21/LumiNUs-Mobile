@@ -475,7 +475,27 @@ const UserFeedScreen = ({ navigation }) => {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
-			setPosts(response.data?.posts ?? []);
+			const rawPosts = response.data?.posts ?? [];
+
+			const mappedPosts = rawPosts.map((post) => {
+				const images = Array.isArray(post.images) ? post.images.map((img) => ({
+					...img,
+					image_url: renderPostImageUri(img),
+				})) : [];
+
+				// also normalize any single featured image fields if present
+				const normalized = { ...post, images };
+
+				return normalized;
+			});
+
+			// Debug: log first few image URLs to help troubleshooting
+			try {
+				// eslint-disable-next-line no-console
+				console.debug('Fetched posts image URLs:', mappedPosts.slice(0, 5).map(p => p.images.map(i => i.image_url)));
+			} catch (e) {}
+
+			setPosts(mappedPosts);
 		} catch (error) {
 			console.error('Failed to fetch feed posts:', error);
 			setFeedError('Unable to load posts right now.');
@@ -907,7 +927,40 @@ const UserFeedScreen = ({ navigation }) => {
 		);
 	};
 
-	const renderPostImageUri = (image) => image?.image_url ?? image?.image_path ?? '';
+	const renderPostImageUri = (image) => {
+		const raw = image?.image_url ?? image?.image_path ?? '';
+
+		if (!raw) {
+			return '';
+		}
+
+		// If it's already an absolute URL, return as-is.
+		if (/^https?:\/\//i.test(raw)) {
+			// Replace localhost/127.0.0.1 host with configured API origin when applicable.
+			if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(raw)) {
+				const apiBase = String(api.defaults?.baseURL ?? '').replace(/\/?api\/?$/i, '').replace(/\/$/, '');
+				if (apiBase) {
+					try {
+						const urlPath = raw.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, '');
+						return `${apiBase}${urlPath}`;
+					} catch (e) {
+						return raw;
+					}
+				}
+			}
+
+			return raw;
+		}
+
+		// It's a relative path: prepend the API origin (remove trailing /api if present).
+		const origin = String(api.defaults?.baseURL ?? '').replace(/\/?api\/?$/i, '').replace(/\/$/, '');
+
+		if (!origin) {
+			return raw;
+		}
+
+		return `${origin}/${String(raw).replace(/^\/+/, '')}`;
+	};
 
 	const getPostImageKey = (postId, image, imageIndex) => image.id ?? `${postId}-${imageIndex}`;
 

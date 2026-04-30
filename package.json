@@ -4,16 +4,22 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
+    "start:expo": "expo start",
+    "start:expo:tunnel": "expo start --tunnel",
+    "start:dev-client": "expo start --dev-client",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:dev:android": "eas build --profile development --platform android",
+    "build:dev:ios": "eas build --profile development --platform ios",
+    "build:preview": "eas build --profile preview --platform all",
+    "build:production": "eas build --profile production --platform all"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.11",
-    "@supabase/supabase-js": "^2.103.2",
     "axios": "^1.15.0",
     "expo": "~54.0.34",
     "expo-dev-client": "~6.0.21",

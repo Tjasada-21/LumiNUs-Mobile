@@ -87,12 +87,15 @@ const HomeScreen = ({ navigation }) => {
           setNotifications([]);
           return;
         }
-
-        const response = await api.get('/notifications', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setNotifications(response.data?.notifications ?? []);
+        try {
+          const response = await api.get('/notifications', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setNotifications(response.data?.notifications ?? []);
+        } catch (error) {
+          console.error('Failed to fetch notifications:', error);
+          setNotifications([]);
+        }
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
         setNotifications([]);
@@ -104,10 +107,8 @@ const HomeScreen = ({ navigation }) => {
     const fetchFeaturedEvents = useCallback(async () => {
       try {
         setIsLoadingFeaturedEvents(true);
-
         const response = await api.get('/events');
         const latestEvents = Array.isArray(response.data?.events) ? response.data.events.slice(0, 3) : [];
-
         setFeaturedEvents(latestEvents);
       } catch (error) {
         console.error('Failed to fetch featured events:', error);
@@ -163,17 +164,24 @@ const HomeScreen = ({ navigation }) => {
               return;
             }
 
-            // 2. Show the token to Laravel and ask for the user's profile
-            const response = await api.get('/user', {
-              headers: { Authorization: `Bearer ${token}` }
-            });
+            let userProfileData = null;
+            try {
+              // 2. Show the token to Laravel and ask for the user's profile
+              const response = await api.get('/user', {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              userProfileData = response.data;
+            } catch (apiError) {
+              console.error('Failed to fetch user profile:', apiError);
+              userProfileData = null;
+            }
 
             if (!isActive) {
               return;
             }
 
             // 3. Save the database row into our React state
-            setUserData(response.data);
+            setUserData(userProfileData);
           } catch (error) {
             console.error("Failed to fetch user profile:", error);
           }

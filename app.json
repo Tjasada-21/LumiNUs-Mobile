@@ -13,10 +13,16 @@
       "backgroundColor": "#31429B"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/digital-yearbook-icon-in-blue.png",
         "backgroundColor": "#31429B"
@@ -31,7 +37,6 @@
       "expo-font"
     ],
     "extra": {
-      "apiBaseUrl": "http://10.61.193.120:8000/api",
       "eas": {
         "projectId": "b0ff116b-bf3b-463f-bcbb-0e23eefc766a"
       }

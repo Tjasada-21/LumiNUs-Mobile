@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BrandHeader from '../components/BrandHeader';
 import api from '../services/api';
+import { getAuthToken } from '../services/authStorage';
 import styles from '../styles/EventsScreen.styles';
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -208,19 +209,17 @@ const EventsScreen = ({ navigation }) => {
 
 			setEventsError('');
 
-			const response = await api.get('/events');
-
-			if (!isMountedRef.current) {
-				return;
-			}
-
-			setEvents(response.data?.events ?? []);
-		} catch (fetchError) {
-			console.error('Failed to fetch events:', fetchError);
-
-			if (isMountedRef.current) {
-				setEventsError('Unable to load events right now.');
-				setEvents([]);
+			try {
+				const response = await api.get('/events');
+				const fetched = response.data?.events ?? [];
+				if (!isMountedRef.current) return;
+				setEvents(fetched);
+			} catch (fetchError) {
+				console.error('Failed to fetch events:', fetchError);
+				if (isMountedRef.current) {
+					setEventsError('Unable to load events right now.');
+					setEvents([]);
+				}
 			}
 		} finally {
 			if (isMountedRef.current) {
@@ -235,19 +234,25 @@ const EventsScreen = ({ navigation }) => {
 			setRegisteredEventsLoading(true);
 			setRegisteredEventsError('');
 
-			const response = await api.get('/event-registrations');
-
-			if (!isMountedRef.current) {
+			const token = await getAuthToken();
+			if (!token) {
+				setRegisteredEvents([]);
 				return;
 			}
 
-			setRegisteredEvents(response.data?.registrations ?? []);
-		} catch (error) {
-			console.error('Failed to load event registrations:', error);
+			try {
+				const response = await api.get('/event-registrations', {
+					headers: { Authorization: `Bearer ${token}` },
+				});
 
-			if (isMountedRef.current) {
-				setRegisteredEventsError('Unable to load your registered events right now.');
-				setRegisteredEvents([]);
+				if (!isMountedRef.current) return;
+				setRegisteredEvents(response.data?.registrations ?? []);
+			} catch (error) {
+				console.error('Failed to load event registrations:', error);
+				if (isMountedRef.current) {
+					setRegisteredEventsError('Unable to load your registered events right now.');
+					setRegisteredEvents([]);
+				}
 			}
 		} finally {
 			if (isMountedRef.current) {
