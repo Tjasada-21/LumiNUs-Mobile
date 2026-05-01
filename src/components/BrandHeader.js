@@ -85,7 +85,7 @@ const BrandHeader = () => {
       <Modal visible={isImageModalVisible} transparent animationType="fade" onRequestClose={() => setIsImageModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Image source={require('../../assets/images/image.png')} style={styles.modalImage} resizeMode="contain" />
+            <Image source={require('../../assets/images/image.png')} style={styles.modalImage} resizeMode="cover" />
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setIsImageModalVisible(false)} activeOpacity={0.85}>
               <Text style={styles.modalCloseText}>Close</Text>
             </TouchableOpacity>

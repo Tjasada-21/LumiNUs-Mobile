@@ -14,6 +14,7 @@ const MAX_ZOOM_SCALE = 2.5;
 const VIEWER_IMAGE_WIDTH = SCREEN_WIDTH * 0.92;
 const VIEWER_IMAGE_HEIGHT = SCREEN_HEIGHT * 0.72;
 const MENTION_PATTERN = /(@[a-zA-Z0-9_.-]+)/g;
+const SWIPE_DISMISS_THRESHOLD = 100; // pixels to swipe down to dismiss
 
 const extractMentionQuery = (value) => {
 	const text = String(value ?? '');
@@ -326,6 +327,85 @@ const UserFeedScreen = ({ navigation }) => {
 	const [isSearching, setIsSearching] = useState(false);
 	const [connections, setConnections] = useState([]);
 	const reactionPulseScale = useRef(new Animated.Value(1)).current;
+
+	// SECTION: Rubber banding and animated refs for modals
+	const postActionsTranslateY = useRef(new Animated.Value(0)).current;
+	const repostComposerTranslateY = useRef(new Animated.Value(0)).current;
+	const commentsTranslateY = useRef(new Animated.Value(0)).current;
+
+	// SECTION: Swipe-to-dismiss refs and handlers
+	const postActionsSwipeStartRef = useRef(0);
+	const postActionsInitialYRef = useRef(0);
+	const repostComposerSwipeStartRef = useRef(0);
+	const repostComposerInitialYRef = useRef(0);
+	const commentsSwipeStartRef = useRef(0);
+	const commentsInitialYRef = useRef(0);
+
+	// Rubber banding resistance curve: at threshold, resistance kicks in
+	const applyRubberBandingOffset = (distance) => {
+		const RESISTANCE_FACTOR = 0.3; // 30% movement beyond threshold
+		if (distance <= 0) return distance;
+		if (distance <= SWIPE_DISMISS_THRESHOLD) return distance;
+		return SWIPE_DISMISS_THRESHOLD + (distance - SWIPE_DISMISS_THRESHOLD) * RESISTANCE_FACTOR;
+	};
+
+	const handlePostActionsSwipe = (evt) => {
+		const currentY = evt.nativeEvent.pageY;
+		if (postActionsSwipeStartRef.current === 0) {
+			postActionsSwipeStartRef.current = currentY;
+			postActionsInitialYRef.current = 0;
+		}
+		const distance = currentY - postActionsSwipeStartRef.current;
+		const rubberBandedOffset = applyRubberBandingOffset(distance);
+		postActionsTranslateY.setValue(rubberBandedOffset);
+
+		if (distance > SWIPE_DISMISS_THRESHOLD && distance > 0) {
+			closePostActions();
+			postActionsSwipeStartRef.current = 0;
+		}
+	};
+
+	const handleRepostComposerSwipe = (evt) => {
+		const currentY = evt.nativeEvent.pageY;
+		if (repostComposerSwipeStartRef.current === 0) {
+			repostComposerSwipeStartRef.current = currentY;
+			repostComposerInitialYRef.current = 0;
+		}
+		const distance = currentY - repostComposerSwipeStartRef.current;
+		const rubberBandedOffset = applyRubberBandingOffset(distance);
+		repostComposerTranslateY.setValue(rubberBandedOffset);
+
+		if (distance > SWIPE_DISMISS_THRESHOLD && distance > 0) {
+			closeRepostComposer();
+			repostComposerSwipeStartRef.current = 0;
+		}
+	};
+
+	const handleCommentsSwipe = (evt) => {
+		const currentY = evt.nativeEvent.pageY;
+		if (commentsSwipeStartRef.current === 0) {
+			commentsSwipeStartRef.current = currentY;
+			commentsInitialYRef.current = 0;
+		}
+		const distance = currentY - commentsSwipeStartRef.current;
+		const rubberBandedOffset = applyRubberBandingOffset(distance);
+		commentsTranslateY.setValue(rubberBandedOffset);
+
+		if (distance > SWIPE_DISMISS_THRESHOLD && distance > 0) {
+			closeCommentsModal();
+			commentsSwipeStartRef.current = 0;
+		}
+	};
+
+	const resetSwipeRefs = () => {
+		postActionsSwipeStartRef.current = 0;
+		repostComposerSwipeStartRef.current = 0;
+		commentsSwipeStartRef.current = 0;
+		// Snap back animations with spring effect
+		Animated.spring(postActionsTranslateY, { toValue: 0, useNativeDriver: false }).start();
+		Animated.spring(repostComposerTranslateY, { toValue: 0, useNativeDriver: false }).start();
+		Animated.spring(commentsTranslateY, { toValue: 0, useNativeDriver: false }).start();
+	};
 
 	const repostMentionContext = useMemo(() => extractMentionQuery(repostCaptionDraft), [repostCaptionDraft]);
 	const commentMentionContext = useMemo(() => extractMentionQuery(commentDraft), [commentDraft]);
@@ -1825,7 +1905,7 @@ const UserFeedScreen = ({ navigation }) => {
 													resizeMode="contain"
 												/>
 												<View style={styles.postHeaderTextWrap}>
-													<Text style={styles.postAuthorName}>NU LIPA ALUMNI OFFICE</Text>
+													<Text style={styles.postAuthorName}>NU LIPA ALUMNI AFFAIRS</Text>
 													<View style={styles.postMetaRow}>
 														<Text style={styles.postMeta}>{getRelativeTimeLabel(post.created_at)}</Text>
 														<Text style={styles.postMetaSeparator}>•</Text>
@@ -2023,7 +2103,8 @@ const UserFeedScreen = ({ navigation }) => {
 
 				<Modal transparent visible={postActionsVisible} animationType="slide" statusBarTranslucent={true} onRequestClose={closePostActions}>
 					<View style={styles.postActionsBackdrop}>
-						<View style={styles.postActionsCard}>
+						<Animated.View style={[styles.postActionsCard, { transform: [{ translateY: postActionsTranslateY }] }]} onTouchMove={handlePostActionsSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
+							<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 4 }} />
 							<View style={styles.postActionsHeader}>
 								<Text style={styles.postActionsTitle}>Manage Post</Text>
 								<Pressable style={styles.postActionsCloseButton} onPress={closePostActions} hitSlop={8} disabled={isPostActionSaving}>
@@ -2100,7 +2181,7 @@ const UserFeedScreen = ({ navigation }) => {
 									</View>
 								</>
 							)}
-						</View>
+						</Animated.View>
 					</View>
 				</Modal>
 
@@ -2123,7 +2204,8 @@ const UserFeedScreen = ({ navigation }) => {
 					<View style={styles.repostModalBackdrop}>
 						<Pressable style={StyleSheet.absoluteFillObject} onPress={closeRepostComposer} />
 
-						<View style={styles.repostModalCard}>
+						<Animated.View style={[styles.repostModalCard, { transform: [{ translateY: repostComposerTranslateY }] }]} onTouchMove={handleRepostComposerSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
+							<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 }} />
 							<Text style={styles.repostModalTitle}>Repost with your caption</Text>
 							<Text style={styles.repostModalSubtitle} numberOfLines={1}>
 								{activeRepostPost ? `Reposting ${renderPostAuthorName(activeRepostPost)}'s post` : 'Add context to your repost'}
@@ -2171,7 +2253,7 @@ const UserFeedScreen = ({ navigation }) => {
 									<Text style={styles.repostSubmitButtonText}>Repost</Text>
 								</Pressable>
 							</View>
-						</View>
+						</Animated.View>
 					</View>
 				</Modal>
 
@@ -2230,6 +2312,8 @@ const UserFeedScreen = ({ navigation }) => {
 						<Pressable style={StyleSheet.absoluteFillObject} onPress={closeCommentsModal} />
 
 						<SafeAreaView style={styles.commentsSheet} edges={['top', 'bottom']}>
+							<Animated.View style={{ flex: 1, transform: [{ translateY: commentsTranslateY }] }} onTouchMove={handleCommentsSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
+								<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 6, marginBottom: 4 }} />
 							<View style={styles.commentsHeaderRow}>
 								<View style={styles.commentsHeaderCenter}>
 									<Text style={styles.commentsTitle}>
@@ -2329,6 +2413,7 @@ const UserFeedScreen = ({ navigation }) => {
 									)}
 								</ScrollView>
 							</CustomKeyboardView>
+							</Animated.View>
 						</SafeAreaView>
 					</View>
 				</Modal>

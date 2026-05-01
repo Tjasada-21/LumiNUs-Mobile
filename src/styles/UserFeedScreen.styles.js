@@ -765,12 +765,13 @@ const styles = StyleSheet.create({
 	},
 	repostModalCard: {
 		width: '100%',
-		height: '80%',
+		height: '88%',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		backgroundColor: '#FFFFFF',
 		paddingHorizontal: 18,
-		paddingVertical: 16,
+		paddingTop: 16,
+		paddingBottom: 24,
 	},
 	repostModalTitle: {
 		fontSize: 18,
@@ -1088,8 +1089,8 @@ const styles = StyleSheet.create({
 		borderTopRightRadius: 28,
 		paddingHorizontal: 16,
 		paddingTop: 12,
-		paddingBottom: 16,
-		height: '90%',
+		paddingBottom: 24,
+		height: '94%',
 	},
 	commentsHeaderRow: {
 		flexDirection: 'row',
