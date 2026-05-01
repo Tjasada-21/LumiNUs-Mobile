@@ -572,13 +572,9 @@ const UserFeedScreen = ({ navigation }) => {
 	), [userData?.id]);
 
 	const openPostActions = useCallback((post) => {
-		if (!canManagePost(post)) {
-			return;
-		}
-
 		setActivePostActionPost(post);
 		setPostActionsVisible(true);
-	}, [canManagePost]);
+	}, []);
 
 	const closePostActions = useCallback(() => {
 		if (isPostActionSaving) {
@@ -588,6 +584,49 @@ const UserFeedScreen = ({ navigation }) => {
 		setPostActionsVisible(false);
 		setActivePostActionPost(null);
 	}, [isPostActionSaving]);
+
+	const handleReportPost = useCallback(async () => {
+		if (!activePostActionPost?.id) return;
+		setPostActionsVisible(false);
+		try {
+			await api.post(`/posts/${activePostActionPost.id}/report`, { reason: 'Inappropriate' });
+			showThemedAlert({ title: 'Reported', message: 'Thanks — the post has been reported.' });
+		} catch (e) {
+			console.warn('Report API failed', e?.message || e);
+			showThemedAlert({ title: 'Error', message: 'Could not report the post.' });
+		}
+	}, [activePostActionPost]);
+
+	const handleMuteAuthor = useCallback(async () => {
+		if (!activePostActionPost?.alumni?.id) return;
+		setPostActionsVisible(false);
+		try {
+			await api.post(`/users/${activePostActionPost.alumni.id}/mute`);
+			showThemedAlert({ title: 'Muted', message: 'You will no longer see posts from this user.' });
+		} catch (e) {
+			console.warn('Mute API failed', e?.message || e);
+			showThemedAlert({ title: 'Error', message: 'Could not mute the user.' });
+		}
+	}, [activePostActionPost]);
+
+	const handleHidePost = useCallback(async () => {
+		if (!activePostActionPost?.id) return;
+		setPostActionsVisible(false);
+		setPosts((current) => current.filter((p) => !(p.feed_type === 'post' && p.id === activePostActionPost.id)));
+		showThemedAlert({ title: 'Hidden', message: 'This post has been hidden.' });
+	}, [activePostActionPost]);
+
+	const handleCopyLink = useCallback(async () => {
+		if (!activePostActionPost?.id) return;
+		const link = `${API_BASE_URL ?? ''}/posts/${activePostActionPost.id}`;
+		try {
+			import('expo-clipboard').then((mod) => mod.setStringAsync(link));
+			showThemedAlert({ title: 'Link copied', message: 'Post link copied to clipboard.' });
+		} catch (e) {
+			console.warn('Copy link failed', e?.message || e);
+			showThemedAlert({ title: 'Error', message: 'Could not copy link.' });
+		}
+	}, [activePostActionPost]);
 
 	const syncPostInFeed = useCallback((updatedPost) => {
 		if (!updatedPost?.id) {
@@ -1825,11 +1864,9 @@ const UserFeedScreen = ({ navigation }) => {
 													</View>
 												</View>
 													<View style={styles.postHeaderRight}>
-														{canManagePost(post) ? (
-															<Pressable style={styles.postMenuButton} onPress={() => openPostActions(post)} hitSlop={8}>
-																<Ionicons name="ellipsis-horizontal" size={16} color="#31429B" />
-															</Pressable>
-														) : null}
+														<Pressable style={styles.postMenuButton} onPress={() => openPostActions(post)} hitSlop={8}>
+															<Ionicons name="ellipsis-horizontal" size={16} color="#31429B" />
+														</Pressable>
 													</View>
 											</View>
 										)}
@@ -1984,7 +2021,7 @@ const UserFeedScreen = ({ navigation }) => {
 					}}
 				/>
 
-				<Modal transparent visible={postActionsVisible} animationType="fade" onRequestClose={closePostActions}>
+				<Modal transparent visible={postActionsVisible} animationType="slide" statusBarTranslucent={true} onRequestClose={closePostActions}>
 					<View style={styles.postActionsBackdrop}>
 						<View style={styles.postActionsCard}>
 							<View style={styles.postActionsHeader}>
@@ -1994,44 +2031,75 @@ const UserFeedScreen = ({ navigation }) => {
 								</Pressable>
 							</View>
 
-							<Text style={styles.postActionsSubtitle}>
-								{activePostActionVisibilityLabel}. Edit the post, save it as a draft, change who can view it, or delete it.
-							</Text>
+							{canManagePost(activePostActionPost) ? (
+								<>
+									<Text style={styles.postActionsSubtitle}>
+										{activePostActionVisibilityLabel}. Edit the post, save it as a draft, change who can view it, or delete it.
+									</Text>
 
-							<View style={styles.postActionsRow}>
-								<Pressable style={styles.postActionChoiceButton} onPress={handleEditActivePost} disabled={isPostActionSaving}>
-									<Ionicons name="create-outline" size={16} color="#31429B" />
-									<Text style={styles.postActionChoiceText}>Edit</Text>
-								</Pressable>
-
-								<Pressable style={styles.postActionChoiceButton} onPress={handleToggleActivePostDraft} disabled={isPostActionSaving}>
-									<Ionicons name={activePostActionPost?.is_draft ? 'cloud-upload-outline' : 'bookmark-outline'} size={16} color="#31429B" />
-									<Text style={styles.postActionChoiceText}>{activePostActionPost?.is_draft ? 'Publish' : 'Draft'}</Text>
-								</Pressable>
-							</View>
-
-							<Text style={styles.postActionsLabel}>Who can view this post?</Text>
-							<View style={styles.postVisibilityChoicesRow}>
-								{['public', 'friends', 'private'].map((visibility) => {
-									const isSelected = (activePostActionPost?.visibility ?? 'public') === visibility;
-
-									return (
-										<Pressable
-											key={visibility}
-											style={[styles.postVisibilityChoice, isSelected && styles.postVisibilityChoiceSelected]}
-											onPress={() => handleChangeActivePostVisibility(visibility)}
-											disabled={isPostActionSaving}
-										>
-											<Text style={styles.postVisibilityChoiceText}>{getPostVisibilityLabel({ visibility })}</Text>
+									<View style={styles.postActionsRow}>
+										<Pressable style={styles.postActionChoiceButton} onPress={handleEditActivePost} disabled={isPostActionSaving}>
+											<Ionicons name="create-outline" size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>Edit</Text>
 										</Pressable>
-									);
-								})}
-							</View>
 
-							<Pressable style={styles.postDeleteButton} onPress={handleDeleteActivePost} disabled={isPostActionSaving}>
-								<Ionicons name="trash-outline" size={16} color="#B42318" />
-								<Text style={styles.postDeleteButtonText}>Delete Post</Text>
-							</Pressable>
+										<Pressable style={styles.postActionChoiceButton} onPress={handleToggleActivePostDraft} disabled={isPostActionSaving}>
+											<Ionicons name={activePostActionPost?.is_draft ? 'cloud-upload-outline' : 'bookmark-outline'} size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>{activePostActionPost?.is_draft ? 'Publish' : 'Draft'}</Text>
+										</Pressable>
+									</View>
+
+									<Text style={styles.postActionsLabel}>Who can view this post?</Text>
+									<View style={styles.postVisibilityChoicesRow}>
+										{['public', 'friends', 'private'].map((visibility) => {
+											const isSelected = (activePostActionPost?.visibility ?? 'public') === visibility;
+
+											return (
+												<Pressable
+													key={visibility}
+													style={[styles.postVisibilityChoice, isSelected && styles.postVisibilityChoiceSelected]}
+													onPress={() => handleChangeActivePostVisibility(visibility)}
+													disabled={isPostActionSaving}
+												>
+													<Text style={styles.postVisibilityChoiceText}>{getPostVisibilityLabel({ visibility })}</Text>
+												</Pressable>
+											);
+										})}
+									</View>
+
+									<Pressable style={styles.postDeleteButton} onPress={handleDeleteActivePost} disabled={isPostActionSaving}>
+										<Ionicons name="trash-outline" size={16} color="#B42318" />
+										<Text style={styles.postDeleteButtonText}>Delete Post</Text>
+									</Pressable>
+								</>
+							) : (
+								<>
+									<Text style={styles.postActionsSubtitle}>Actions for this post</Text>
+									<View style={styles.postActionsRow}>
+										<Pressable style={styles.postActionChoiceButton} onPress={handleReportPost}>
+											<Ionicons name="flag-outline" size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>Report</Text>
+										</Pressable>
+
+										<Pressable style={styles.postActionChoiceButton} onPress={handleMuteAuthor}>
+											<Ionicons name="volume-mute-outline" size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>Mute user</Text>
+										</Pressable>
+									</View>
+
+									<View style={styles.postActionsRow}>
+										<Pressable style={styles.postActionChoiceButton} onPress={handleHidePost}>
+											<Ionicons name="eye-off-outline" size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>Hide post</Text>
+										</Pressable>
+
+										<Pressable style={styles.postActionChoiceButton} onPress={handleCopyLink}>
+											<Ionicons name="link-outline" size={16} color="#31429B" />
+											<Text style={styles.postActionChoiceText}>Copy link</Text>
+										</Pressable>
+									</View>
+								</>
+							)}
 						</View>
 					</View>
 				</Modal>

@@ -264,6 +264,8 @@ const ChatScreen = ({ navigation }) => {
 			: `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName)}&background=31429B&color=fff`;
 		const hasUnread = item?.is_read === false;
 
+		const isFavorited = !!(item?.is_favorite || item?.favorite || item?.is_starred);
+
 		return (
 			<TouchableOpacity
 				style={styles.contactCard}
@@ -281,6 +283,9 @@ const ChatScreen = ({ navigation }) => {
 				</View>
 				<View style={styles.contactRightWrap}>
 					{hasUnread ? <View style={styles.contactUnreadIndicator} /> : null}
+					{isFavorited ? (
+						<Ionicons name="star" size={16} color="#F2C919" style={{ marginRight: 8 }} />
+					) : null}
 					<Ionicons name="chevron-forward" size={18} color="#8A94A6" />
 				</View>
 			</TouchableOpacity>
@@ -411,6 +416,33 @@ const ChatScreen = ({ navigation }) => {
 				</View>
 			</TouchableOpacity>
 		);
+	};
+
+	const handleToggleFavorite = async (contactId) => {
+		// Optimistically update local state and cache
+		setContacts((prev) => {
+			const next = prev.map((c) => {
+				if (String(c?.id) === String(contactId)) {
+					const currently = !!(c?.is_favorite || c?.favorite || c?.is_starred);
+					return { ...c, is_favorite: !currently };
+				}
+				return c;
+			});
+			// update cachedContacts if used
+			cachedContacts = next;
+			cachedContactsLoadedAt = Date.now();
+			return next;
+		});
+
+		// close modal
+		hideContactActions();
+
+		// call backend toggle endpoint (best-effort)
+		try {
+			await api.post(`/contacts/${contactId}/favorite`);
+		} catch (e) {
+			console.warn('Favorite API failed', e?.message || e);
+		}
 	};
 
 		const hideGroupActions = () => {
@@ -649,11 +681,15 @@ const ChatScreen = ({ navigation }) => {
 				</View>
 			</View>
 				{/* Action modal for long-press on direct messages */}
-					<Modal visible={isActionModalVisible} transparent animationType={'fade'} onRequestClose={hideContactActions}>
+					<Modal visible={isActionModalVisible} transparent animationType={'slide'} statusBarTranslucent={true} onRequestClose={hideContactActions}>
 						<Pressable style={styles.modalOverlay} onPress={hideContactActions} />
 						<View style={styles.actionSheetWrap} pointerEvents="box-none">
 							<View style={styles.actionSheet}>
 								<Text style={styles.actionSheetTitle}>{`${modalContact?.first_name ?? ''} ${modalContact?.last_name ?? ''}`.trim() || 'Conversation'}</Text>
+								<Pressable style={styles.actionItem} onPress={() => handleToggleFavorite(modalContact?.id)}>
+									<Ionicons name="star-outline" size={20} color="#F2C919" style={styles.actionIcon} />
+									<Text style={[styles.actionText, styles.favoriteText]}>Favorite</Text>
+								</Pressable>
 								<Pressable style={styles.actionItem} onPress={handleArchive}>
 									<Ionicons name="archive-outline" size={20} color="#31429B" style={styles.actionIcon} />
 									<Text style={styles.actionText}>Archive</Text>
@@ -686,7 +722,7 @@ const ChatScreen = ({ navigation }) => {
 						</View>
 					</Modal>
 					{/* Group action modal for long-press on group chats */}
-					<Modal visible={isGroupActionModalVisible} transparent animationType={'fade'} onRequestClose={hideGroupActions}>
+					<Modal visible={isGroupActionModalVisible} transparent animationType={'slide'} statusBarTranslucent={true} onRequestClose={hideGroupActions}>
 						<Pressable style={styles.modalOverlay} onPress={hideGroupActions} />
 						<View style={styles.actionSheetWrap} pointerEvents="box-none">
 							<View style={styles.actionSheet}>

@@ -942,9 +942,9 @@ const styles = StyleSheet.create({
 	postActionsBackdrop: {
 		flex: 1,
 		backgroundColor: 'rgba(15, 23, 42, 0.58)',
-		alignItems: 'center',
-		justifyContent: 'center',
-		paddingHorizontal: 18,
+		alignItems: 'stretch',
+		justifyContent: 'flex-end',
+		paddingHorizontal: 0,
 	},
 	deleteLoadingBackdrop: {
 		flex: 1,
@@ -981,12 +981,13 @@ const styles = StyleSheet.create({
 	},
 	postActionsCard: {
 		width: '100%',
-		maxWidth: 430,
 		backgroundColor: '#FFFFFF',
-		borderRadius: 22,
-		padding: 18,
-		borderWidth: 1,
-		borderColor: '#DCE3F5',
+		borderTopLeftRadius: 20,
+		borderTopRightRadius: 20,
+		paddingTop: 12,
+		paddingBottom: 18,
+		paddingHorizontal: 12,
+		borderWidth: 0,
 	},
 	postActionsHeader: {
 		flexDirection: 'row',
