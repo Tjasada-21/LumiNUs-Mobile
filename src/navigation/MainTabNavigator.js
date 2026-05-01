@@ -15,6 +15,7 @@ import EventsScreen from '../screens/EventsScreen';
 import ConnectionsScreen from '../screens/ConnectionsScreen';
 import ProfileViewScreen from '../screens/ProfileViewScreen';
 import RegisteredEventsScreen from '../screens/RegisteredEventsScreen';
+import AlumniTracerScreen from '../screens/AlumniTracerScreen';
 import { useUnreadMessages } from '../context/UnreadMessagesContext';
 import { sharedScreenStyles } from '../styles/sharedStyles';
 
@@ -126,6 +127,14 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="ViewYearbook"
         component={ViewYearbookScreen}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: 'none' },
+        }}
+      />
+      <Tab.Screen
+        name="AlumniTracer"
+        component={AlumniTracerScreen}
         options={{
           tabBarButton: () => null,
           tabBarItemStyle: { display: 'none' },

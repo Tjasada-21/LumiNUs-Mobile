@@ -125,7 +125,12 @@ const PerksScreen = ({ navigation }) => {
 		const imageUri = resolveImageUri(getPerkImageUri(item));
 
 		return (
-			<Pressable style={[styles.card, { width: cardWidth }]}>
+			<Pressable
+				style={({ pressed }) => [styles.card, { width: cardWidth }, pressed && styles.cardPressed]}
+				onPress={() => navigation.navigate('ViewPerkScreen', { perk: item })}
+				accessibilityRole="button"
+				accessibilityLabel={`View details for ${item.title}`}
+			>
 				<View style={styles.cardImageWrap}>
 					{imageUri ? (
 						<Image source={{ uri: imageUri }} style={styles.cardImage} resizeMode="cover" />

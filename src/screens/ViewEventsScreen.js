@@ -73,7 +73,6 @@ const ViewEventsScreen = () => {
 	const isInPersonEvent = ['in person', 'inperson', 'physical', 'onsite', 'on site'].includes(normalizedEventType);
 	const platform = String(event?.platform ?? 'Not set');
 	const platformUrl = String(event?.platform_url ?? '').trim();
-	const maxCapacity = event?.max_capacity ?? 'Not set';
 	const eventImageUris = Array.isArray(event?.images)
 		? event.images.map((image) => image?.image_url).filter(Boolean)
 		: [];
@@ -395,10 +394,6 @@ const ViewEventsScreen = () => {
 									<Text style={styles.infoValue}>{dateRange}</Text>
 								</View>
 
-								<View style={styles.infoItem}>
-									<Text style={styles.infoLabel}>Max Capacity</Text>
-									<Text style={styles.infoValue}>{maxCapacity}</Text>
-								</View>
 							</View>
 
 							{isInPersonEvent ? (
@@ -454,7 +449,7 @@ const ViewEventsScreen = () => {
 									accessibilityState={{ disabled: registrationsLoading || (!isAlreadyRegistered && !canRegister) }}
 								>
 									<Text style={styles.registerButtonText}>
-										{isAlreadyRegistered ? 'Remove Registration' : registrationsLoading ? 'Checking...' : 'Register'}
+										{isAlreadyRegistered ? 'Remove Registration' : registrationsLoading ? 'Checking...' : 'Pre-Register'}
 									</Text>
 								</Pressable>
 							</View>

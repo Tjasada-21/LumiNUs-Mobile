@@ -73,14 +73,11 @@ const BrandHeader = () => {
           accessibilityLabel="NU LIPA logo"
           hitSlop={8}
         >
-          <View style={[styles.nulipaPill, {
-            minWidth: layout.pillMinWidth,
-            paddingHorizontal: layout.pillHorizontalPadding,
-            paddingVertical: layout.pillVerticalPadding,
-          }]}>
-            <Image source={require('../../assets/images/nulogo.png')} style={[styles.nulipaIcon, { width: layout.pillIconSize, height: layout.pillIconSize }]} resizeMode="contain" />
-            <Text style={[styles.nulipaText, { fontSize: layout.pillTextSize }]}>NU LIPA</Text>
-          </View>
+          <Image
+            source={require('../../assets/images/NULP-AAO-WHITE.png')}
+            style={[{ width: layout.headerLogoWidth * 0.48, height: layout.headerLogoHeight }, { transform: [{ scale: 1.5 }], right: 20 }]}
+            resizeMode="cover"
+          />
         </Pressable>
       </View>
       <View style={[styles.brandAccent, { height: layout.accentHeight }]} />

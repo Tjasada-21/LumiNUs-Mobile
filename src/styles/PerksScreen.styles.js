@@ -64,6 +64,10 @@ const styles = StyleSheet.create({
 		shadowOffset: { width: 0, height: 6 },
 		elevation: 3,
 	},
+	cardPressed: {
+		transform: [{ scale: 0.98 }],
+		opacity: 0.94,
+	},
 	cardImageWrap: {
 		borderRadius: 14,
 		overflow: 'hidden',
