@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, useWindowDimensions, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, Image, useWindowDimensions, Pressable, Modal, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { responsiveFontSize, responsiveHeight, responsiveSpacing, responsiveWidth } from '../utils/responsive';
 
@@ -8,6 +8,9 @@ const BrandHeader = () => {
   const { width, height } = useWindowDimensions();
   const isCompactWidth = width < 375;
   const isTablet = width >= 768;
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef(null);
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
   const layout = {
     headerLogoWidth: responsiveWidth(width, 0.39, 160, isTablet ? 238 : 196),
@@ -21,6 +24,28 @@ const BrandHeader = () => {
     pillIconSize: responsiveWidth(width, 0.06, 20, 28),
     pillTextSize: responsiveFontSize(width, 14, 12, 16),
     accentHeight: responsiveHeight(height, 0.012, 8, 14),
+  };
+
+  const handlePillPress = () => {
+    tapCountRef.current += 1;
+
+    if (tapTimerRef.current) {
+      clearTimeout(tapTimerRef.current);
+    }
+
+    tapTimerRef.current = setTimeout(() => {
+      tapCountRef.current = 0;
+      tapTimerRef.current = null;
+    }, 700);
+
+    if (tapCountRef.current >= 3) {
+      tapCountRef.current = 0;
+      if (tapTimerRef.current) {
+        clearTimeout(tapTimerRef.current);
+        tapTimerRef.current = null;
+      }
+      setIsImageModalVisible(true);
+    }
   };
 
   return (
@@ -42,16 +67,34 @@ const BrandHeader = () => {
             resizeMode="contain"
           />
         </Pressable>
-        <View style={[styles.nulipaPill, {
-          minWidth: layout.pillMinWidth,
-          paddingHorizontal: layout.pillHorizontalPadding,
-          paddingVertical: layout.pillVerticalPadding,
-        }]}>
-          <Image source={require('../../assets/images/nulogo.png')} style={[styles.nulipaIcon, { width: layout.pillIconSize, height: layout.pillIconSize }]} resizeMode="contain" />
-          <Text style={[styles.nulipaText, { fontSize: layout.pillTextSize }]}>NU LIPA</Text>
-        </View>
+        <Pressable
+          onPress={handlePillPress}
+          accessibilityRole="button"
+          accessibilityLabel="NU LIPA logo"
+          hitSlop={8}
+        >
+          <View style={[styles.nulipaPill, {
+            minWidth: layout.pillMinWidth,
+            paddingHorizontal: layout.pillHorizontalPadding,
+            paddingVertical: layout.pillVerticalPadding,
+          }]}>
+            <Image source={require('../../assets/images/nulogo.png')} style={[styles.nulipaIcon, { width: layout.pillIconSize, height: layout.pillIconSize }]} resizeMode="contain" />
+            <Text style={[styles.nulipaText, { fontSize: layout.pillTextSize }]}>NU LIPA</Text>
+          </View>
+        </Pressable>
       </View>
       <View style={[styles.brandAccent, { height: layout.accentHeight }]} />
+
+      <Modal visible={isImageModalVisible} transparent animationType="fade" onRequestClose={() => setIsImageModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Image source={require('../../assets/images/image.png')} style={styles.modalImage} resizeMode="contain" />
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setIsImageModalVisible(false)} activeOpacity={0.85}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -97,6 +140,39 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: '#F2C919',
     width: '100%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalImage: {
+    width: '100%',
+    height: 340,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+  },
+  modalCloseButton: {
+    marginTop: 14,
+    backgroundColor: '#31429B',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  modalCloseText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

@@ -377,9 +377,10 @@ export default function ConvoScreen() {
     setReplyTo({
       ...actionMessage,
       sender_name: actionMessage?.sender_name ?? actionMessage?.sender?.name ?? conversationName,
+      isOutgoing: Boolean(actionMessage?.localStatus) || (currentUserId != null && String(actionMessage?.sender_id ?? actionMessage?.user_id ?? actionMessage?.sender?.id ?? '') === String(currentUserId)),
     });
     closeMessageActions();
-  }, [actionMessage, closeMessageActions, conversationName]);
+  }, [actionMessage, closeMessageActions, conversationName, currentUserId]);
 
   const handleSwipeReply = useCallback((message) => {
     if (!message) {
@@ -389,8 +390,9 @@ export default function ConvoScreen() {
     setReplyTo({
       ...message,
       sender_name: message?.sender_name ?? message?.sender?.name ?? conversationName,
+      isOutgoing: Boolean(message?.localStatus) || (currentUserId != null && String(message?.sender_id ?? message?.user_id ?? message?.sender?.id ?? '') === String(currentUserId)),
     });
-  }, [conversationName]);
+  }, [conversationName, currentUserId]);
 
   const handleDeleteMessage = useCallback(async () => {
     if (!actionMessage) {

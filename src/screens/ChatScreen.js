@@ -7,6 +7,9 @@ import {
 	useWindowDimensions,
 	FlatList,
 	ActivityIndicator,
+	Modal,
+	Pressable,
+	Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +63,10 @@ const ChatScreen = ({ navigation }) => {
 	const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 	const [groupChats, setGroupChats] = useState([]);
 	const [isLoadingChatData, setIsLoadingChatData] = useState(false);
+	const [isActionModalVisible, setIsActionModalVisible] = useState(false);
+	const [modalContact, setModalContact] = useState(null);
+	const [isGroupActionModalVisible, setIsGroupActionModalVisible] = useState(false);
+	const [modalGroup, setModalGroup] = useState(null);
 
 	// HANDLER: Open the search screen
 	const openSearchMessage = () => {
@@ -262,6 +269,10 @@ const ChatScreen = ({ navigation }) => {
 				style={styles.contactCard}
 				activeOpacity={0.85}
 				onPress={() => openConversation(item)}
+				onLongPress={() => {
+					setModalContact(item);
+					setIsActionModalVisible(true);
+				}}
 			>
 				<Image source={{ uri: contactAvatar }} style={styles.contactAvatar} />
 				<View style={styles.contactTextWrap}>
@@ -275,6 +286,93 @@ const ChatScreen = ({ navigation }) => {
 			</TouchableOpacity>
 		);
 	};
+
+		const showContactActions = (contact) => {
+			setModalContact(contact);
+			setIsActionModalVisible(true);
+		};
+
+		const hideContactActions = () => {
+			setIsActionModalVisible(false);
+			setModalContact(null);
+		};
+
+		const handleArchive = async () => {
+			hideContactActions();
+			console.log('Archive', modalContact?.id);
+			try {
+				await api.post(`/contacts/${modalContact?.id}/archive`);
+			} catch (e) {
+				// backend may not have endpoint; safe ignore
+				console.warn('Archive API failed', e?.message || e);
+			}
+		};
+
+		const handleMute = async () => {
+			hideContactActions();
+			console.log('Mute', modalContact?.id);
+			try {
+				await api.post(`/contacts/${modalContact?.id}/mute`);
+			} catch (e) {
+				console.warn('Mute API failed', e?.message || e);
+			}
+		};
+
+		const handleCreateGroup = async () => {
+			hideContactActions();
+			const connectionName = `${modalContact?.first_name ?? ''} ${modalContact?.last_name ?? ''}`.trim() || 'Connection';
+			console.log('Create group with', connectionName);
+			// Navigate to group creation screen with prefilled name/members if available
+			const parentNavigator = navigation.getParent?.();
+			const params = { prefillName: connectionName, members: [modalContact] };
+			if (parentNavigator?.navigate) parentNavigator.navigate('CreateGroup', params);
+			else navigation.navigate('CreateGroup', params);
+		};
+
+		const handleMarkUnread = async () => {
+			hideContactActions();
+			console.log('Mark unread', modalContact?.id);
+			try {
+				await api.post(`/contacts/${modalContact?.id}/mark-unread`);
+			} catch (e) {
+				console.warn('Mark unread API failed', e?.message || e);
+			}
+		};
+
+		const handleRestrict = async () => {
+			hideContactActions();
+			console.log('Restrict', modalContact?.id);
+			try {
+				await api.post(`/contacts/${modalContact?.id}/restrict`);
+			} catch (e) {
+				console.warn('Restrict API failed', e?.message || e);
+			}
+		};
+
+		const handleBlock = async () => {
+			hideContactActions();
+			console.log('Block', modalContact?.id);
+			try {
+				await api.post(`/contacts/${modalContact?.id}/block`);
+			} catch (e) {
+				console.warn('Block API failed', e?.message || e);
+			}
+		};
+
+		const handleDelete = async () => {
+			Alert.alert('Delete conversation', 'Are you sure you want to delete this conversation?', [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Delete', style: 'destructive', onPress: async () => {
+					hideContactActions();
+					console.log('Delete', modalContact?.id);
+					try {
+						await api.delete(`/contacts/${modalContact?.id}`);
+					} catch (e) {
+						console.warn('Delete API failed', e?.message || e);
+					}
+				} }
+			]);
+		};
 
 	const renderGroupChatItem = ({ item }) => {
 		const groupName = item?.name ?? 'Group Chat';
@@ -290,6 +388,10 @@ const ChatScreen = ({ navigation }) => {
 				style={styles.groupCard}
 				activeOpacity={0.85}
 				onPress={() => openGroupConversation(item)}
+				onLongPress={() => {
+					setModalGroup(item);
+					setIsGroupActionModalVisible(true);
+				}}
 			>
 				<Image source={{ uri: groupAvatar }} style={styles.groupAvatar} />
 				<View style={styles.groupTextWrap}>
@@ -311,6 +413,89 @@ const ChatScreen = ({ navigation }) => {
 		);
 	};
 
+		const hideGroupActions = () => {
+			setIsGroupActionModalVisible(false);
+			setModalGroup(null);
+		};
+
+		const handleArchiveGroup = async () => {
+			hideGroupActions();
+			console.log('Archive group', modalGroup?.id);
+			try {
+				await api.post(`/group-chats/${modalGroup?.id}/archive`);
+			} catch (e) {
+				console.warn('Archive group API failed', e?.message || e);
+			}
+		};
+
+		const handleIgnoreGroup = async () => {
+			hideGroupActions();
+			console.log('Ignore group', modalGroup?.id);
+			try {
+				await api.post(`/group-chats/${modalGroup?.id}/ignore`);
+			} catch (e) {
+				console.warn('Ignore group API failed', e?.message || e);
+			}
+		};
+
+		const handleAddMembers = () => {
+			hideGroupActions();
+			const parentNavigator = navigation.getParent?.();
+			const params = { groupId: modalGroup?.id, prefillName: modalGroup?.name };
+			if (parentNavigator?.navigate) parentNavigator.navigate('EditGroup', params);
+			else navigation.navigate('EditGroup', params);
+		};
+
+		const handleMuteGroup = async () => {
+			hideGroupActions();
+			console.log('Mute group', modalGroup?.id);
+			try {
+				await api.post(`/group-chats/${modalGroup?.id}/mute`);
+			} catch (e) {
+				console.warn('Mute group API failed', e?.message || e);
+			}
+		};
+
+		const handleMarkGroupUnread = async () => {
+			hideGroupActions();
+			console.log('Mark group unread', modalGroup?.id);
+			try {
+				await api.post(`/group-chats/${modalGroup?.id}/mark-unread`);
+			} catch (e) {
+				console.warn('Mark group unread API failed', e?.message || e);
+			}
+		};
+
+		const handleLeaveGroup = async () => {
+			Alert.alert('Leave group', 'Are you sure you want to leave this group?', [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Leave', style: 'destructive', onPress: async () => {
+					hideGroupActions();
+					console.log('Leave group', modalGroup?.id);
+					try {
+						await api.post(`/group-chats/${modalGroup?.id}/leave`);
+					} catch (e) {
+						console.warn('Leave group API failed', e?.message || e);
+					}
+				} }
+			]);
+		};
+
+		const handleDeleteGroup = async () => {
+			Alert.alert('Delete group', 'Are you sure you want to delete this group?', [
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Delete', style: 'destructive', onPress: async () => {
+					hideGroupActions();
+					console.log('Delete group', modalGroup?.id);
+					try {
+						await api.delete(`/group-chats/${modalGroup?.id}`);
+					} catch (e) {
+						console.warn('Delete group API failed', e?.message || e);
+					}
+				} }
+			]);
+		};
+
 	const renderAdminItem = ({ item }) => {
 		const adminName = `${item?.admin_first_name ?? item?.first_name ?? ''} ${item?.admin_last_name ?? item?.last_name ?? ''}`.trim() || 'Admin';
 		const adminAvatar = item?.photo || item?.admin_photo
@@ -322,6 +507,10 @@ const ChatScreen = ({ navigation }) => {
 				style={styles.contactCard}
 				activeOpacity={0.85}
 				onPress={() => openConversation({ id: item?.id, first_name: item?.admin_first_name ?? item?.first_name, last_name: item?.admin_last_name ?? item?.last_name, alumni_photo: item?.photo ?? item?.admin_photo })}
+				onLongPress={() => {
+					setModalContact({ id: item?.id, first_name: item?.admin_first_name ?? item?.first_name, last_name: item?.admin_last_name ?? item?.last_name, alumni_photo: item?.photo ?? item?.admin_photo });
+					setIsActionModalVisible(true);
+				}}
 			>
 				<Image source={{ uri: adminAvatar }} style={styles.contactAvatar} />
 				<View style={styles.contactTextWrap}>
@@ -459,8 +648,82 @@ const ChatScreen = ({ navigation }) => {
 					</View>
 				</View>
 			</View>
-		</SafeAreaView>
-	);
+				{/* Action modal for long-press on direct messages */}
+					<Modal visible={isActionModalVisible} transparent animationType={'fade'} onRequestClose={hideContactActions}>
+						<Pressable style={styles.modalOverlay} onPress={hideContactActions} />
+						<View style={styles.actionSheetWrap} pointerEvents="box-none">
+							<View style={styles.actionSheet}>
+								<Text style={styles.actionSheetTitle}>{`${modalContact?.first_name ?? ''} ${modalContact?.last_name ?? ''}`.trim() || 'Conversation'}</Text>
+								<Pressable style={styles.actionItem} onPress={handleArchive}>
+									<Ionicons name="archive-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Archive</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleMute}>
+									<Ionicons name="volume-mute-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Mute</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleCreateGroup}>
+									<Ionicons name="people-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>{`Create group chat with '${(modalContact?.first_name ?? '')}'`}</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleMarkUnread}>
+									<Ionicons name="mail-unread-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Mark as unread</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleRestrict}>
+									<Ionicons name="shield-checkmark-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Restrict</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleBlock}>
+									<Ionicons name="close-circle-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Block</Text>
+								</Pressable>
+								<Pressable style={[styles.actionItem, styles.destructiveAction]} onPress={handleDelete}>
+									<Ionicons name="trash-outline" size={20} color="#DC2626" style={styles.actionIcon} />
+									<Text style={[styles.actionText, styles.destructiveText]}>Delete</Text>
+								</Pressable>
+							</View>
+						</View>
+					</Modal>
+					{/* Group action modal for long-press on group chats */}
+					<Modal visible={isGroupActionModalVisible} transparent animationType={'fade'} onRequestClose={hideGroupActions}>
+						<Pressable style={styles.modalOverlay} onPress={hideGroupActions} />
+						<View style={styles.actionSheetWrap} pointerEvents="box-none">
+							<View style={styles.actionSheet}>
+								<Text style={styles.actionSheetTitle}>{modalGroup?.name ?? 'Group Chat'}</Text>
+								<Pressable style={styles.actionItem} onPress={handleArchiveGroup}>
+									<Ionicons name="archive-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Archive</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleIgnoreGroup}>
+									<Ionicons name="eye-off-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Ignore</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleAddMembers}>
+									<Ionicons name="person-add-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Add members</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleMuteGroup}>
+									<Ionicons name="volume-mute-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Mute</Text>
+								</Pressable>
+								<Pressable style={styles.actionItem} onPress={handleMarkGroupUnread}>
+									<Ionicons name="mail-unread-outline" size={20} color="#31429B" style={styles.actionIcon} />
+									<Text style={styles.actionText}>Mark as unread</Text>
+								</Pressable>
+								<Pressable style={[styles.actionItem, styles.destructiveAction]} onPress={handleLeaveGroup}>
+									<Ionicons name="exit-outline" size={20} color="#DC2626" style={styles.actionIcon} />
+									<Text style={[styles.actionText, styles.destructiveText]}>Leave group</Text>
+								</Pressable>
+								<Pressable style={[styles.actionItem, styles.destructiveAction]} onPress={handleDeleteGroup}>
+									<Ionicons name="trash-outline" size={20} color="#DC2626" style={styles.actionIcon} />
+									<Text style={[styles.actionText, styles.destructiveText]}>Delete</Text>
+								</Pressable>
+							</View>
+						</View>
+					</Modal>
+			</SafeAreaView>
+		);
 };
 
 export default ChatScreen;

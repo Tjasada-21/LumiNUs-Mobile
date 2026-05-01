@@ -33,29 +33,34 @@ const MessageInputBar = ({
   const composerTextAlignVertical = Platform.OS === 'android' ? (hasText ? 'top' : 'center') : 'center';
 
   return (
-    <View
-      style={[
-        styles.wrapper,
-        {
-          width: '100%',
-          paddingBottom: 0,
-          marginBottom: 0,
-        },
-      ]}
-    >
-      {isReplying && replyTo && (
+    <View style={[styles.wrapper, { width: '100%', paddingBottom: 0, marginBottom: 0 }]}> 
+      {isReplying && replyTo ? (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
-            <Text style={styles.replyLabel}>Replying to {replyTo.sender_name}</Text>
-            <Text style={styles.replyText} numberOfLines={1}>
-              {replyTo.content}
-            </Text>
+            <Text style={styles.replyLabel}>You replied</Text>
+            <View
+              style={[
+                styles.replyBubble,
+                replyTo?.isOutgoing ? styles.replyBubbleOutgoing : styles.replyBubbleIncoming,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.replyBubbleText,
+                  replyTo?.isOutgoing ? styles.replyBubbleTextOutgoing : styles.replyBubbleTextIncoming,
+                ]}
+                numberOfLines={2}
+              >
+                {replyTo.content}
+              </Text>
+            </View>
           </View>
           <TouchableOpacity onPress={onCancelReply}>
             <Ionicons name="close" size={20} color="#8E8E8E" />
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
+
       <View style={styles.pill}>
         <SmartTextInput
           style={[styles.textInput, { height: composerInputHeight }]}
@@ -99,28 +104,50 @@ const styles = StyleSheet.create({
   },
   replyBar: {
     flexDirection: 'row',
-    backgroundColor: '#F2F2F2',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 14,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginHorizontal: 10,
+    marginBottom: 6,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   replyContent: {
     flex: 1,
-    marginRight: 8,
+    marginRight: 10,
+    alignItems: 'flex-end',
   },
   replyLabel: {
+    alignSelf: 'flex-end',
     fontSize: 12,
-    fontWeight: '600',
-    color: '#8E8E8E',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
-  replyText: {
-    fontSize: 14,
-    color: '#262626',
-    marginTop: 2,
+  replyBubble: {
+    width: '72%',
+    minWidth: 170,
+    alignSelf: 'flex-end',
+    borderRadius: 30,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+  },
+  replyBubbleIncoming: {
+    backgroundColor: 'rgba(255, 255, 255, 0.64)',
+  },
+  replyBubbleOutgoing: {
+    backgroundColor: 'rgba(183, 28, 28, 0.72)',
+  },
+  replyBubbleText: {
+    fontSize: 16,
+    lineHeight: 20,
+  },
+  replyBubbleTextIncoming: {
+    color: '#111111',
+  },
+  replyBubbleTextOutgoing: {
+    color: '#FFFFFF',
   },
   pill: {
     flexDirection: 'row',
