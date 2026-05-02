@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import api from '../services/api';
 import { getAuthToken } from '../services/authStorage';
+import { subscribeToDirectMessages, subscribeToGroupMessages } from '../services/realtimeMessageService';
 import CustomKeyboardView from '../components/CustomKeyboardView';
 import styles from '../styles/ConvoScreen.styles';
 import ChatHeader from '../components/ChatHeader';
@@ -130,14 +131,28 @@ export default function ConvoScreen() {
   const { refreshUnreadMessages } = useUnreadMessages();
 
   const params = route?.params ?? {};
-  const contactId = params.contactId ?? params.userId ?? params.id ?? null;
-  const groupId = params.groupId ?? null;
-  const isGroup = Boolean(groupId);
+  const contactId = params.contactId ?? params.userId ?? params.id ?? params.contact?.id ?? null;
+  const groupId = params.groupId ?? params.group?.id ?? null;
+  const isGroup = Boolean(groupId && !contactId);
 
-  const conversationName = params.contactName ?? params.groupName ?? 'Chat';
-  const conversationAvatar = params.contactAvatar ?? params.contactPhoto ?? params.avatar ?? '';
+  const conversationName = params.contactName
+    ?? params.userName
+    ?? params.contact?.name
+    ?? params.groupName
+    ?? params.group?.name
+    ?? 'Chat';
+  const conversationAvatar = params.contactAvatar
+    ?? params.userAvatarUri
+    ?? params.contactPhoto
+    ?? params.avatar
+    ?? params.contact?.avatar
+    ?? params.groupAvatar
+    ?? params.group?.avatar
+    ?? '';
   const conversationStatus = params.contactStatus ?? params.status ?? '';
-  const groupMembers = Array.isArray(params.groupMembers) ? params.groupMembers : [];
+  const groupMembers = Array.isArray(params.groupMembers)
+    ? params.groupMembers
+    : (Array.isArray(params.group?.members) ? params.group.members : []);
 
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -315,6 +330,72 @@ export default function ConvoScreen() {
       scrollToBottom(false);
     }
   }, [messages, scrollToBottom]);
+
+  // Set up real-time message subscriptions
+  useEffect(() => {
+    if (!hasConversation) {
+      return;
+    }
+
+    let unsubscribe = () => {};
+
+    const handleMessageEvent = (event, newMessage) => {
+      if (!newMessage) {
+        return;
+      }
+
+      if (event === 'insert') {
+        // New message received
+        setMessages((currentMessages) => {
+          // Check if message already exists (optimistic update case)
+          const messageExists = currentMessages.some((msg) => msg.id === newMessage.id);
+          if (messageExists) {
+            return currentMessages;
+          }
+          return [...currentMessages, newMessage];
+        });
+        // Scroll to bottom when new message arrives
+        setTimeout(() => scrollToBottom(true), 100);
+      } else if (event === 'update') {
+        // Message updated (reactions, read status, etc.)
+        setMessages((currentMessages) =>
+          currentMessages.map((message) => (message.id === newMessage.id ? { ...message, ...newMessage } : message))
+        );
+      } else if (event === 'delete') {
+        // Message deleted
+        setMessages((currentMessages) => currentMessages.filter((message) => message.id !== newMessage.id));
+      }
+    };
+
+    if (isGroup) {
+      unsubscribe = subscribeToGroupMessages(groupId, handleMessageEvent);
+    } else if (currentUserId && contactId) {
+      unsubscribe = subscribeToDirectMessages(currentUserId, contactId, handleMessageEvent);
+    }
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [hasConversation, isGroup, contactId, groupId, currentUserId, scrollToBottom]);
+
+  // Fallback polling if realtime isn't working
+  useEffect(() => {
+    if (!hasConversation) {
+      return;
+    }
+
+    console.log('[ConvoScreen] Setting up polling fallback');
+
+    const pollInterval = setInterval(() => {
+      loadMessages();
+    }, 3000); // Poll every 3 seconds
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [hasConversation, contactId, groupId, loadMessages]);
 
   const openMessageActions = useCallback((message) => {
     setActionMessage(message);
@@ -586,13 +667,28 @@ export default function ConvoScreen() {
               onCallPress={() => {}}
               onVideoPress={() => {}}
               onInfoPress={() => {
+                if (isGroup) {
+                  navigation.navigate('ChatDetailsScreen', {
+                    group: {
+                      id: groupId,
+                      name: conversationName,
+                      avatar: getAvatarUri(conversationName, conversationAvatar),
+                      members: groupMembers,
+                      media: [],
+                    },
+                  });
+                  return;
+                }
+
                 navigation.navigate('ChatDetailsScreen', {
-                  group: {
-                    id: groupId,
-                    name: conversationName,
-                    avatar: getAvatarUri(conversationName, conversationAvatar),
-                    members: isGroup ? groupMembers : [],
-                    media: [],
+                  contact: {
+                    id: contactId,
+                    name: params.contactName ?? params.userName ?? params.contact?.name ?? conversationName,
+                    first_name: params.contactFirstName ?? params.contact?.first_name ?? '',
+                    last_name: params.contactLastName ?? params.contact?.last_name ?? '',
+                    username: params.contactUsername ?? params.contact?.username ?? null,
+                    avatar: params.contactAvatar ?? conversationAvatar,
+                    alumni_photo: params.contactPhoto ?? params.contact?.alumni_photo ?? null,
                   },
                 });
               }}

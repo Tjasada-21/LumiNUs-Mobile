@@ -684,7 +684,8 @@ const ChatScreen = ({ navigation }) => {
 					<Modal visible={isActionModalVisible} transparent animationType={'slide'} statusBarTranslucent={true} onRequestClose={hideContactActions}>
 						<Pressable style={styles.modalOverlay} onPress={hideContactActions} />
 						<View style={styles.actionSheetWrap} pointerEvents="box-none">
-							<View style={styles.actionSheet}>
+							<SafeAreaView style={styles.actionSheetSafeArea} edges={['bottom']}>
+								<View style={styles.actionSheet}>
 								<Text style={styles.actionSheetTitle}>{`${modalContact?.first_name ?? ''} ${modalContact?.last_name ?? ''}`.trim() || 'Conversation'}</Text>
 								<Pressable style={styles.actionItem} onPress={() => handleToggleFavorite(modalContact?.id)}>
 									<Ionicons name="star-outline" size={20} color="#F2C919" style={styles.actionIcon} />
@@ -718,14 +719,16 @@ const ChatScreen = ({ navigation }) => {
 									<Ionicons name="trash-outline" size={20} color="#DC2626" style={styles.actionIcon} />
 									<Text style={[styles.actionText, styles.destructiveText]}>Delete</Text>
 								</Pressable>
-							</View>
+								</View>
+							</SafeAreaView>
 						</View>
 					</Modal>
 					{/* Group action modal for long-press on group chats */}
 					<Modal visible={isGroupActionModalVisible} transparent animationType={'slide'} statusBarTranslucent={true} onRequestClose={hideGroupActions}>
 						<Pressable style={styles.modalOverlay} onPress={hideGroupActions} />
 						<View style={styles.actionSheetWrap} pointerEvents="box-none">
-							<View style={styles.actionSheet}>
+							<SafeAreaView style={styles.actionSheetSafeArea} edges={['bottom']}>
+								<View style={styles.actionSheet}>
 								<Text style={styles.actionSheetTitle}>{modalGroup?.name ?? 'Group Chat'}</Text>
 								<Pressable style={styles.actionItem} onPress={handleArchiveGroup}>
 									<Ionicons name="archive-outline" size={20} color="#31429B" style={styles.actionIcon} />
@@ -755,7 +758,8 @@ const ChatScreen = ({ navigation }) => {
 									<Ionicons name="trash-outline" size={20} color="#DC2626" style={styles.actionIcon} />
 									<Text style={[styles.actionText, styles.destructiveText]}>Delete</Text>
 								</Pressable>
-							</View>
+								</View>
+							</SafeAreaView>
 						</View>
 					</Modal>
 			</SafeAreaView>

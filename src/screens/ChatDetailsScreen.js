@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Dimensions, View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { Dimensions, View, Text, Image, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,13 +9,115 @@ const getAvatarUri = (name, avatarUri) => {
   if (avatarUri) {
     return avatarUri;
   }
-
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=31429B&color=fff`;
 };
 
 const ChatDetailsScreen = ({ route, navigation }) => {
-  // Placeholder data
-  const fallbackGroup = {
+  // Extract route params
+  const routeContact = route?.params?.contact;
+  const routeGroup = route?.params?.group;
+  const dmProfileUserId = routeContact?.id ?? routeContact?.alumni_id ?? null;
+
+  // Determine view type based on what was passed
+
+  // Render DM view
+  if (routeContact) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.container}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="chevron-back" size={24} color="#1F2937" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.dmContainer} showsVerticalScrollIndicator={false}>
+            <View style={styles.dmCenterHeader}>
+              <Image 
+                source={{ uri: getAvatarUri(routeContact?.name ?? routeContact?.first_name, routeContact?.avatar ?? routeContact?.alumni_photo) }} 
+                style={styles.bigAvatar} 
+              />
+              <Text style={styles.dmName}>
+                {routeContact?.name ?? (`${routeContact?.first_name ?? ''} ${routeContact?.last_name ?? ''}`.trim() || 'Alumni')}
+              </Text>
+              {routeContact?.username ? <Text style={styles.dmUsername}>@{routeContact.username}</Text> : null}
+
+              <View style={styles.dmActionsRow}>
+                <TouchableOpacity 
+                  style={styles.dmActionButton} 
+                  onPress={() => { /* TODO: audio call */ }}
+                >
+                  <Ionicons name="call-outline" size={22} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.dmActionButton, styles.dmActionSecondary]} 
+                  onPress={() => { /* TODO: video call */ }}
+                >
+                  <Ionicons name="videocam-outline" size={22} color="#31429B" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dmActionButton, styles.dmActionSecondary]}
+                  onPress={() => {
+                    if (dmProfileUserId) {
+                      navigation.navigate('Home', {
+                        screen: 'ProfileView',
+                        params: { userId: dmProfileUserId },
+                      });
+                    }
+                  }}
+                >
+                  <Ionicons name="person-outline" size={22} color="#31429B" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.dmOptionsList}>
+              <TouchableOpacity 
+                style={styles.dmOptionRow} 
+                onPress={() => navigation.navigate('SearchMessage', { contactId: routeContact?.id })}
+              >
+                <Ionicons name="search-outline" size={18} color="#31429B" />
+                <Text style={styles.dmOptionText}>Search in conversation</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.dmOptionRow} 
+                onPress={() => { /* TODO: toggle notifications */ }}
+              >
+                <Ionicons name="notifications-outline" size={18} color="#31429B" />
+                <Text style={styles.dmOptionText}>Mute messages</Text>
+              </TouchableOpacity>
+
+              <View style={styles.dmDivider} />
+
+              <TouchableOpacity 
+                style={[styles.dmOptionRow, styles.dmDestructive]} 
+                onPress={() => { /* TODO: block */ }}
+              >
+                <Ionicons name="close-circle-outline" size={18} color="#DC2626" />
+                <Text style={[styles.dmOptionText, { color: '#DC2626' }]}>Block</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.dmOptionRow, styles.dmDestructive]} 
+                onPress={() => { /* TODO: report */ }}
+              >
+                <Ionicons name="flag-outline" size={18} color="#DC2626" />
+                <Text style={[styles.dmOptionText, { color: '#DC2626' }]}>Report</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Render Group view
+  const groupData = routeGroup || {
     name: 'Project Group',
     avatar: 'https://randomuser.me/api/portraits/men/2.jpg',
     members: [
@@ -28,10 +130,8 @@ const ChatDetailsScreen = ({ route, navigation }) => {
     ],
   };
 
-  const group = route?.params?.group || fallbackGroup;
-
   const normalizedMembers = useMemo(() => {
-    const rawMembers = Array.isArray(group?.members) ? group.members : [];
+    const rawMembers = Array.isArray(groupData?.members) ? groupData.members : [];
 
     return rawMembers.map((member, index) => {
       const firstName = member?.first_name ?? member?.admin_first_name ?? '';
@@ -50,12 +150,12 @@ const ChatDetailsScreen = ({ route, navigation }) => {
         avatar: getAvatarUri(fullName, avatar),
       };
     });
-  }, [group?.members]);
+  }, [groupData?.members]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={styles.headerTopRow}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -63,9 +163,13 @@ const ChatDetailsScreen = ({ route, navigation }) => {
           >
             <Ionicons name="chevron-back" size={24} color="#1F2937" />
           </TouchableOpacity>
-          <Image source={{ uri: getAvatarUri(group?.name, group?.avatar) }} style={styles.avatar} />
-          <Text style={styles.name}>{group?.name || 'Group Chat'}</Text>
         </View>
+
+        <View style={styles.header}>
+          <Image source={{ uri: getAvatarUri(groupData?.name, groupData?.avatar) }} style={styles.avatar} />
+          <Text style={styles.name}>{groupData?.name || 'Group Chat'}</Text>
+        </View>
+
         <Text style={styles.sectionTitle}>Members</Text>
         {normalizedMembers.length > 0 ? (
           <FlatList
@@ -84,15 +188,17 @@ const ChatDetailsScreen = ({ route, navigation }) => {
         ) : (
           <Text style={styles.emptyText}>No members found for this group chat.</Text>
         )}
+
         <Text style={styles.sectionTitle}>Shared Media</Text>
         <FlatList
-          data={group?.media ?? []}
+          data={groupData?.media ?? []}
           keyExtractor={(item, index) => String(item?.id ?? index)}
           renderItem={({ item }) => (
             <Image source={{ uri: item?.uri }} style={styles.mediaImage} />
           )}
           horizontal
         />
+
         <TouchableOpacity style={styles.leaveBtn}>
           <Ionicons name="exit-outline" size={18} color="#E57373" />
           <Text style={styles.leaveBtnText}>Leave Group</Text>
@@ -117,6 +223,21 @@ const styles = StyleSheet.create({
   mediaImage: { width: Math.max(56, Math.min(80, SCREEN_WIDTH * 0.18)), height: Math.max(56, Math.min(80, SCREEN_WIDTH * 0.18)), borderRadius: 8, marginRight: 8 },
   leaveBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 32, alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 8 },
   leaveBtnText: { color: '#E57373', fontWeight: 'bold', marginLeft: 6, fontSize: Math.max(14, Math.min(16, SCREEN_WIDTH * 0.036)) },
+  /* DM / Instagram-like styles */
+  headerTopRow: { height: 44, justifyContent: 'center' },
+  dmContainer: { flexGrow: 1 },
+  dmCenterHeader: { alignItems: 'center', marginTop: 12, marginBottom: 20, paddingVertical: 12 },
+  bigAvatar: { width: Math.max(120, Math.min(160, SCREEN_WIDTH * 0.36)), height: Math.max(120, Math.min(160, SCREEN_WIDTH * 0.36)), borderRadius: Math.max(60, Math.min(80, SCREEN_WIDTH * 0.18)), marginBottom: 12 },
+  dmName: { fontWeight: '800', fontSize: Math.max(18, Math.min(22, SCREEN_WIDTH * 0.06)), color: '#111827' },
+  dmUsername: { color: '#6B7280', marginTop: 4, fontSize: 14 },
+  dmActionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, gap: 12 },
+  dmActionButton: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#31429B', alignItems: 'center', justifyContent: 'center' },
+  dmActionSecondary: { backgroundColor: '#EEF2FF' },
+  dmOptionsList: { borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 0 },
+  dmOptionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  dmOptionText: { marginLeft: 12, fontSize: 15, color: '#111827', fontWeight: '500' },
+  dmDivider: { height: 8, backgroundColor: '#F9FAFB', marginVertical: 4 },
+  dmDestructive: { borderBottomColor: '#FEE2E2' },
 });
 
 export default ChatDetailsScreen;

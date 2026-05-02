@@ -11,7 +11,16 @@ const ChatHeader = ({
   onCallPress,
   onVideoPress,
   onInfoPress,
+  navigation,
+  chatData,
 }) => {
+  const handleInfoPress = () => {
+    if (navigation && chatData) {
+      navigation.navigate('ChatDetailsScreen', chatData);
+    } else if (onInfoPress) {
+      onInfoPress();
+    }
+  };
   return (
     <View style={styles.chatHeaderWrap}>
       <View style={styles.chatHeader}>
@@ -41,7 +50,7 @@ const ChatHeader = ({
           <Pressable style={styles.headerIconButton} onPress={onVideoPress} hitSlop={8}>
             <Ionicons name="videocam-outline" size={22} color="#31429B" />
           </Pressable>
-          <Pressable style={styles.headerIconButton} onPress={onInfoPress} hitSlop={8}>
+          <Pressable style={styles.headerIconButton} onPress={handleInfoPress} hitSlop={8}>
             <Ionicons name="information-circle-outline" size={24} color="#31429B" />
           </Pressable>
         </View>

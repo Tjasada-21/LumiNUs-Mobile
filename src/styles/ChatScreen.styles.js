@@ -287,6 +287,11 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 0,
 		paddingBottom: 0,
 	},
+	actionSheetSafeArea: {
+		flex: 1,
+		justifyContent: 'flex-end',
+		alignItems: 'stretch',
+	},
 	actionSheet: {
 		backgroundColor: '#FFFFFF',
 		borderTopLeftRadius: 12,

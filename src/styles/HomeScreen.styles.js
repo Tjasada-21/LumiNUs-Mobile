@@ -493,6 +493,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 28,
     paddingTop: 8,
+    bottom: 30,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },

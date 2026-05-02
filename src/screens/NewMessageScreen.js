@@ -8,59 +8,6 @@ import SmartTextInput from '../components/SmartTextInput';
 import styles from '../styles/NewMessageScreen.styles';
 import { getAuthToken } from '../services/authStorage';
 
-const SUGGESTED_PEOPLE = [
-	{
-		id: 1,
-		name: 'Gutierrez, Louie Andrew',
-		avatarUri: 'https://i.pravatar.cc/150?img=12',
-	},
-	{
-		id: 2,
-		name: 'Caponpon, Jade Ahrens',
-		avatarUri: 'https://i.pravatar.cc/150?img=32',
-	},
-	{
-		id: 3,
-		name: 'Asada, Timothy John',
-		avatarUri: 'https://i.pravatar.cc/150?img=15',
-	},
-	{
-		id: 4,
-		name: 'Claus, Johannes Emmanuel',
-		avatarUri: 'https://i.pravatar.cc/150?img=61',
-	},
-	{
-		id: 5,
-		name: 'Hernandez, Gian Accel',
-		avatarUri: 'https://i.pravatar.cc/150?img=24',
-	},
-	{
-		id: 6,
-		name: 'De Guzman, Dexter',
-		avatarUri: 'https://i.pravatar.cc/150?img=18',
-	},
-	{
-		id: 7,
-		name: 'Balmes, Christian Miguel',
-		avatarUri: 'https://i.pravatar.cc/150?img=27',
-	},
-	{
-		id: 8,
-		name: 'Magsino, Christian',
-		avatarUri: 'https://i.pravatar.cc/150?img=45',
-	},
-	{
-		id: 9,
-		name: 'Fernando, Julianne Kaye',
-		avatarUri: 'https://i.pravatar.cc/150?img=47',
-	},
-	{
-		id: 10,
-		name: 'Manalo, Marian Justine',
-		avatarUri: 'https://i.pravatar.cc/150?img=65',
-	},
-];
-
 const NewMessageScreen = ({ navigation }) => {
 	// SECTION: Layout values
 	const { width } = useWindowDimensions();
@@ -91,16 +38,8 @@ const NewMessageScreen = ({ navigation }) => {
 
 	// DERIVED VALUE: Filtered people list
 	const filteredPeople = useMemo(() => {
-		const normalizedQuery = query.trim().toLowerCase();
-
-		if (!normalizedQuery) {
-			return SUGGESTED_PEOPLE;
-		}
-
-		return SUGGESTED_PEOPLE.filter((person) => {
-			return person.name.toLowerCase().includes(normalizedQuery);
-		});
-	}, [query]);
+		return [];
+	}, []);
 
 	// DERIVED VALUE: Filtered members for the group modal
 	const filteredMembers = useMemo(() => {
@@ -241,19 +180,7 @@ const NewMessageScreen = ({ navigation }) => {
 		}
 	};
 
-	// RENDER HELPER: Suggested person row
-	const renderSuggestedPerson = ({ item }) => (
-		<Pressable style={styles.resultRow} onPress={() => {}} android_ripple={{ color: '#F1F5F9' }}>
-			<Image
-				source={{ uri: item.avatarUri }}
-				style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-			/>
-			<Text style={styles.resultName} numberOfLines={1}>
-				{item.name}
-			</Text>
-		</Pressable>
-	);
-
+	// RENDER HELPER: Connection row
 	const renderConnectionRow = (connection) => {
 		const connectionName = getConnectionName(connection);
 		const connectionAvatar = getConnectionAvatar(connection);
@@ -308,8 +235,8 @@ const NewMessageScreen = ({ navigation }) => {
 				{/* SECTION: Message composer */}
 				<FlatList
 					data={filteredPeople}
-					renderItem={renderSuggestedPerson}
-					keyExtractor={(item) => String(item.id)}
+					renderItem={() => null}
+					keyExtractor={(item, index) => String(index)}
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 					ListHeaderComponent={(
@@ -367,8 +294,6 @@ const NewMessageScreen = ({ navigation }) => {
 									</View>
 								)}
 							</View>
-
-							<Text style={styles.sectionLabel}>Suggested</Text>
 						</View>
 					)}
 					ListEmptyComponent={(

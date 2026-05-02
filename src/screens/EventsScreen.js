@@ -9,14 +9,7 @@ import { getAuthToken } from '../services/authStorage';
 import styles from '../styles/EventsScreen.styles';
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const COMING_SOON_PLACEHOLDER_ITEMS = [
-	{ id: 1, searchTerms: ['career', 'coming soon', 'registration'] },
-	{ id: 2, searchTerms: ['leadership', 'coming soon', 'registration'] },
-	{ id: 3, searchTerms: ['workshop', 'coming soon', 'registration'] },
-	{ id: 4, searchTerms: ['seminar', 'coming soon', 'registration'] },
-	{ id: 5, searchTerms: ['sports', 'coming soon', 'registration'] },
-	{ id: 6, searchTerms: ['community', 'coming soon', 'registration'] },
-];
+// NOTE: Coming-soon items will be computed from real `events` below
 
 const formatEventDateRange = (startDate, endDate) => {
 	if (!startDate) {
@@ -180,7 +173,31 @@ const EventsScreen = ({ navigation }) => {
 		return terms.some((term) => term.toLowerCase().includes(normalizedQuery));
 	};
 	const visibleFeaturedItems = visibleEvents.slice(0, 5);
-	const visibleComingSoonItems = COMING_SOON_PLACEHOLDER_ITEMS.filter((item) => matchesSearch(item.searchTerms));
+	// Events that start at least one month from now (respecting current search filter)
+	const visibleComingSoonItems = React.useMemo(() => {
+		const threshold = new Date();
+		threshold.setMonth(threshold.getMonth() + 1);
+
+		const upcoming = events
+			.filter((event) => {
+				if (!event?.start_date) return false;
+				const start = new Date(event.start_date);
+				if (Number.isNaN(start.getTime())) return false;
+				return start >= threshold;
+			})
+			.filter((event) => {
+				if (!normalizedQuery) return true;
+				return [
+					event.title,
+					event.description,
+					event.venue?.name,
+					event.platform,
+				].some((value) => String(value ?? '').toLowerCase().includes(normalizedQuery));
+			})
+			.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+		return upcoming;
+	}, [events, normalizedQuery]);
 	const hasPreRegisteredEvents = registeredEvents.length > 0;
 
 	React.useEffect(() => {

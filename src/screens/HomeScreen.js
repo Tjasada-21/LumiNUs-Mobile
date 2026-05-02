@@ -80,6 +80,7 @@ const HomeScreen = ({ navigation }) => {
     const fetchNotifications = useCallback(async () => {
       try {
         setIsLoadingNotifications(true);
+        setNotifications([]);
 
         const token = await getAuthToken();
 
@@ -87,6 +88,7 @@ const HomeScreen = ({ navigation }) => {
           setNotifications([]);
           return;
         }
+
         try {
           const response = await api.get('/notifications', {
             headers: { Authorization: `Bearer ${token}` },
@@ -96,9 +98,6 @@ const HomeScreen = ({ navigation }) => {
           console.error('Failed to fetch notifications:', error);
           setNotifications([]);
         }
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error);
-        setNotifications([]);
       } finally {
         setIsLoadingNotifications(false);
       }
@@ -302,11 +301,11 @@ const HomeScreen = ({ navigation }) => {
         const parentNavigator = navigation.getParent?.();
 
         if (parentNavigator?.navigate) {
-          parentNavigator.navigate('EventRegistration');
+          parentNavigator.navigate('RegisteredEventsScreen');
           return;
         }
 
-        navigation.navigate('EventRegistration');
+        navigation.navigate('RegisteredEventsScreen');
       },
     },
     {

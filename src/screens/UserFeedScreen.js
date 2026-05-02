@@ -2103,7 +2103,8 @@ const UserFeedScreen = ({ navigation }) => {
 
 				<Modal transparent visible={postActionsVisible} animationType="slide" statusBarTranslucent={true} onRequestClose={closePostActions}>
 					<View style={styles.postActionsBackdrop}>
-						<Animated.View style={[styles.postActionsCard, { transform: [{ translateY: postActionsTranslateY }] }]} onTouchMove={handlePostActionsSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
+						<SafeAreaView style={styles.postActionsSafeArea} edges={['bottom']}>
+							<Animated.View style={[styles.postActionsCard, { transform: [{ translateY: postActionsTranslateY }] }]} onTouchMove={handlePostActionsSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
 							<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 4 }} />
 							<View style={styles.postActionsHeader}>
 								<Text style={styles.postActionsTitle}>Manage Post</Text>
@@ -2182,6 +2183,7 @@ const UserFeedScreen = ({ navigation }) => {
 								</>
 							)}
 						</Animated.View>
+					</SafeAreaView>
 					</View>
 				</Modal>
 
@@ -2204,56 +2206,58 @@ const UserFeedScreen = ({ navigation }) => {
 					<View style={styles.repostModalBackdrop}>
 						<Pressable style={StyleSheet.absoluteFillObject} onPress={closeRepostComposer} />
 
-						<Animated.View style={[styles.repostModalCard, { transform: [{ translateY: repostComposerTranslateY }] }]} onTouchMove={handleRepostComposerSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
-							<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 }} />
-							<Text style={styles.repostModalTitle}>Repost with your caption</Text>
-							<Text style={styles.repostModalSubtitle} numberOfLines={1}>
-								{activeRepostPost ? `Reposting ${renderPostAuthorName(activeRepostPost)}'s post` : 'Add context to your repost'}
-							</Text>
+						<SafeAreaView style={styles.repostModalSafeArea} edges={['bottom']}>
+							<Animated.View style={[styles.repostModalCard, { transform: [{ translateY: repostComposerTranslateY }] }]} onTouchMove={handleRepostComposerSwipe} onTouchEnd={() => { resetSwipeRefs(); }}>
+								<View style={{ height: 4, width: 40, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginTop: 8, marginBottom: 8 }} />
+								<Text style={styles.repostModalTitle}>Repost with your caption</Text>
+								<Text style={styles.repostModalSubtitle} numberOfLines={1}>
+									{activeRepostPost ? `Reposting ${renderPostAuthorName(activeRepostPost)}'s post` : 'Add context to your repost'}
+								</Text>
 
-							<TextInput
-								value={repostCaptionDraft}
-								onChangeText={setRepostCaptionDraft}
-								placeholder="Share your thoughts..."
-								placeholderTextColor="#8A94A6"
-								style={styles.repostCaptionInput}
-								multiline
-								textAlignVertical="top"
-							/>
+								<TextInput
+									value={repostCaptionDraft}
+									onChangeText={setRepostCaptionDraft}
+									placeholder="Share your thoughts..."
+									placeholderTextColor="#8A94A6"
+									style={styles.repostCaptionInput}
+									multiline
+									textAlignVertical="top"
+								/>
 
-							{repostMentionContext && repostMentionSuggestions.length > 0 ? (
-								<View style={styles.mentionPanel}>
-									{repostMentionSuggestions.map((item) => (
-										<Pressable
-											key={`repost-mention-${String(item.id ?? item.name)}`}
-											style={styles.mentionItem}
-											onPress={() => handleRepostMentionPick(item.handle)}
-										>
-											<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
-											<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
-										</Pressable>
-									))}
+								{repostMentionContext && repostMentionSuggestions.length > 0 ? (
+									<View style={styles.mentionPanel}>
+										{repostMentionSuggestions.map((item) => (
+											<Pressable
+												key={`repost-mention-${String(item.id ?? item.name)}`}
+												style={styles.mentionItem}
+												onPress={() => handleRepostMentionPick(item.handle)}
+											>
+												<Image source={{ uri: item.avatar }} style={styles.mentionAvatar} />
+												<Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
+											</Pressable>
+										))}
+									</View>
+								) : null}
+
+								<View style={styles.repostModalActionsRow}>
+									<Pressable
+										style={styles.repostCancelButton}
+										onPress={closeRepostComposer}
+									>
+										<Text style={styles.repostCancelButtonText}>Cancel</Text>
+									</Pressable>
+
+									<Pressable
+										style={[
+											styles.repostSubmitButton,
+										]}
+										onPress={submitRepostWithCaption}
+									>
+										<Text style={styles.repostSubmitButtonText}>Repost</Text>
+									</Pressable>
 								</View>
-							) : null}
-
-							<View style={styles.repostModalActionsRow}>
-								<Pressable
-									style={styles.repostCancelButton}
-									onPress={closeRepostComposer}
-								>
-									<Text style={styles.repostCancelButtonText}>Cancel</Text>
-								</Pressable>
-
-								<Pressable
-									style={[
-										styles.repostSubmitButton,
-									]}
-									onPress={submitRepostWithCaption}
-								>
-									<Text style={styles.repostSubmitButtonText}>Repost</Text>
-								</Pressable>
-							</View>
-						</Animated.View>
+							</Animated.View>
+						</SafeAreaView>
 					</View>
 				</Modal>
 

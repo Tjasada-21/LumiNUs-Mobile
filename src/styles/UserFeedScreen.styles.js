@@ -283,10 +283,8 @@ const styles = StyleSheet.create({
 	postMenuButton: {
 		width: 32,
 		height: 32,
-		borderRadius: 16,
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#EEF2FF',
 	},
 	postCaption: {
 		fontSize: 15,
@@ -763,6 +761,10 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(15, 23, 42, 0.58)',
 		justifyContent: 'flex-end',
 	},
+	repostModalSafeArea: {
+		flex: 1,
+		justifyContent: 'flex-end',
+	},
 	repostModalCard: {
 		width: '100%',
 		height: '88%',
@@ -946,6 +948,11 @@ const styles = StyleSheet.create({
 		alignItems: 'stretch',
 		justifyContent: 'flex-end',
 		paddingHorizontal: 0,
+	},
+	postActionsSafeArea: {
+		flex: 1,
+		justifyContent: 'flex-end',
+		alignItems: 'stretch',
 	},
 	deleteLoadingBackdrop: {
 		flex: 1,

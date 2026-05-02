@@ -80,9 +80,9 @@ const ProfileViewScreen = ({ navigation, route }) => {
 		}
 
 		navigation.navigate('ConvoScreen', {
-			userId,
-			userName: profileName,
-			userAvatarUri: profileImageUri,
+			contactId: userId,
+			contactName: profileName,
+			contactAvatar: profileImageUri,
 		});
 	};
 
