@@ -76,6 +76,14 @@ const normalizeMessageList = (value) => {
   return [];
 };
 
+const normalizeTypingUsers = (value) => {
+  if (Array.isArray(value?.typing_users)) {
+    return value.typing_users;
+  }
+
+  return [];
+};
+
 const getAvatarUri = (name, fallbackUri) => {
   if (fallbackUri) {
     return fallbackUri;
@@ -164,6 +172,8 @@ export default function ConvoScreen() {
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [connections, setConnections] = useState([]);
+  const [typingUsers, setTypingUsers] = useState([]);
+  const typingDebounceRef = useRef(null);
 
   const hasConversation = Boolean(contactId || groupId);
   const allowMentions = isGroup;
@@ -206,6 +216,34 @@ export default function ConvoScreen() {
       .slice(0, 5);
   }, [allowMentions, connections, mentionContext]);
 
+  const typingLabel = useMemo(() => {
+    if (!typingUsers.length) {
+      return '';
+    }
+
+    const typingNames = typingUsers
+      .map((user) => `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim())
+      .filter(Boolean);
+
+    if (typingNames.length === 0) {
+      return isGroup ? 'Someone is typing...' : `${conversationName} is typing...`;
+    }
+
+    if (isGroup) {
+      if (typingNames.length === 1) {
+        return `${typingNames[0]} is typing...`;
+      }
+
+      if (typingNames.length === 2) {
+        return `${typingNames[0]} and ${typingNames[1]} are typing...`;
+      }
+
+      return 'Several people are typing...';
+    }
+
+    return `${typingNames[0]} is typing...`;
+  }, [conversationName, isGroup, typingUsers]);
+
   const scrollToBottom = useCallback((animated = false) => {
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToEnd({ animated });
@@ -238,6 +276,54 @@ export default function ConvoScreen() {
       setConnections([]);
     }
   }, []);
+
+  const updateTypingStatus = useCallback(async (isTyping) => {
+    if (!hasConversation) {
+      return;
+    }
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoint = isGroup ? `/group-chats/${groupId}/typing` : `/messages/${contactId}/typing`;
+
+      await api.post(endpoint, { is_typing: isTyping }, { headers });
+
+      if (!isTyping) {
+        setTypingUsers([]);
+      }
+    } catch (error) {
+      console.error('Failed to update typing status:', error);
+    }
+  }, [contactId, groupId, hasConversation, isGroup]);
+
+  const loadTypingStatus = useCallback(async () => {
+    if (!hasConversation) {
+      setTypingUsers([]);
+      return;
+    }
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        setTypingUsers([]);
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const endpoint = isGroup ? `/group-chats/${groupId}/typing` : `/messages/${contactId}/typing`;
+      const response = await api.get(endpoint, { headers });
+
+      setTypingUsers(normalizeTypingUsers(response.data));
+    } catch (error) {
+      console.error('Failed to load typing status:', error);
+      setTypingUsers([]);
+    }
+  }, [contactId, groupId, hasConversation, isGroup]);
 
   const handleMentionPick = useCallback((mentionHandle) => {
     if (!allowMentions || !mentionContext) {
@@ -322,7 +408,12 @@ export default function ConvoScreen() {
   useFocusEffect(
     useCallback(() => {
       loadMessages();
-    }, [loadMessages])
+      loadTypingStatus();
+
+      return () => {
+        updateTypingStatus(false);
+      };
+    }, [loadMessages, loadTypingStatus, updateTypingStatus])
   );
 
   useEffect(() => {
@@ -330,6 +421,47 @@ export default function ConvoScreen() {
       scrollToBottom(false);
     }
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    if (!hasConversation) {
+      return undefined;
+    }
+
+    const pollInterval = setInterval(() => {
+      loadTypingStatus();
+    }, 2000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [hasConversation, loadTypingStatus]);
+
+  useEffect(() => {
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+      typingDebounceRef.current = null;
+    }
+
+    if (!hasConversation) {
+      return undefined;
+    }
+
+    if (!draft.trim()) {
+      updateTypingStatus(false);
+      return undefined;
+    }
+
+    typingDebounceRef.current = setTimeout(() => {
+      updateTypingStatus(true);
+    }, 450);
+
+    return () => {
+      if (typingDebounceRef.current) {
+        clearTimeout(typingDebounceRef.current);
+        typingDebounceRef.current = null;
+      }
+    };
+  }, [draft, hasConversation, updateTypingStatus]);
 
   // Set up real-time message subscriptions
   useEffect(() => {
@@ -524,6 +656,7 @@ export default function ConvoScreen() {
     setDraft('');
     setReplyTo(null);
     setIsSending(true);
+    updateTypingStatus(false);
 
     try {
       const endpoint = isGroup ? `/group-chats/${groupId}/messages` : `/messages/${contactId}`;
@@ -557,7 +690,7 @@ export default function ConvoScreen() {
     } finally {
       setIsSending(false);
     }
-  }, [contactId, draft, groupId, hasConversation, isGroup, isSending, replyTo]);
+  }, [contactId, draft, groupId, hasConversation, isGroup, isSending, replyTo, updateTypingStatus]);
 
   const renderMessageItem = useCallback(({ item, index }) => {
     const senderId = item?.sender_id ?? item?.user_id ?? item?.sender?.id ?? item?.sender?.user_id ?? null;
@@ -639,6 +772,14 @@ export default function ConvoScreen() {
                     <Text style={styles.mentionName} numberOfLines={1}>@{item.handle}</Text>
                   </Pressable>
                 ))}
+              </View>
+            ) : null}
+
+            {typingLabel ? (
+              <View style={styles.typingIndicatorRow}>
+                <View style={styles.typingBubble}>
+                  <Text style={styles.typingText} numberOfLines={1}>{typingLabel}</Text>
+                </View>
               </View>
             ) : null}
 

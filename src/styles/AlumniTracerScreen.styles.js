@@ -77,6 +77,30 @@ const styles = StyleSheet.create({
 		color: '#6B7280',
 		marginTop: 2,
 	},
+	statusBadge: {
+		alignSelf: 'flex-start',
+		borderRadius: 999,
+		paddingHorizontal: 10,
+		paddingVertical: 4,
+		marginTop: 6,
+		marginBottom: 4,
+	},
+	statusBadgeActive: {
+		backgroundColor: '#E7F8EE',
+	},
+	statusBadgeInactive: {
+		backgroundColor: '#FDECEC',
+	},
+	statusBadgeText: {
+		fontSize: 12,
+		fontWeight: '700',
+	},
+	statusBadgeTextActive: {
+		color: '#1F7A3F',
+	},
+	statusBadgeTextInactive: {
+		color: '#B42318',
+	},
 
 	emptyState: {
 		alignItems: 'center',

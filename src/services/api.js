@@ -65,6 +65,10 @@ export const apiReady = ensureApiBaseUrl();
 api.interceptors.request.use(async (config) => {
   await ensureApiBaseUrl();
 
+  if (config?.skipAuth) {
+    return config;
+  }
+
   const token = peekAuthToken() ?? await getAuthToken();
 
   if (token) {

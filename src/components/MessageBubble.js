@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -43,7 +43,20 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
   const showFailedStatus = isOutgoing && sendStatus === 'failed';
   const showSentStatus = isOutgoing && sendStatus === 'sent';
   const translateX = useRef(new Animated.Value(0)).current;
+  const entranceProgress = useRef(new Animated.Value(0)).current;
   const swipeDirection = isOutgoing ? -1 : 1;
+
+  useEffect(() => {
+    entranceProgress.setValue(0);
+
+    Animated.spring(entranceProgress, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 120,
+    }).start();
+  }, [entranceProgress, message?.id]);
+
   const swipeResponder = useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gestureState) => {
       const horizontalDistance = Math.abs(gestureState.dx);
@@ -94,7 +107,24 @@ const MessageBubble = ({ message, isOutgoing, showAvatar, senderAvatar, onLongPr
         style={[
           styles.bubbleWrapper,
           isOutgoing ? styles.bubbleWrapperOutgoing : styles.bubbleWrapperIncoming,
-          { transform: [{ translateX }] },
+          {
+            opacity: entranceProgress,
+            transform: [
+              { translateX },
+              {
+                translateY: entranceProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0],
+                }),
+              },
+              {
+                scale: entranceProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.92, 1],
+                }),
+              },
+            ],
+          },
         ]}
       >
         <TouchableOpacity
